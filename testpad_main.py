@@ -33,6 +33,8 @@ class ApplicationWindow(QMainWindow):
         tab_widget.addTab(RFBTab(self), "Radiation Force Balance")
         # tab_widget.addTab(ApplicationsTab(file_info, self), "Applications")
 
+        # self.addDockWidget(tab_widget)
+
         main_layout = QGridLayout()
 
         main_layout.addWidget(tab_widget)
@@ -129,24 +131,24 @@ class TransducerCalibrationTab(QWidget):
         sweep_box = QCheckBox()
         ax_field_graphs_box = QCheckBox()
         ax_line_graphs_box = QCheckBox()
-        lat_field_graphs_label = QCheckBox()
-        lat_line_graphs_label = QCheckBox()
-        save_label = QPushButton()
-        data_files = QPushButton()
-        save_folder = QPushButton()
-        eb50_file = QLineEdit()
-        ax_left_field_length = QLineEdit()
-        ax_right_field_length = QLineEdit()
-        ax_field_height = QLineEdit()
-        ax_left_line_length = QLineEdit()
-        ax_right_line_length = QLineEdit()
-        lat_field_length = QLineEdit()
-        interp_step = QLineEdit()
+        lat_field_graphs_box = QCheckBox()
+        lat_line_graphs_box = QCheckBox()
+        save_box = QCheckBox()
+        data_files_button = QPushButton()
+        save_folder_button = QPushButton()
+        eb50_file_button = QPushButton()
+        ax_left_field_length_field = QLineEdit()
+        ax_right_field_length_field = QLineEdit()
+        ax_field_height_field = QLineEdit()
+        ax_left_line_length_field = QLineEdit()
+        ax_right_line_length_field = QLineEdit()
+        lat_field_length_field = QLineEdit()
+        interp_step_field = QLineEdit()
 
         # EDIT 
-        widgets_list_col_1 = [sweep_label, ax_field_graphs_label, ax_line_graphs_label, lat_field_graphs_label, lat_line_graphs_label, save_label, \
-                              data_files, save_folder, eb50_file, \
-                                ax_left_field_length, ax_right_field_length, ax_field_height, ax_left_line_length, ax_right_line_length, lat_field_length, interp_step]
+        widgets_list_col_1 = [sweep_box, ax_field_graphs_box, ax_line_graphs_box, lat_field_graphs_box, lat_line_graphs_box, save_box, \
+                              data_files_button, save_folder_button, eb50_file_button, \
+                                ax_left_field_length_field, ax_right_field_length_field, ax_field_height_field, ax_left_field_length_field, ax_left_line_length_field, ax_right_line_length_field, lat_field_length_field, interp_step_field]
         
 
         main_layout = QGridLayout()
