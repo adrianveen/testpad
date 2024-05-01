@@ -168,7 +168,7 @@ class TransducerCalibrationTab(QWidget):
         # CHOOSE FILES GROUP
         choose_file_group = QGroupBox("File Selection")
         # Column 0
-        self.data_files = QLabel("Data Files")
+        self.data_files = QLabel("Data Files*")
         self.save_folder = QLabel("Save Folder")
         self.eb50_file_button = QLabel("EB-50 File")
         choose_file_col_0 = [self.data_files, self.save_folder, self.eb50_file_button]
@@ -237,16 +237,12 @@ class TransducerCalibrationTab(QWidget):
         graph_group.addTab(GraphTab(self), "Axial Line")
         graph_group.addTab(GraphTab(self), "Lateral Line")
 
-        # # CHANGING THE TEXT BASED ON WHICH CHECKBOX IS CHECKED 
-        # if ax_field_graphs_box.isChecked():
-        #     self.ax_left_field_length.setText("Axial Left Field Length*")
-        #     self.ax_right_field_length.setText("Axial Right Field Length*")
-        #     self.ax_field_height.setText("Axial Field Height*")
-        #     self.interp_step.setText("Interpolation Step*") 
-        #     self.update()
-        # sweep_box.connect(self.changeText("sweep"))
+        # CHANGING THE TEXT BASED ON WHICH CHECKBOX IS CHECKED 
         ax_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(ax_field_graphs_box, "ax_field"))
-
+        ax_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(ax_line_graphs_box, "ax_line"))
+        lat_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(lat_field_graphs_box, "lat_field"))
+        lat_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(lat_line_graphs_box, "lat_line"))
+        save_box.checkStateChanged.connect(lambda: self.changeText(save_box, "save"))
         
         # MAIN LAYOUT 
         main_layout = QGridLayout()
@@ -262,11 +258,38 @@ class TransducerCalibrationTab(QWidget):
         if type == "ax_field":
             if box.isChecked():
                 self.ax_left_field_length.setText("Axial Left Field Length*")
+                self.ax_right_field_length.setText("Axial Right Field Length*")
+                self.ax_field_height.setText("Axial Field Height*")
+                self.interp_step.setText("Interpolation Step*")
             else: 
                 self.ax_left_field_length.setText("Axial Left Field Length")
-                # print("Hi")
-            self.ax_left_field_length.update()
-
+                self.ax_right_field_length.setText("Axial Right Field Length")
+                self.ax_field_height.setText("Axial Field Height")
+                self.interp_step.setText("Interpolation Step")
+        elif type == "ax_line": 
+            if box.isChecked():
+                self.ax_left_line_length.setText("Axial Left Line Plot Length*")
+                self.ax_right_line_length.setText("Axial Right Line Plot Length*")
+            else: 
+                self.ax_left_line_length.setText("Axial Left Line Plot Length")
+                self.ax_right_line_length.setText("Axial Right Line Plot Length")
+        elif type == "lat_field":
+            if box.isChecked():
+                self.lat_field_length.setText("Lateral Field Length*")
+                self.interp_step.setText("Interpolation Step*")
+            else: 
+                self.lat_field_length.setText("Lateral Field Length")
+                self.interp_step.setText("Interpolation Step")
+        elif type == "lat_line":
+            if box.isChecked():
+                self.lat_field_length.setText("Lateral Field Length*")
+            else: 
+                self.lat_field_length.setText("Lateral Field Length")
+        elif type == "save":
+            if box.isChecked():
+                self.save_folder.setText("Save Folder*")
+            else: 
+                self.save_folder.setText("Save Folder")
 
 # change to accept parameter of graph type + other graph info 
 class GraphTab(QWidget):
