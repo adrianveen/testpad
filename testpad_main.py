@@ -123,7 +123,6 @@ class EboxTab(QWidget):
         amp_step_val_label = QLabel("Amplitude step value (Vpp)")
         coupler_atten_label = QLabel("Coupler attenuation (dB)")
 
-
         # MAIN LAYOUT 
         main_layout = QGridLayout()
         main_layout.addWidget(siglent_group)
@@ -161,6 +160,7 @@ class TransducerCalibrationTab(QWidget):
             checkbox_layout.addWidget(checkbox_list_col_0[i], i, 0)
         # add checkboxes to group
         for i in range(len(checkbox_list_col_1)): 
+            # checkbox_list_col_1[i].setAlignment()
             checkbox_layout.addWidget(checkbox_list_col_1[i], i, 1)
 
         checkbox_group.setLayout(checkbox_layout)
@@ -168,15 +168,15 @@ class TransducerCalibrationTab(QWidget):
         # CHOOSE FILES GROUP
         choose_file_group = QGroupBox("File Selection")
         # Column 0
-        data_files = QLabel("Data Files")
-        save_folder = QLabel("Save Folder")
-        eb50_file = QLabel("EB-50 File")
-        choose_file_col_0 = [data_files, save_folder, eb50_file]
+        self.data_files = QLabel("Data Files")
+        self.save_folder = QLabel("Save Folder")
+        self.eb50_file_button = QLabel("EB-50 File")
+        choose_file_col_0 = [self.data_files, self.save_folder, self.eb50_file_button]
         # Column 1
-        data_files_button = QPushButton("Choose Files")
-        save_folder_button = QPushButton("Choose Folder")
-        eb50_file_button = QPushButton("Choose File")
-        choose_file_col_1 = [data_files_button, save_folder_button, eb50_file_button]
+        self.data_files_button = QPushButton("Choose Files")
+        self.save_folder_button = QPushButton("Choose Folder")
+        self.eb50_file_button_button = QPushButton("Choose File")
+        choose_file_col_1 = [self.data_files_button, self.save_folder_button, self.eb50_file_button_button]
 
         # layout for choose files 
         choose_file_layout = QGridLayout()
@@ -189,30 +189,29 @@ class TransducerCalibrationTab(QWidget):
         
         choose_file_group.setLayout(choose_file_layout)
 
-
-        # TEXT DISPLAY GROUP (Change to textbox, currently a placeholder)
+        # TEXT DISPLAY GROUP 
         text_display_group = QTextBrowser()
 
         # TEXT FIELDS GROUP 
         text_fields_group = QGroupBox("Specifications")
         # Column 0
-        ax_left_field_length = QLabel("Axial Left Field Length")
-        ax_right_field_length = QLabel("Axial Right Field Length")
-        ax_field_height = QLabel("Axial Field Height")
-        ax_left_line_length = QLabel("Axial Left Line Plot Length")
-        ax_right_line_length = QLabel("Axial Right Line Plot Length")
-        lat_field_length = QLabel("Lateral Field Length")
-        interp_step = QLabel("Interpolation Step")
-        text_fields_list_col_0 = [ax_left_field_length, ax_right_field_length, ax_field_height, ax_left_line_length, ax_right_line_length, lat_field_length, interp_step]
+        self.ax_left_field_length = QLabel("Axial Left Field Length")
+        self.ax_right_field_length = QLabel("Axial Right Field Length")
+        self.ax_field_height = QLabel("Axial Field Height")
+        self.ax_left_line_length = QLabel("Axial Left Line Plot Length")
+        self.ax_right_line_length = QLabel("Axial Right Line Plot Length")
+        self.lat_field_length = QLabel("Lateral Field Length")
+        self.interp_step = QLabel("Interpolation Step")
+        text_fields_list_col_0 = [self.ax_left_field_length, self.ax_right_field_length, self.ax_field_height, self.ax_left_line_length, self.ax_right_line_length, self.lat_field_length, self.interp_step]
         # Column 1
-        ax_left_field_length_field = QLineEdit()
-        ax_right_field_length_field = QLineEdit()
-        ax_field_height_field = QLineEdit()
-        ax_left_line_length_field = QLineEdit()
-        ax_right_line_length_field = QLineEdit()
-        lat_field_length_field = QLineEdit()
-        interp_step_field = QLineEdit()
-        text_fields_list_col_1 = [ax_left_field_length_field, ax_right_field_length_field, ax_field_height_field, ax_left_line_length_field, ax_right_line_length_field, lat_field_length_field, interp_step_field]
+        self.ax_left_field_length_field = QLineEdit()
+        self.ax_right_field_length_field = QLineEdit()
+        self.ax_field_height_field = QLineEdit()
+        self.ax_left_line_length_field = QLineEdit()
+        self.ax_right_line_length_field = QLineEdit()
+        self.lat_field_length_field = QLineEdit()
+        self.interp_step_field = QLineEdit()
+        text_fields_list_col_1 = [self.ax_left_field_length_field, self.ax_right_field_length_field, self.ax_field_height_field, self.ax_left_line_length_field, self.ax_right_line_length_field, self.lat_field_length_field, self.interp_step_field]
 
         # layout for text fields
         text_field_layout = QGridLayout()
@@ -226,6 +225,10 @@ class TransducerCalibrationTab(QWidget):
         
         text_fields_group.setLayout(text_field_layout)
 
+        # PRINT GRAPH BUTTON 
+        print_graph = QPushButton("PRINT GRAPHS")
+        print_graph.setStyleSheet("background-color: #74BEA3")
+
         # DISPLAY WINDOW (Change to tabs window, currently a placeholder)
         graph_group = QTabWidget()
         graph_group.addTab(GraphTab(self), "Sweep")
@@ -234,14 +237,36 @@ class TransducerCalibrationTab(QWidget):
         graph_group.addTab(GraphTab(self), "Axial Line")
         graph_group.addTab(GraphTab(self), "Lateral Line")
 
+        # # CHANGING THE TEXT BASED ON WHICH CHECKBOX IS CHECKED 
+        # if ax_field_graphs_box.isChecked():
+        #     self.ax_left_field_length.setText("Axial Left Field Length*")
+        #     self.ax_right_field_length.setText("Axial Right Field Length*")
+        #     self.ax_field_height.setText("Axial Field Height*")
+        #     self.interp_step.setText("Interpolation Step*") 
+        #     self.update()
+        # sweep_box.connect(self.changeText("sweep"))
+        ax_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(ax_field_graphs_box, "ax_field"))
+
+        
         # MAIN LAYOUT 
         main_layout = QGridLayout()
         main_layout.addWidget(checkbox_group, 0, 0, 2, 1)
         main_layout.addWidget(choose_file_group, 0, 1)
         main_layout.addWidget(text_display_group, 1, 1)
         main_layout.addWidget(text_fields_group, 2, 0)
-        main_layout.addWidget(graph_group, 2, 1)
+        main_layout.addWidget(graph_group, 2, 1, 2, 1)
+        main_layout.addWidget(print_graph, 3, 0)
         self.setLayout(main_layout)
+
+    def changeText(self, box: QCheckBox, type: str):
+        if type == "ax_field":
+            if box.isChecked():
+                self.ax_left_field_length.setText("Axial Left Field Length*")
+            else: 
+                self.ax_left_field_length.setText("Axial Left Field Length")
+                # print("Hi")
+            self.ax_left_field_length.update()
+
 
 # change to accept parameter of graph type + other graph info 
 class GraphTab(QWidget):
