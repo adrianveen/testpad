@@ -121,6 +121,8 @@ class TransducerCalibrationTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
 
+        # CHECKBOX GROUP
+        checkbox_group = QGroupBox("Selections")
         # Column 0
         sweep_label = QLabel("Write sweep file and graph?")
         ax_field_graphs_label = QLabel("Print axial field graphs?")
@@ -128,54 +130,106 @@ class TransducerCalibrationTab(QWidget):
         lat_field_graphs_label = QLabel("Print lateral field graphs?")
         lat_line_graphs_label = QLabel("Print lateral line graphs?")
         save_label = QLabel("Save file?")
-        data_files = QLabel("Data Files")
-        save_folder = QLabel("Save Folder")
-        eb50_file = QLabel("EB-50 File")
-        ax_left_field_length = QLabel("Axial Left Field Length")
-        ax_right_field_length = QLabel("Axial Right Field Length")
-        ax_field_height = QLabel("Axial Field Height")
-        ax_left_line_length = QLabel("Axial Left Line Plot Length")
-        ax_right_line_length = QLabel("Axial Right Line Plot Length")
-        lat_field_length = QLabel("Lateral Field Length")
-        interp_step = QLabel("Interpolation Step")
-
-        widgets_list_col_0 = [sweep_label, ax_field_graphs_label, ax_line_graphs_label, lat_field_graphs_label, lat_line_graphs_label, save_label, \
-                              data_files, save_folder, eb50_file, \
-                                ax_left_field_length, ax_right_field_length, ax_field_height, ax_left_line_length, ax_right_line_length, lat_field_length, interp_step]
-        
-        # Column 1, EDIT
+        checkbox_list_col_0 = [sweep_label, ax_field_graphs_label, ax_line_graphs_label, lat_field_graphs_label, lat_line_graphs_label, save_label]
+        # Column 1
         sweep_box = QCheckBox()
         ax_field_graphs_box = QCheckBox()
         ax_line_graphs_box = QCheckBox()
         lat_field_graphs_box = QCheckBox()
         lat_line_graphs_box = QCheckBox()
         save_box = QCheckBox()
+        checkbox_list_col_1 = [sweep_box, ax_field_graphs_box, ax_line_graphs_box, lat_field_graphs_box, lat_line_graphs_box, save_box]
+
+        # layout for checkboxes 
+        checkbox_layout = QGridLayout()
+        # add labels to group 
+        for i in range(len(checkbox_list_col_0)): 
+            checkbox_layout.addWidget(checkbox_list_col_0[i], i, 0)
+        # add checkboxes to group
+        for i in range(len(checkbox_list_col_1)): 
+            checkbox_layout.addWidget(checkbox_list_col_1[i], i, 1)
+
+        checkbox_group.setLayout(checkbox_layout)
+
+        # CHOOSE FILES GROUP
+        choose_file_group = QGroupBox("File Selection")
+        # Column 0
+        data_files = QLabel("Data Files")
+        save_folder = QLabel("Save Folder")
+        eb50_file = QLabel("EB-50 File")
+        choose_file_col_0 = [data_files, save_folder, eb50_file]
+        # Column 1
         data_files_button = QPushButton("Choose Files")
         save_folder_button = QPushButton("Choose Folder")
         eb50_file_button = QPushButton("Choose File")
-        ax_left_field_length_field = QLineEdit()
-        ax_right_field_length_field = QLineEdit()
-        ax_field_height_field = QLineEdit()
-        ax_left_line_length_field = QLineEdit()
-        ax_right_line_length_field = QLineEdit()
-        lat_field_length_field = QLineEdit()
-        interp_step_field = QLineEdit()
+        choose_file_col_1 = [data_files_button, save_folder_button, eb50_file_button]
 
-        # EDIT 
-        widgets_list_col_1 = [sweep_box, ax_field_graphs_box, ax_line_graphs_box, lat_field_graphs_box, lat_line_graphs_box, save_box, \
-                              data_files_button, save_folder_button, eb50_file_button, \
-                                ax_left_field_length_field, ax_right_field_length_field, ax_field_height_field, ax_left_field_length_field, ax_left_line_length_field, ax_right_line_length_field, lat_field_length_field, interp_step_field]
+        # layout for choose files 
+        choose_file_layout = QGridLayout()
+        # add labels to group 
+        for i in range(len(choose_file_col_0)): 
+            choose_file_layout.addWidget(choose_file_col_0[i], i, 0)
+        # add buttons to group
+        for i in range(len(choose_file_col_1)): 
+            choose_file_layout.addWidget(choose_file_col_1[i], i, 1)
+        
+        choose_file_group.setLayout(choose_file_layout)
+
+
+        # TEXT DISPLAY GROUP (Change to textbox, currently a placeholder)
+        text_display_group = QGroupBox("File Selection Display (Placeholder)")
+
+        # TEXT FIELDS GROUP 
+        text_fields_group = QGroupBox("Specifications")
+        # Column 0
+        # ax_left_field_length = QLabel("Axial Left Field Length")
+        # ax_right_field_length = QLabel("Axial Right Field Length")
+        # ax_field_height = QLabel("Axial Field Height")
+        # ax_left_line_length = QLabel("Axial Left Line Plot Length")
+        # ax_right_line_length = QLabel("Axial Right Line Plot Length")
+        # lat_field_length = QLabel("Lateral Field Length")
+        # interp_step = QLabel("Interpolation Step")
+        
+        # DISPLAY WINDOW (Change to tabs window, currently a placeholder)
+        graph_group = QGroupBox("Graphs (Placeholder)")
+
+        # # Column 0
+        
+        
         
 
+        # widgets_list_col_0 = [data_files, save_folder, eb50_file, \
+        #                         ax_left_field_length, ax_right_field_length, ax_field_height, ax_left_line_length, ax_right_line_length, lat_field_length, interp_step]
+        
+        # # Column 1, EDIT
+        
+        
+        # ax_left_field_length_field = QLineEdit()
+        # ax_right_field_length_field = QLineEdit()
+        # ax_field_height_field = QLineEdit()
+        # ax_left_line_length_field = QLineEdit()
+        # ax_right_line_length_field = QLineEdit()
+        # lat_field_length_field = QLineEdit()
+        # interp_step_field = QLineEdit()
+
+        # # EDIT 
+        # widgets_list_col_1 = [data_files_button, save_folder_button, eb50_file_button, \
+        #                         ax_left_field_length_field, ax_right_field_length_field, ax_field_height_field, ax_left_field_length_field, ax_left_line_length_field, ax_right_line_length_field, lat_field_length_field, interp_step_field]
+        
+        # # add all widgets to grid layout 
+        # for i in range(len(widgets_list_col_0)): 
+        #     main_layout.addWidget(widgets_list_col_0[i], i, 0)
+
+        # for i in range(len(widgets_list_col_1)): 
+        #     main_layout.addWidget(widgets_list_col_1[i], i, 1)
+
+        # MAIN LAYOUT 
         main_layout = QGridLayout()
-
-        # add all widgets to grid layout 
-        for i in range(len(widgets_list_col_0)): 
-            main_layout.addWidget(widgets_list_col_0[i], i, 0)
-
-        for i in range(len(widgets_list_col_1)): 
-            main_layout.addWidget(widgets_list_col_1[i], i, 1)
-
+        main_layout.addWidget(checkbox_group, 0, 0, 2, 1)
+        main_layout.addWidget(choose_file_group, 0, 1)
+        main_layout.addWidget(text_display_group, 1, 1)
+        main_layout.addWidget(text_fields_group, 2, 0)
+        main_layout.addWidget(graph_group, 2, 1)
         self.setLayout(main_layout)
 
 class RFBTab(QWidget):
