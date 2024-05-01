@@ -6,8 +6,8 @@ from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import axes3d
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QApplication, QCheckBox, QDialogButtonBox, QPushButton, QComboBox, QDialog, QGridLayout, QHBoxLayout,
-                               QHeaderView, QLabel, QLineEdit, QMainWindow, QSlider,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QDialogButtonBox, QPushButton, QComboBox, QDialog, QGridLayout, QGroupBox, 
+                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QSlider,
                                QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout,
                                QWidget, QSizePolicy)
 
@@ -24,7 +24,9 @@ class ApplicationWindow(QMainWindow):
         # self.setCentralWidget(self._main)
 
         tab_widget = QTabWidget()
-        self.setCentralWidget(tab_widget)
+        # sp = tab_widget.sizePolicy()
+        # sp.Policy = QSizePolicy.Expanding
+        
         # tab_widget.setMinimumSize(QMainWindow.sizeHint())
         # tab_widget.showFullScreen()
         tab_widget.addTab(MatchingBoxTab(self), "Matching Box")
@@ -32,14 +34,25 @@ class ApplicationWindow(QMainWindow):
         tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration")
         tab_widget.addTab(RFBTab(self), "Radiation Force Balance")
         # tab_widget.addTab(ApplicationsTab(file_info, self), "Applications")
-
+        # self.adjustSize()
         # self.addDockWidget(tab_widget)
 
-        main_layout = QGridLayout()
+        # tab_layout = QVBoxLayout() 
+        # tab_layout.addWidget(tab_widget)
+
+        main_layout = QVBoxLayout()
+
+        # main_layout.addLayout(tab_layout)
+        # main_layout.addWidget(QPushButton())
+        # main_layout.addStretch()
 
         main_layout.addWidget(tab_widget)
 
         self.setLayout(main_layout)
+
+        self.setCentralWidget(tab_widget)
+
+        # self.adjustSize()
 
 
 
@@ -96,8 +109,11 @@ class MatchingBoxTab(QWidget):
 class EboxTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-
+        siglent_group = QGroupBox("Siglent")
+        eb50_group = QGroupBox("EB-50")
         main_layout = QGridLayout()
+        main_layout.addWidget(siglent_group)
+        main_layout.addWidget(eb50_group)
 
         self.setLayout(main_layout)
 
@@ -134,9 +150,9 @@ class TransducerCalibrationTab(QWidget):
         lat_field_graphs_box = QCheckBox()
         lat_line_graphs_box = QCheckBox()
         save_box = QCheckBox()
-        data_files_button = QPushButton()
-        save_folder_button = QPushButton()
-        eb50_file_button = QPushButton()
+        data_files_button = QPushButton("Choose Files")
+        save_folder_button = QPushButton("Choose Folder")
+        eb50_file_button = QPushButton("Choose File")
         ax_left_field_length_field = QLineEdit()
         ax_right_field_length_field = QLineEdit()
         ax_field_height_field = QLineEdit()
