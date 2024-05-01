@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QCheckBox, QDialogButtonBox, QPushButton, QComboBox, QDialog, QGridLayout, QGroupBox, 
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QSlider,
-                               QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout,
+                               QTableWidget, QTableWidgetItem, QTabWidget, QTextBrowser, QVBoxLayout,
                                QWidget, QSizePolicy)
 
 
@@ -70,13 +70,13 @@ class MatchingBoxTab(QWidget):
 
         # column 1 
         freq_textbox = QLineEdit()
-        # freq_textbox.setMaximumWidth(100)
+        freq_textbox.setMaximumWidth(100)
 
         z_textbox = QLineEdit()
-        # z_textbox.setMaximumWidth(100)
+        z_textbox.setMaximumWidth(100)
 
         phase_textbox = QLineEdit()
-        # phase_textbox.setMaximumWidth(100)
+        phase_textbox.setMaximumWidth(100)
 
         toroid_box = QComboBox()
         toroid_box.addItems(["200", "280", "160"])
@@ -109,8 +109,22 @@ class MatchingBoxTab(QWidget):
 class EboxTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
+        # SIGLENT GROUPBOX 
         siglent_group = QGroupBox("Siglent")
+        
+        # EB-50 GROUPBOX 
         eb50_group = QGroupBox("EB-50")
+        serial_num_label = QLabel("EB-50 serial number")
+        amp_num_label = QLabel("Amplifier number")
+        siglent_file_label = QLabel("Siglent file")
+        eb50_atten_label = QLabel("EB-50 Attenuation (dB)")
+        amp_start_val_label = QLabel("Amplitude start value (Vpp)")
+        amp_stop_val_label = QLabel("Amplitude stop value (Vpp)")
+        amp_step_val_label = QLabel("Amplitude step value (Vpp)")
+        coupler_atten_label = QLabel("Coupler attenuation (dB)")
+
+
+        # MAIN LAYOUT 
         main_layout = QGridLayout()
         main_layout.addWidget(siglent_group)
         main_layout.addWidget(eb50_group)
@@ -177,51 +191,48 @@ class TransducerCalibrationTab(QWidget):
 
 
         # TEXT DISPLAY GROUP (Change to textbox, currently a placeholder)
-        text_display_group = QGroupBox("File Selection Display (Placeholder)")
+        text_display_group = QTextBrowser()
 
         # TEXT FIELDS GROUP 
         text_fields_group = QGroupBox("Specifications")
         # Column 0
-        # ax_left_field_length = QLabel("Axial Left Field Length")
-        # ax_right_field_length = QLabel("Axial Right Field Length")
-        # ax_field_height = QLabel("Axial Field Height")
-        # ax_left_line_length = QLabel("Axial Left Line Plot Length")
-        # ax_right_line_length = QLabel("Axial Right Line Plot Length")
-        # lat_field_length = QLabel("Lateral Field Length")
-        # interp_step = QLabel("Interpolation Step")
+        ax_left_field_length = QLabel("Axial Left Field Length")
+        ax_right_field_length = QLabel("Axial Right Field Length")
+        ax_field_height = QLabel("Axial Field Height")
+        ax_left_line_length = QLabel("Axial Left Line Plot Length")
+        ax_right_line_length = QLabel("Axial Right Line Plot Length")
+        lat_field_length = QLabel("Lateral Field Length")
+        interp_step = QLabel("Interpolation Step")
+        text_fields_list_col_0 = [ax_left_field_length, ax_right_field_length, ax_field_height, ax_left_line_length, ax_right_line_length, lat_field_length, interp_step]
+        # Column 1
+        ax_left_field_length_field = QLineEdit()
+        ax_right_field_length_field = QLineEdit()
+        ax_field_height_field = QLineEdit()
+        ax_left_line_length_field = QLineEdit()
+        ax_right_line_length_field = QLineEdit()
+        lat_field_length_field = QLineEdit()
+        interp_step_field = QLineEdit()
+        text_fields_list_col_1 = [ax_left_field_length_field, ax_right_field_length_field, ax_field_height_field, ax_left_line_length_field, ax_right_line_length_field, lat_field_length_field, interp_step_field]
+
+        # layout for text fields
+        text_field_layout = QGridLayout()
+        # add labels to group 
+        for i in range(len(text_fields_list_col_0)): 
+            text_field_layout.addWidget(text_fields_list_col_0[i], i, 0)
+        # add buttons to group
+        for i in range(len(text_fields_list_col_1)): 
+            text_fields_list_col_1[i].setMaximumWidth(200)
+            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1)
         
+        text_fields_group.setLayout(text_field_layout)
+
         # DISPLAY WINDOW (Change to tabs window, currently a placeholder)
-        graph_group = QGroupBox("Graphs (Placeholder)")
-
-        # # Column 0
-        
-        
-        
-
-        # widgets_list_col_0 = [data_files, save_folder, eb50_file, \
-        #                         ax_left_field_length, ax_right_field_length, ax_field_height, ax_left_line_length, ax_right_line_length, lat_field_length, interp_step]
-        
-        # # Column 1, EDIT
-        
-        
-        # ax_left_field_length_field = QLineEdit()
-        # ax_right_field_length_field = QLineEdit()
-        # ax_field_height_field = QLineEdit()
-        # ax_left_line_length_field = QLineEdit()
-        # ax_right_line_length_field = QLineEdit()
-        # lat_field_length_field = QLineEdit()
-        # interp_step_field = QLineEdit()
-
-        # # EDIT 
-        # widgets_list_col_1 = [data_files_button, save_folder_button, eb50_file_button, \
-        #                         ax_left_field_length_field, ax_right_field_length_field, ax_field_height_field, ax_left_field_length_field, ax_left_line_length_field, ax_right_line_length_field, lat_field_length_field, interp_step_field]
-        
-        # # add all widgets to grid layout 
-        # for i in range(len(widgets_list_col_0)): 
-        #     main_layout.addWidget(widgets_list_col_0[i], i, 0)
-
-        # for i in range(len(widgets_list_col_1)): 
-        #     main_layout.addWidget(widgets_list_col_1[i], i, 1)
+        graph_group = QTabWidget()
+        graph_group.addTab(GraphTab(self), "Sweep")
+        graph_group.addTab(GraphTab(self), "Axial Field")
+        graph_group.addTab(GraphTab(self), "Lateral Field")
+        graph_group.addTab(GraphTab(self), "Axial Line")
+        graph_group.addTab(GraphTab(self), "Lateral Line")
 
         # MAIN LAYOUT 
         main_layout = QGridLayout()
@@ -230,6 +241,15 @@ class TransducerCalibrationTab(QWidget):
         main_layout.addWidget(text_display_group, 1, 1)
         main_layout.addWidget(text_fields_group, 2, 0)
         main_layout.addWidget(graph_group, 2, 1)
+        self.setLayout(main_layout)
+
+# change to accept parameter of graph type + other graph info 
+class GraphTab(QWidget):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+
+        main_layout = QGridLayout()
+
         self.setLayout(main_layout)
 
 class RFBTab(QWidget):
