@@ -118,11 +118,21 @@ class MatchingBoxTab(QWidget):
         save_checkbox = QCheckBox()
         save_folder_button = QPushButton("Choose File")
         csv_list_col_1 = [freq_csv_field, file_button, save_checkbox, save_folder_button]
-        
+        # Column 2 
+        freq_csv_combobox = QComboBox()
+        freq_csv_combobox.addItems(["MHz", "kHz"])
+        csv_list_col_2 = [freq_csv_combobox]
+
+        graph_display = QTabWidget()
+
         csv_graphs_layout = QGridLayout()
         for i in range(len(csv_list_col_0)): 
             csv_graphs_layout.addWidget(csv_list_col_0[i], i, 0)
-
+        for i in range(len(csv_list_col_1)): 
+            csv_graphs_layout.addWidget(csv_list_col_1[i], i, 1)
+        for i in range(len(csv_list_col_2)): 
+            csv_graphs_layout.addWidget(csv_list_col_2[i], i, 2)
+        csv_graphs_layout.addWidget(graph_display, 7, 0, 1, 3)
         csv_graphs_group.setLayout(csv_graphs_layout)
 
         # main layout of matching box section 
