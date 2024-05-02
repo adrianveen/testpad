@@ -1,17 +1,18 @@
 import sys
-
+# sys.path.append('../')
 # import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
 # from mpl_toolkits.mplot3d import axes3d
 from PySide6.QtCore import Slot
+from PySide6.QtGui import QPixmap
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QMainWindow, QTabWidget, QTextBrowser, QVBoxLayout,
                                QWidget)
 from combined_calibration_figures_python import combined_calibration
 
-
+# application window (inherits QMainWindow)
 class ApplicationWindow(QMainWindow): 
     def __init__(self, parent: QWidget=None): 
 
@@ -52,57 +53,82 @@ class ApplicationWindow(QMainWindow):
 
         self.setCentralWidget(tab_widget)
 
-        # self.adjustSize()
-
-
-
 class MatchingBoxTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
 
+        # MATCHING VALUES GROUP 
+        matching_vals_group = QGroupBox("Matching Box Values")
         # Column 0
-        freq_label = QLabel("Frequency: ")
+        freq_match_label = QLabel("Frequency: ")
         z_label = QLabel("Impedance: ")
         phase_label = QLabel("Phase: ")
         toroid_label = QLabel("Toroid: ")
-
-        widgets_list_col_0 = [freq_label, z_label, phase_label, toroid_label]
-
+        matching_list_col_0 = [freq_match_label, z_label, phase_label, toroid_label]
         # column 1 
         freq_textbox = QLineEdit()
         freq_textbox.setMaximumWidth(100)
-
         z_textbox = QLineEdit()
         z_textbox.setMaximumWidth(100)
-
         phase_textbox = QLineEdit()
         phase_textbox.setMaximumWidth(100)
-
         toroid_box = QComboBox()
         toroid_box.addItems(["200", "280", "160"])
-
         get_val = QPushButton("Get Values") 
-
-        widgets_list_col_1 = [freq_textbox, z_textbox, phase_textbox, toroid_box, get_val]
-
+        matching_list_col_1 = [freq_textbox, z_textbox, phase_textbox, toroid_box, get_val]
         # column 2 
         affix_box = QComboBox()
         affix_box.addItems(["MHz", "kHz"])
+        matching_list_col_2 = [affix_box]
 
-        widgets_list_col_2 = [affix_box]
+        # text box which displays text 
+        text_display = QTextBrowser()
+        # text box which displays image 
+        image_display = QLabel()
+        pixmap = QPixmap()
+        image_display.setPixmap(pixmap)
+
+        matching_vals_layout = QGridLayout()
+        # add all widgets to grid layout 
+        for i in range(len(matching_list_col_0)): 
+            matching_vals_layout.addWidget(matching_list_col_0[i], i, 0)
+
+        for i in range(len(matching_list_col_1)): 
+            matching_vals_layout.addWidget(matching_list_col_1[i], i, 1)
+
+        for i in range(len(matching_list_col_2)): 
+            matching_vals_layout.addWidget(matching_list_col_2[i], i, 2)
+
+        matching_vals_layout.addWidget(text_display, 5, 0, 1, 3)
+        matching_vals_layout.addWidget(image_display, 6, 0, 1, 3)
+        matching_vals_group.setLayout(matching_vals_layout)
+
+        # CSV GRAPHS GROUP 
+        # Column 0 
+        csv_graphs_group = QGroupBox("CSV Graphs")
+        freq_csv_label = QLabel("Frequency: ")
+        file_label = QLabel("File: ")
+        save_label = QLabel("Save graphs?")
+        save_folder_label = QLabel("Save folder: ")
+        print_graphs_button = QPushButton("Print Graphs")
+        csv_list_col_0 = [freq_csv_label, file_label, save_label, save_folder_label, print_graphs_button]
+        # Column 1 
+        freq_csv_field = QLineEdit()
+        file_button = QPushButton("Choose File")
+        save_checkbox = QCheckBox()
+        save_folder_button = QPushButton("Choose File")
+        csv_list_col_1 = [freq_csv_field, file_button, save_checkbox, save_folder_button]
+        
+        csv_graphs_layout = QGridLayout()
+        for i in range(len(csv_list_col_0)): 
+            csv_graphs_layout.addWidget(csv_list_col_0[i], i, 0)
+
+        csv_graphs_group.setLayout(csv_graphs_layout)
 
         # main layout of matching box section 
         main_layout = QGridLayout()
-
-        # add all widgets to grid layout 
-        for i in range(len(widgets_list_col_0)): 
-            main_layout.addWidget(widgets_list_col_0[i], i, 0)
-
-        for i in range(len(widgets_list_col_1)): 
-            main_layout.addWidget(widgets_list_col_1[i], i, 1)
-
-        for i in range(len(widgets_list_col_2)): 
-            main_layout.addWidget(widgets_list_col_2[i], i, 2)
+        main_layout.addWidget(matching_vals_group, 0, 0)
+        main_layout.addWidget(csv_graphs_group, 0, 1)
 
         self.setLayout(main_layout)
 
@@ -353,7 +379,7 @@ class TransducerCalibrationTab(QWidget):
         if graphs[3] is not None: 
             self.graph_group.addTab(graphs[3], "Lateral Pressure Field Graph")
         if graphs[4] is not None: 
-            self.graph_group.addTab(graphs[4], "Lateral Instensity Field Graph")
+            self.graph_group.addTab(graphs[4], "Lateral Intensity Field Graph")
         if graphs[5] is not None: 
             self.graph_group.addTab(graphs[5], "Axial Pressure Line Plot")
         if graphs[6] is not None: 
@@ -398,7 +424,7 @@ if __name__ == "__main__":
 
     tab_dialog = ApplicationWindow()
     # tab_dialog.setFixedSize(700, 500)
-    tab_dialog.show()
+    tab_dialog.showMaximized() # full screen 
     tab_dialog.raise_() # look up what this does
 
     sys.exit(app.exec())

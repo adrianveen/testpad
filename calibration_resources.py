@@ -541,7 +541,7 @@ def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field
     """
     x axis 
     """
-    if left_field_length != None and right_field_length != None:
+    if left_field_length != 0 and right_field_length != 0:
         ax2.set_aspect(abs((-abs(left_field_length)-abs(right_field_length))/(-2))*(3.75/4)) # aspect ratio (FOR MANUAL ADJUSTMENT, change 3.75/4 to your desired ratio)
 
         left_field_length = abs(left_field_length)
@@ -581,14 +581,14 @@ def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field
 
     ax2.axhline(y=0.5, color='k', linestyle='dashed', dashes=(15, 10), lw=0.8) # half-max line
     # this causes the glitch where combined_calibration_figures_python can run linear_scan_graph_generator
-    if left_field_length != None and right_field_length != None:
+    if left_field_length != 0 and right_field_length != 0:
         ax2.plot(horizontal, new_pressure_or_intensity, color='#74BEA3', lw=2.8, solid_capstyle='round') # graph the maximum pressure curve
         # fig2.set_size_inches(7, 5)
     else:
         ax2.plot(horizontal, new_pressure_or_intensity, color='#74BEA3', lw=2.8, solid_capstyle='round', marker='o') # graph the maximum pressure curve
         peak_location = horizontal[np.argwhere(new_pressure_or_intensity==max(new_pressure_or_intensity))]
         ax2.plot(peak_location, max(new_pressure_or_intensity), color='r', marker='o')
-        print("Peak occurs at: ", f"{peak_location[0][0]:.2f}", "mm")
+        textbox.append("Peak occurs at: "+ f"{peak_location[0][0]:.2f}"+ "mm")
 
     ax2.grid()
     # fig2.tight_layout()
