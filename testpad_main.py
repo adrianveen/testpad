@@ -3,9 +3,9 @@ import sys
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
-from mpl_toolkits.mplot3d import axes3d
+# from mpl_toolkits.mplot3d import axes3d
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtGui import QAction, QKeySequence
+# from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QCheckBox, QDialogButtonBox, QFileDialog, QPushButton, QComboBox, QDialog, QGridLayout, QGroupBox, 
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QSlider,
                                QTableWidget, QTableWidgetItem, QTabWidget, QTextBrowser, QVBoxLayout,
@@ -246,22 +246,9 @@ class TransducerCalibrationTab(QWidget):
         print_graph.clicked.connect(lambda: self.printGraph())
 
         # DISPLAY WINDOW (Change to tabs window, currently a placeholder)
-        graph_group = QTabWidget()
-        self.sweep_graph = self.GraphTab(self)
-        self.ax_field_graph = self.GraphTab(self)
-        self.lat_field_graph = self.GraphTab(self)
-        self.ax_line_graph = self.GraphTab(self)
-        self.lat_line_graph = self.GraphTab(self)
-
-        graph_group.addTab(self.sweep_graph, "Sweep")
-        graph_group.addTab(self.ax_field_graph, "Axial Field")
-        graph_group.addTab(self.lat_field_graph, "Lateral Field")
-        graph_group.addTab(self.ax_line_graph, "Axial Line")
-        graph_group.addTab(self.lat_line_graph, "Lateral Line")
-
-        self.graph_tabs_list = [self.sweep_graph, self.ax_field_graph, self.lat_field_graph, self.ax_line_graph, self.lat_line_graph]
-
-        # print(graph_group.indexOf(self.GraphTab(self).canvas))
+        self.graph_group = QTabWidget()
+        self.graph_group.setTabsClosable(True)
+        self.graph_group.tabCloseRequested.connect(lambda index: self.graph_group.removeTab(index))
         
         # MAIN LAYOUT 
         main_layout = QGridLayout()
@@ -269,10 +256,11 @@ class TransducerCalibrationTab(QWidget):
         main_layout.addWidget(choose_file_group, 0, 1)
         main_layout.addWidget(self.text_display_group, 1, 1)
         main_layout.addWidget(text_fields_group, 2, 0)
-        main_layout.addWidget(graph_group, 2, 1, 2, 1)
+        main_layout.addWidget(self.graph_group, 2, 1, 2, 1)
         main_layout.addWidget(print_graph, 3, 0)
         self.setLayout(main_layout)
 
+    @Slot()
     def changeText(self, box: QCheckBox, type: str):
         if type == "ax_field":
             if box.isChecked():
@@ -310,6 +298,7 @@ class TransducerCalibrationTab(QWidget):
             else: 
                 self.save_folder.setText("Save Folder")
 
+    @Slot()
     def openFileDialog(self, type: str):
         if type == "data": 
             self.dialog1 = QFileDialog(self)
@@ -341,16 +330,41 @@ class TransducerCalibrationTab(QWidget):
                 self.text_display_group.append("EB-50 File: "+str(self.selected_eb50_file)+"\n")
             # print(self.selected_eb50_file)
 
+    @Slot()
     # placeholder function 
     def printGraph(self): 
+        # clear all tabs
+        self.graph_group.clear()
+
         # sweep_data, axial_field, axial_line, lateral_field, lateral_line
         # axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step
         var_dict = [self.selected_data_files, self.selected_save_folder, self.selected_eb50_file, 
              self.sweep_box.isChecked(), self.ax_field_graphs_box.isChecked(), self.ax_line_graphs_box.isChecked(), self.lat_field_graphs_box.isChecked(), self.lat_line_graphs_box.isChecked(), self.save_box.isChecked(),
              self.ax_left_field_length_field.text(), self.ax_right_field_length_field.text(), self.ax_field_height_field.text(), 
              self.ax_left_field_length_field.text(), self.ax_right_line_length_field.text(), self.lat_field_length_field.text(), self.interp_step_field.text()]
-        combined_calibration(var_dict, self.text_display_group, self.graph_tabs_list)
-        # pass
+        graphs = combined_calibration(var_dict, self.text_display_group).getGraphs()
+        
+        # add graphs to tabs 
+        if graphs[0] is not None: 
+            self.graph_group.addTab(graphs[0], "Sweep")
+        if graphs[1] is not None: 
+            self.graph_group.addTab(graphs[1], "Axial Pressure Field Graph")
+        if graphs[2] is not None: 
+            self.graph_group.addTab(graphs[2], "Axial Intensity Field Graph")
+        if graphs[3] is not None: 
+            self.graph_group.addTab(graphs[3], "Lateral Pressure Field Graph")
+        if graphs[4] is not None: 
+            self.graph_group.addTab(graphs[4], "Lateral Instensity Field Graph")
+        if graphs[5] is not None: 
+            self.graph_group.addTab(graphs[5], "Axial Pressure Line Plot")
+        if graphs[6] is not None: 
+            self.graph_group.addTab(graphs[6], "Axial Intensity Line Plot")
+        if graphs[7] is not None: 
+            self.graph_group.addTab(graphs[7], "Lateral Pressure Line Plot")
+        if graphs[8] is not None: 
+            self.graph_group.addTab(graphs[8], "Lateral Intensity Line Plot")
+        # self.graph_group.addT/ab()
+        self.graph_group.adjustSize()
 
     # change to accept parameter of graph type + other graph info 
     class GraphTab(QWidget):

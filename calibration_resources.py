@@ -11,7 +11,8 @@ import decimal
 import yaml
 from cm_data import cm_data
 from calibration_figure_2 import sweep_graph
-from PySide6.QtWidgets import (QTextBrowser)
+from PySide6.QtWidgets import QTextBrowser, QWidget
+from matplotlib.backends.backend_qtagg import FigureCanvas
 
 # PARULA MAP! (list of colormap data is in separate file)
 parula_map = LinearSegmentedColormap.from_list('parula', cm_data)
@@ -257,7 +258,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
                 textbox.append("KeyError: "+ str(e))
                 if eb50_file == "":
                     textbox.append("WARNING: No power reading found in sweep file. Please enter an EB-50 file.\n")
-                    return()
+                    return(None)
                 else:
                     textbox.append("No power reading found in sweep file - switching to EB-50 file for power inference.\n")
 
@@ -343,7 +344,8 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
     # generate sweep graph using Marc's program 
     sweep_freq, sweep_freq_ending = fmt(number_freq)
     graph = sweep_graph(data_mtx, transducer, str(sweep_freq)+" "+sweep_freq_ending, save_folder, markersize, textbox)
-    graph.generate_graph()
+    returned_graph = graph.generate_graph()
+    # graph.generate_graph()
 
     # get the m-value and the matlab r squared to put into the sweep file
     m = graph.m
@@ -387,6 +389,8 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
 
         f.close()
 
+    return(returned_graph)
+
 # field graph svg 
 @mpl.rc_context(style_1) # use plot style style_1 above
 def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, right_field_length, field_height, name, type_of_scan, type_of_data, interp_step, save, save_folder, textbox: QTextBrowser):
@@ -396,8 +400,9 @@ def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, 
     """
 
     fig1, ax1 = plt.subplots(1, 1)
+    canvas = FigureCanvas(fig1)
     ax1.tick_params(axis="both", direction='in', pad=7) # sets the ticks to be inside the plot frame and also adds padding space between the axis and the tick labels
-    fig1.canvas.manager.set_window_title(name+"field_plot") # names window
+    # fig1.canvas.manager.set_window_title(name+"field_plot") # names window
     # fig1.set_size_inches(7, 4) # actual graph window size 
     ax1.set_aspect('equal') # makes 1:1 aspect ratio
     cmap = parula_map # uses custom parula_map above 
@@ -506,7 +511,9 @@ def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, 
         save_filename = os.path.join(save_folder, name+"field_plot.svg") 
         # print(f"\nSaving {type_of_scan}{type_of_data} field scan to {save_filename}...")
         fig1.savefig(save_filename, bbox_inches='tight', format='svg', pad_inches = 0, transparent=True) # pad_inches = 0 removes need to shrink image in Inkscape
-
+    
+    fig1.set_canvas(canvas)
+    return(canvas)
     # fig1.show()
 
 # line graph svg 
@@ -520,10 +527,11 @@ def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field
     maximum = pressure_or_intensity.max()
     
     fig2, ax2 = plt.subplots(1, 1)
+    canvas = FigureCanvas(fig2)
     
     ax2.tick_params(axis="both", direction='in', right=False, top=False, pad=7)
     ax2.spines[['right', 'top']].set_visible(False)
-    fig2.canvas.manager.set_window_title(name+"line_plot") # names window
+    # fig2.canvas.manager.set_window_title(name+"line_plot") # names window
     # ax2.set_aspect(5/3)
     
     # ax2.set_aspect(abs((-abs(left_field_length)-abs(right_field_length))/(-2))*2) # 2:1 aspect ratio
@@ -595,5 +603,7 @@ def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field
         # print(f"\nSaving {type_of_scan}{type_of_data} linear scan to {save_filename}...")
         fig2.savefig(save_filename, bbox_inches='tight', format='svg', pad_inches = 0, transparent=True)
 
+    fig2.set_canvas(canvas)
+    return(canvas)
     # fig2.show()
 

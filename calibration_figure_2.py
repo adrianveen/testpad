@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import decimal
-from PySide6.QtWidgets import QTextBrowser
+from PySide6.QtWidgets import QTextBrowser, QWidget, QVBoxLayout, QGroupBox
+from matplotlib.backends.backend_qtagg import FigureCanvas
 
 class sweep_graph():
     def __init__(self, data_mtx, transducer, freq, save_folder, markersize, textbox: QTextBrowser):
@@ -12,6 +13,7 @@ class sweep_graph():
         self.freq = freq
         self.markersize = markersize
         self.textbox = textbox
+        # self.sweep_tab = sweep_tab
         # self.save = save
         # self.graph = self.generate_graph()
         # if self.save:
@@ -70,9 +72,11 @@ class sweep_graph():
             plt.style.use('seaborn-v0_8-whitegrid')
 
             # plot the results
+            # self.fig = Figure()
             self.fig, self.ax = plt.subplots(1, 1)
             # self.fig.style.use
             self.fig.set_size_inches(6.5, 3.5, forward=True)
+            self.canvas = FigureCanvas(self.fig)
 
             self.ax.set_xlabel('Voltage Across the Transducer, Vpp')
             self.ax.set_ylabel('Peak Negative Pressure, MPa')
@@ -84,7 +88,15 @@ class sweep_graph():
                     label='Measured data', markersize=self.markersize)  # Old color was 6DA4BF
             self.ax.legend()
 
-        # return(fig)
+            # groupbox = QGroupBox("Placeholder")
+
+            # self.tab_layout = QVBoxLayout()
+            # self.tab_layout.addWidget(self.canvas)
+            # self.tab_layout.addWidget(groupbox)
+            # self.sweep_tab.setLayout(self.tab_layout)
+            self.fig.set_canvas(self.canvas)
+
+        return(self.canvas)
 
     def save_graph(self):
         save_filename = "calibration_"+self.transducer+"_f0.svg"

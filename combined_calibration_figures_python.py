@@ -13,7 +13,7 @@ from pathlib import Path
 # # from PySide6.QtGui import QGuiApplication DO NOT USE BECAUSE CLOSING THE GRAPH WILL CLOSE THE PROGRAM
 # from PySide6.QtQml import QQmlApplicationEngine, QmlElement
 
-from PySide6.QtWidgets import QTextBrowser
+from PySide6.QtWidgets import QTextBrowser, QWidget
 
 
 # QML_IMPORT_NAME = "calibration_reports"
@@ -25,10 +25,11 @@ A script to write voltage sweep txts and to generate axial and lateral field/lin
 
 # main class, runs all the relevant methods from calibration_resources and prints to the terminal 
 class combined_calibration:
-    def __init__(self, variables_dict: list, textbox: QTextBrowser, graph_tabs_list: list):
+    def __init__(self, variables_dict: list, textbox: QTextBrowser):
         plt.close("all") # closes previous graphs 
 
-        plt.ion()
+        # display graphs as they are created 
+        # plt.ion()
         # print(variables_dict)
         
         textbox.append("\n*******************GENERATING GRAPHS***********************\n") # divider 
@@ -38,6 +39,9 @@ class combined_calibration:
         files, save_folder, eb50_file = [i for i in variables_dict[:3]]
         sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [bool(i) for i in variables_dict[3:9]]
         axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step = [float(i) if i != '' else 0 for i in variables_dict[9:]]
+
+        # assign tabs 
+        # sweep_tab, ax_field_tab, lat_field_tab, ax_line_tab, lat_line_tab = [i for i in graph_tabs_list]
 
         """
         MANUAL PARAMETER OVERRIDE (THE MANUAL FILE OVERRIDE IS BELOW)
@@ -71,6 +75,8 @@ class combined_calibration:
         files_list = sorted(files, key=lambda x: int((x[x.rfind('.')-1]))) # sort so that the latest scan is used 
         
         sweep_list = []
+
+        self.graph_list = [None]*9 # supposed to be a list of graphs to return to the GUI for display 
 
         """
         AUTOMATIC FILE DETECTION FOR LOOP 
@@ -162,7 +168,8 @@ class combined_calibration:
         VOLTAGE SWEEP 
         """
         if sweep_data: 
-            create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file, textbox)
+            sweep_graph = create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file, textbox)
+            self.graph_list[0] = sweep_graph
 
         """
         FIELD GRAPHS
@@ -171,17 +178,21 @@ class combined_calibration:
 
             x_data, y_data, z_data, pressure, intensity = fetch_data(axial_filename, "axial")
             # Pressure field 
-            field_graph(y_data, z_data, pressure, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', interp_step, save, save_folder, textbox)
+            ax_pressure_field_graph = field_graph(y_data, z_data, pressure, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', interp_step, save, save_folder, textbox)
+            self.graph_list[1] = ax_pressure_field_graph
             # Intensity field 
-            field_graph(y_data, z_data, intensity, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', interp_step, save, save_folder, textbox)
+            ax_intensity_field_graph = field_graph(y_data, z_data, intensity, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', interp_step, save, save_folder, textbox)
+            self.graph_list[2] = ax_intensity_field_graph
 
         if lateral_field:
             x_data, y_data, z_data, pressure, intensity = fetch_data(lateral_filename, "lateral")
             # Pressure field 
-            field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', interp_step, save, save_folder, textbox)
+            lat_pressure_field_graph = field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', interp_step, save, save_folder, textbox)
+            self.graph_list[3] = lat_pressure_field_graph
             # Intensity field 
-            field_graph(x_data, z_data, intensity, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', interp_step, save, save_folder, textbox)
-        
+            lat_intensity_field_graph = field_graph(x_data, z_data, intensity, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', interp_step, save, save_folder, textbox)
+            self.graph_list[4] = lat_intensity_field_graph
+
         """
         LINEAR GRAPHS 
         """
@@ -190,13 +201,16 @@ class combined_calibration:
         if axial_line:
 
             x_data, y_data, z_data, pressure, intensity = fetch_data(y_line_scan, "axial")
-
-            line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', save, save_folder, textbox)
+            # Pressure line
+            y_pressure_line_graph = line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', save, save_folder, textbox)
+            self.graph_list[5] = y_pressure_line_graph
             y_pressure_fwhmx = fwhmx(y_data, pressure, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Pressure')
-            line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', save, save_folder, textbox)
+            # Intensity line
+            y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', save, save_folder, textbox)
+            self.graph_list[6] = y_intensity_line_graph
             y_intensity_fwhmx = fwhmx(y_data, intensity, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Intensity')
 
-            # AXIAL FWHMX
+            # PRINT AXIAL FWHMX
             textbox.append(f"Axial Pressure FWHMX: {y_pressure_fwhmx:0.1f} mm")
             textbox.append(f"Axial Intensity FWHMX: {y_intensity_fwhmx:0.1f} mm")
 
@@ -204,10 +218,12 @@ class combined_calibration:
             # X LINE SCAN 
             x_data, y_data, z_data, pressure, intensity = fetch_data(x_line_scan, "lateral")
             # Pressure line plot 
-            line_graph(x_data, pressure, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', save, save_folder, textbox)
+            x_pressure_line_graph = line_graph(x_data, pressure, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', save, save_folder, textbox)
+            self.graph_list[7] = x_pressure_line_graph
             x_pressure_fwhmx = fwhmx(x_data, pressure, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Pressure')
             # Intensity line plot 
-            line_graph(x_data, intensity, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', save, save_folder, textbox)
+            x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', save, save_folder, textbox)
+            self.graph_list[8] = x_intensity_line_graph
             x_intensity_fwhmx = fwhmx(x_data, intensity, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Intensity')
 
             # # Z LINE SCAN 
@@ -221,7 +237,9 @@ class combined_calibration:
             textbox.append(f"Averaged Lateral Pressure FWHMX: {averaged_pressure_fwhmx:0.1f} mm")
             textbox.append(f"Averaged Lateral Intensity FWHMX: {averaged_intensity_fwhmx:0.1f} mm")
 
+    def getGraphs(self):
         # plt.show()
+        return(self.graph_list)
 
 # """
 # QML Connection Section 
