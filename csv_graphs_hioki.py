@@ -28,7 +28,7 @@ class csv_graph():
         # print(self.filename)
         self.save = save
         # print(self.save)
-        self.save_folder = save_folder[7:]
+        self.save_folder = save_folder
 
         # fetch data from csv file 
         try: 

@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton
                                 QLabel, QLineEdit, QMainWindow, QTabWidget, QTextBrowser, QVBoxLayout,
                                QWidget)
 from combined_calibration_figures_python import combined_calibration
+from lc_circuit_matching import Calculations
+from csv_graphs_hioki import csv_graph
 
 # application window (inherits QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -66,27 +68,27 @@ class MatchingBoxTab(QWidget):
         toroid_label = QLabel("Toroid: ")
         matching_list_col_0 = [freq_match_label, z_label, phase_label, toroid_label]
         # column 1 
-        freq_textbox = QLineEdit()
-        freq_textbox.setMaximumWidth(100)
-        z_textbox = QLineEdit()
-        z_textbox.setMaximumWidth(100)
-        phase_textbox = QLineEdit()
-        phase_textbox.setMaximumWidth(100)
-        toroid_box = QComboBox()
-        toroid_box.addItems(["200", "280", "160"])
+        self.freq_textbox = QLineEdit()
+        self.freq_textbox.setMaximumWidth(200)
+        self.z_textbox = QLineEdit()
+        self.z_textbox.setMaximumWidth(200)
+        self.phase_textbox = QLineEdit()
+        self.phase_textbox.setMaximumWidth(200)
+        self.toroid_box = QComboBox()
+        self.toroid_box.addItems(["200", "280", "160"])
+        self.toroid_box.setCurrentText("200")
         get_val = QPushButton("Get Values") 
-        matching_list_col_1 = [freq_textbox, z_textbox, phase_textbox, toroid_box, get_val]
+        get_val.clicked.connect(lambda: self.getValues())
+        matching_list_col_1 = [self.freq_textbox, self.z_textbox, self.phase_textbox, self.toroid_box, get_val]
         # column 2 
-        affix_box = QComboBox()
-        affix_box.addItems(["MHz", "kHz"])
-        matching_list_col_2 = [affix_box]
-
+        self.affix_box = QComboBox()
+        self.affix_box.addItems(["MHz", "kHz"])
+        self.affix_box.setCurrentText("MHz")
+        matching_list_col_2 = [self.affix_box]
         # text box which displays text 
-        text_display = QTextBrowser()
+        self.text_display = QTextBrowser()
         # text box which displays image 
-        image_display = QLabel()
-        pixmap = QPixmap()
-        image_display.setPixmap(pixmap)
+        self.image_display = QLabel(self)
 
         matching_vals_layout = QGridLayout()
         # add all widgets to grid layout 
@@ -99,8 +101,8 @@ class MatchingBoxTab(QWidget):
         for i in range(len(matching_list_col_2)): 
             matching_vals_layout.addWidget(matching_list_col_2[i], i, 2)
 
-        matching_vals_layout.addWidget(text_display, 5, 0, 1, 3)
-        matching_vals_layout.addWidget(image_display, 6, 0, 1, 3)
+        matching_vals_layout.addWidget(self.text_display, 5, 0, 1, 3)
+        matching_vals_layout.addWidget(self.image_display, 6, 0, 1, 3)
         matching_vals_group.setLayout(matching_vals_layout)
 
         # CSV GRAPHS GROUP 
@@ -141,6 +143,23 @@ class MatchingBoxTab(QWidget):
         main_layout.addWidget(csv_graphs_group, 0, 1)
 
         self.setLayout(main_layout)
+
+    @Slot()
+    def getValues(self):
+        freq = 0
+        if self.freq_textbox.text():
+            freq = float(self.freq_textbox.text())
+        if self.affix_box.currentText == "kHz":
+            freq *= 1e3
+        else: 
+            freq *= 1e6
+        new_match = Calculations()
+        text = new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), float(self.toroid_box.currentText()))
+        self.text_display.append(text)
+        self.text_display.append(QTextBrowser.searchPaths(new_match.image_file))
+        # self.pixmap = QPixmap(new_match.image_file)
+        # self.image_display.setPixmap(self.pixmap)
+        # self.image_display.update()
 
 class EboxTab(QWidget):
     def __init__(self, parent: QWidget):
