@@ -168,6 +168,13 @@ class TransducerCalibrationTab(QWidget):
 
         checkbox_group.setLayout(checkbox_layout)
 
+        # CHANGING THE TEXT BASED ON WHICH CHECKBOX IS CHECKED 
+        self.ax_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.ax_field_graphs_box, "ax_field"))
+        self.ax_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.ax_line_graphs_box, "ax_line"))
+        self.lat_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.lat_field_graphs_box, "lat_field"))
+        self.lat_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.lat_line_graphs_box, "lat_line"))
+        self.save_box.checkStateChanged.connect(lambda: self.changeText(self.save_box, "save"))
+
         # CHOOSE FILES GROUP
         choose_file_group = QGroupBox("File Selection")
         # Column 0
@@ -191,6 +198,11 @@ class TransducerCalibrationTab(QWidget):
             choose_file_layout.addWidget(choose_file_col_1[i], i, 1)
         
         choose_file_group.setLayout(choose_file_layout)
+
+        # CONNECTING BUTTONS 
+        self.data_files_button.clicked.connect(lambda: self.openFileDialog("data"))
+        self.save_folder_button.clicked.connect(lambda: self.openFileDialog("save"))
+        self.eb50_file_button.clicked.connect(lambda: self.openFileDialog("eb50"))
 
         # TEXT DISPLAY GROUP 
         self.text_display_group = QTextBrowser()
@@ -235,23 +247,21 @@ class TransducerCalibrationTab(QWidget):
 
         # DISPLAY WINDOW (Change to tabs window, currently a placeholder)
         graph_group = QTabWidget()
-        graph_group.addTab(GraphTab(self), "Sweep")
-        graph_group.addTab(GraphTab(self), "Axial Field")
-        graph_group.addTab(GraphTab(self), "Lateral Field")
-        graph_group.addTab(GraphTab(self), "Axial Line")
-        graph_group.addTab(GraphTab(self), "Lateral Line")
+        self.sweep_graph = self.GraphTab(self)
+        self.ax_field_graph = self.GraphTab(self)
+        self.lat_field_graph = self.GraphTab(self)
+        self.ax_line_graph = self.GraphTab(self)
+        self.lat_line_graph = self.GraphTab(self)
 
-        # CONNECTING BUTTONS 
-        self.data_files_button.clicked.connect(lambda: self.openFileDialog("data"))
-        self.save_folder_button.clicked.connect(lambda: self.openFileDialog("save"))
-        self.eb50_file_button.clicked.connect(lambda: self.openFileDialog("eb50"))
+        graph_group.addTab(self.sweep_graph, "Sweep")
+        graph_group.addTab(self.ax_field_graph, "Axial Field")
+        graph_group.addTab(self.lat_field_graph, "Lateral Field")
+        graph_group.addTab(self.ax_line_graph, "Axial Line")
+        graph_group.addTab(self.lat_line_graph, "Lateral Line")
 
-        # CHANGING THE TEXT BASED ON WHICH CHECKBOX IS CHECKED 
-        self.ax_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.ax_field_graphs_box, "ax_field"))
-        self.ax_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.ax_line_graphs_box, "ax_line"))
-        self.lat_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.lat_field_graphs_box, "lat_field"))
-        self.lat_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.lat_line_graphs_box, "lat_line"))
-        self.save_box.checkStateChanged.connect(lambda: self.changeText(self.save_box, "save"))
+        self.graph_tabs_list = [self.sweep_graph, self.ax_field_graph, self.lat_field_graph, self.ax_line_graph, self.lat_line_graph]
+
+        # print(graph_group.indexOf(self.GraphTab(self).canvas))
         
         # MAIN LAYOUT 
         main_layout = QGridLayout()
@@ -303,10 +313,11 @@ class TransducerCalibrationTab(QWidget):
     def openFileDialog(self, type: str):
         if type == "data": 
             self.dialog1 = QFileDialog(self)
+            self.dialog1.setWindowTitle("Data Files")
             self.dialog1.setFileMode(QFileDialog.ExistingFiles)
             if self.dialog1.exec(): 
+                self.text_display_group.append("Data Files: ")
                 self.selected_data_files = self.dialog1.selectedFiles()
-            self.text_display_group.append("Data Files: ")
             for i in self.selected_data_files:
                 if i == self.selected_data_files[-1]:
                     self.text_display_group.append(i+"\n")
@@ -315,17 +326,19 @@ class TransducerCalibrationTab(QWidget):
             # print(self.selected_data_files)
         elif type == "save":
             self.dialog2 = QFileDialog(self)
+            self.dialog2.setWindowTitle("Save Folder")
             self.dialog2.setFileMode(QFileDialog.Directory)
             if self.dialog2.exec():
                 self.selected_save_folder = self.dialog2.selectedFiles()[0]
-            self.text_display_group.append("Save Folder: "+str(self.selected_save_folder)+"\n")
+                self.text_display_group.append("Save Folder: "+str(self.selected_save_folder)+"\n")
             # print(self.selected_save_folder)
         elif type == "eb50":
             self.dialog3 = QFileDialog(self)
+            self.dialog3.setWindowTitle("EB-50 File")
             self.dialog3.setFileMode(QFileDialog.ExistingFile)
             if self.dialog3.exec():
                 self.selected_eb50_file = self.dialog3.selectedFiles()[0]
-            self.text_display_group.append("EB-50 File: "+str(self.selected_eb50_file)+"\n")
+                self.text_display_group.append("EB-50 File: "+str(self.selected_eb50_file)+"\n")
             # print(self.selected_eb50_file)
 
     # placeholder function 
@@ -336,20 +349,22 @@ class TransducerCalibrationTab(QWidget):
              self.sweep_box.isChecked(), self.ax_field_graphs_box.isChecked(), self.ax_line_graphs_box.isChecked(), self.lat_field_graphs_box.isChecked(), self.lat_line_graphs_box.isChecked(), self.save_box.isChecked(),
              self.ax_left_field_length_field.text(), self.ax_right_field_length_field.text(), self.ax_field_height_field.text(), 
              self.ax_left_field_length_field.text(), self.ax_right_line_length_field.text(), self.lat_field_length_field.text(), self.interp_step_field.text()]
-        combined_calibration(var_dict)
+        combined_calibration(var_dict, self.text_display_group, self.graph_tabs_list)
         # pass
 
-# change to accept parameter of graph type + other graph info 
-class GraphTab(QWidget):
-    def __init__(self, parent: QWidget):
-        super().__init__(parent)
+    # change to accept parameter of graph type + other graph info 
+    class GraphTab(QWidget):
+        def __init__(self, parent: QWidget):
+            super().__init__(parent)
 
-        # self.fig = Figure(figsize=(5, 3))
-        # self.canvas = FigureCanvas(self.fig)
+            self.fig = Figure(figsize=(5, 3))
+            self.canvas = FigureCanvas(self.fig)
 
-        main_layout = QGridLayout()
+            main_layout = QGridLayout()
 
-        self.setLayout(main_layout)
+            main_layout.addWidget(self.canvas)
+
+            self.setLayout(main_layout)
 
 class RFBTab(QWidget):
     def __init__(self, parent: QWidget):

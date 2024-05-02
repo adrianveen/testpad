@@ -2,14 +2,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import decimal
+from PySide6.QtWidgets import QTextBrowser
 
 class sweep_graph():
-    def __init__(self, data_mtx, transducer, freq, save_folder, markersize):
+    def __init__(self, data_mtx, transducer, freq, save_folder, markersize, textbox: QTextBrowser):
         self.data_mtx = data_mtx
         self.save_folder = save_folder
         self.transducer = transducer
         self.freq = freq
         self.markersize = markersize
+        self.textbox = textbox
         # self.save = save
         # self.graph = self.generate_graph()
         # if self.save:
@@ -32,23 +34,23 @@ class sweep_graph():
         A = np.vstack([x]).T
 
         self.m = np.linalg.lstsq(A, y, rcond=None)[0][0]
-        print('\n[+] m value: {}'.format(self.m))
+        self.textbox.append('[+] m value: {}'.format(self.m))
 
         correlation_matrix = np.corrcoef(x, y)
         correlation_xy = correlation_matrix[0, 1]
         r_squared = correlation_xy**2
-        print('[+] r squared: {}'.format(r_squared))
+        self.textbox.append('[+] r squared: {}'.format(r_squared))
 
         # Truncate the r squared value to four decimal places
         r_trunc = decimal.Decimal(r_squared)
         self.r_trunc_out = float(round(r_trunc, 4))
-        print(f"[+] truncated r squared: {self.r_trunc_out}")
+        self.textbox.append(f"[+] truncated r squared: {self.r_trunc_out}")
 
         y_calc = self.m * x
         r2 = 1 - np.sum((y - y_calc) ** 2.0) / np.sum((y - np.mean(y)) ** 2.0)
         r2_trunc = decimal.Decimal(r2)
         self.r2_trunc_out = float(round(r2_trunc, 4))
-        print(f"matlab r squared: {self.r2_trunc_out}\n")
+        self.textbox.append(f"matlab r squared: {self.r2_trunc_out}\n")
 
         # create dummy arrays to populate our line of best fit for display
         x_fit = np.array([0, x_last+(x_first)]) # changes x-fit to last point + the difference between the first x and 0 

@@ -11,6 +11,7 @@ import decimal
 import yaml
 from cm_data import cm_data
 from calibration_figure_2 import sweep_graph
+from PySide6.QtWidgets import (QTextBrowser)
 
 # PARULA MAP! (list of colormap data is in separate file)
 parula_map = LinearSegmentedColormap.from_list('parula', cm_data)
@@ -36,10 +37,10 @@ EB-50 METHODS COPIED FROM UNIFIED CALIBRATION RESOURCES
 """
 
 # find the closest frequency to the requested frequency (parsing YAML file)
-def closest_frequency(frequency, filename):
+def closest_frequency(frequency, filename, textbox: QTextBrowser):
     # requested frequency 
     frequency, ending = fmt(frequency)
-    print("Requested frequency:", str(frequency)+ending)
+    textbox.append("Requested frequency: "+ str(frequency)+ending)
     
     # opens the eb50 file to get the frequencies
     with open(filename) as file: 
@@ -51,7 +52,7 @@ def closest_frequency(frequency, filename):
         frequencies[i] = float(frequencies[i][:-3])
 
     closest_frequency = str(find_nearest(frequencies, float(frequency)))+ending # closest frequency to requested frequency
-    print("Closest frequency in EB-50 file:", closest_frequency)
+    textbox.append("Closest frequency in EB-50 file: "+ closest_frequency)
 
     eb50_dict = lines["frequencies"][closest_frequency] # fetch the eb-50 data for the closest frequency 
 
@@ -212,14 +213,14 @@ def fwhmx(horizontal, pressure_or_intensity, left_field_length, right_field_leng
 FILE CREATION METHODS 
 """
 # sweep file creation, returns an averaged file of all sweeps 
-def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file:str=""):
+def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file:str="", textbox: QTextBrowser=None):
     if eb50_file == None:
         eb50_file = ""
     # filename = os.path.join(folder, sweep_filename)
     original_freq = freq # preserve original frequency for file name purposes 
     number_freq = float(re.sub('[^0-9.]','', freq)) # find the frequency without the kHz/MHz ending 
     if eb50_file != "":
-        freq, eb50_dict = closest_frequency(number_freq, eb50_file)
+        freq, eb50_dict = closest_frequency(number_freq, eb50_file, textbox)
 
     fn_gen_amplitudes = [] # amplitudes in each file
     pressures = [] # pressures in each file 
@@ -250,15 +251,15 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
                 fwd_pwr_hdf5.read_direct(fwd_pwr)
                 powers.append(fwd_pwr)
                 if eb50_file != "":
-                    print("\nUsing the power values in the sweep instead of inferring with the EB-50 YAML file.\n")
+                    textbox.append("\nUsing the power values in the sweep instead of inferring with the EB-50 YAML file.\n")
                     eb50_file = ""
             except KeyError as e:
-                print("KeyError:", e)
+                textbox.append("KeyError: "+ str(e))
                 if eb50_file == "":
-                    print("WARNING: No power reading found in sweep file. Please enter an EB-50 file.\n")
+                    textbox.append("WARNING: No power reading found in sweep file. Please enter an EB-50 file.\n")
                     return()
                 else:
-                    print("No power reading found in sweep file - switching to EB-50 file for power inference.\n")
+                    textbox.append("No power reading found in sweep file - switching to EB-50 file for power inference.\n")
 
             neg_pressure = np.multiply(abs(min_mV), 1e-6) # Pa to MPa
             # print(neg_pressure)
@@ -326,8 +327,8 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
         data_mtx[:, 2] = fwd_pwr # electrical power 
         data_mtx[:, 3] = averaged_fn_gen_amplitudes # amplitudes from function generator 
     except ValueError as e:
-        print("\nValueError:", e)
-        print("\nThe sizes of the data are incompatible with each other. Did you select sweep files from the same batch? Does one of your files have an error in it?")
+        textbox.append("\nValueError: "+ str(e))
+        textbox.append("\nThe sizes of the data are incompatible with each other. Did you select sweep files from the same batch? Does one of your files have an error in it?")
         return()
       
 
@@ -341,7 +342,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
 
     # generate sweep graph using Marc's program 
     sweep_freq, sweep_freq_ending = fmt(number_freq)
-    graph = sweep_graph(data_mtx, transducer, str(sweep_freq)+" "+sweep_freq_ending, save_folder, markersize)
+    graph = sweep_graph(data_mtx, transducer, str(sweep_freq)+" "+sweep_freq_ending, save_folder, markersize, textbox)
     graph.generate_graph()
 
     # get the m-value and the matlab r squared to put into the sweep file
@@ -388,7 +389,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
 
 # field graph svg 
 @mpl.rc_context(style_1) # use plot style style_1 above
-def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, right_field_length, field_height, name, type_of_scan, type_of_data, interp_step, save, save_folder):
+def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, right_field_length, field_height, name, type_of_scan, type_of_data, interp_step, save, save_folder, textbox: QTextBrowser):
 
     """
     FIELD PLOT
@@ -416,10 +417,14 @@ def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, 
     # interp = RectBivariateSpline(horizontal, vertical, pressure_or_intensity)
 
     # new arrays for interpolation 
-    x = np.arange(np.min(horizontal), (np.max(horizontal)+interp_step), interp_step)
-    # print(x.shape)
-    y = np.arange(np.min(vertical), (np.max(vertical)+interp_step), interp_step)
-    # print(y.shape)
+    try:
+        x = np.arange(np.min(horizontal), (np.max(horizontal)+interp_step), interp_step)
+        # print(x.shape)
+        y = np.arange(np.min(vertical), (np.max(vertical)+interp_step), interp_step)
+        # print(y.shape)
+    except ValueError as e: 
+        textbox.append("ValueError: "+str(e))
+        textbox.append("Did you enter an interpolation value?")
 
     X1, Y1 = np.meshgrid(x, y, indexing='ij') # meshgrid of arrays for interpolation, needed if using pcolormesh
     pts = np.column_stack((X1.flatten(),Y1.flatten()))
@@ -510,7 +515,7 @@ def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, 
 # it's not a bug, it's a feature
 # (seriously should fix this at some point though)
 @mpl.rc_context(style_1)
-def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field_length, name, type_of_scan, type_of_data, save, save_folder):
+def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field_length, name, type_of_scan, type_of_data, save, save_folder, textbox: QTextBrowser):
     minimum = pressure_or_intensity.min()
     maximum = pressure_or_intensity.max()
     

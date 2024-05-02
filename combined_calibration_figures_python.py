@@ -8,10 +8,12 @@ from calibration_resources import create_sweep_file, fetch_data, field_graph, li
 import os
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Slot
-from PySide6.QtWidgets import QApplication
-# from PySide6.QtGui import QGuiApplication DO NOT USE BECAUSE CLOSING THE GRAPH WILL CLOSE THE PROGRAM
-from PySide6.QtQml import QQmlApplicationEngine, QmlElement
+# from PySide6.QtCore import QObject, Slot
+# from PySide6.QtWidgets import QApplication
+# # from PySide6.QtGui import QGuiApplication DO NOT USE BECAUSE CLOSING THE GRAPH WILL CLOSE THE PROGRAM
+# from PySide6.QtQml import QQmlApplicationEngine, QmlElement
+
+from PySide6.QtWidgets import QTextBrowser
 
 
 # QML_IMPORT_NAME = "calibration_reports"
@@ -23,19 +25,19 @@ A script to write voltage sweep txts and to generate axial and lateral field/lin
 
 # main class, runs all the relevant methods from calibration_resources and prints to the terminal 
 class combined_calibration:
-    def __init__(self, variables_dict):
+    def __init__(self, variables_dict: list, textbox: QTextBrowser, graph_tabs_list: list):
         plt.close("all") # closes previous graphs 
+
         plt.ion()
-        print(variables_dict)
+        # print(variables_dict)
         
-        print("\n*******************GENERATING GRAPHS***********************\n") # divider 
+        textbox.append("\n*******************GENERATING GRAPHS***********************\n") # divider 
 
         # assigns dictionary values to variables (probably wildly inefficient, might need reworking)
         # files, save_folder, eb50_file, sweep_data, axial_field, axial_line, lateral_field, lateral_line, axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step, save = map(variables_dict.get, ('Data Files*', 'Save Folder', 'EB-50 File', 'Write sweep file and graph?', 'Print axial field graphs?', 'Print axial line graphs?', 'Print lateral field graphs?', 'Print lateral line graphs?', 'Axial Left Field Length', 'Axial Right Field Length', 'Axial Field Height', 'Axial Left Line Plot Length', 'Axial Right Line Plot Length','Lateral Field Length', 'Interpolation Step', 'Save file?'))
         files, save_folder, eb50_file = [i for i in variables_dict[:3]]
         sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [bool(i) for i in variables_dict[3:9]]
         axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step = [float(i) if i != '' else 0 for i in variables_dict[9:]]
-        # save = bool(variables_dict[-1])
 
         """
         MANUAL PARAMETER OVERRIDE (THE MANUAL FILE OVERRIDE IS BELOW)
@@ -100,29 +102,29 @@ class combined_calibration:
         # z_line_scan = r"317_T1150H550_z_3450kHz_1500mVpp_01.hdf5" # z linear scan 
         # save_folder = r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\report_PYTHON"
 
-        # Do the files exist? If not, exit 
+        # Do the files exist? If not, exit (could probably be reworked into more specific error messages)
         try:
             if sweep_data or axial_field or axial_line or lateral_field or lateral_line:
                 if sweep_data:
-                    print("Sweeps:", sweep_list)
+                    textbox.append("Sweeps: "+ str(sweep_list))
                     trans_freq_filename = sweep_filename # trans_freq_filename is only so the name of the transducer can be grabbed
                 if axial_field:
-                    print("Axial:", axial_filename)
+                    textbox.append("Axial: "+ axial_filename)
                     trans_freq_filename = axial_filename
                 if axial_line:
-                    print("y linear:", y_line_scan)
+                    textbox.append("y linear: " + y_line_scan)
                     trans_freq_filename = y_line_scan
                 if lateral_field:
-                    print("Lateral:", lateral_filename)
+                    textbox.append("Lateral: " + lateral_filename)
                     trans_freq_filename = lateral_filename
                 if lateral_line:
-                    print("x linear:", x_line_scan)
-                    print("z linear:", z_line_scan) 
+                    textbox.append("x linear: " + x_line_scan)
+                    textbox.append("z linear: " + z_line_scan) 
                     trans_freq_filename = x_line_scan
             else: 
                 raise NameError
         except NameError as e:
-            print("\n"+str(e)+"\nOops! One or more of the scan files does not exist. \
+            textbox.append("\nNameError: "+str(e)+"\nOops! One or more of the scan files does not exist. \
                   \nDid you input the right folder?\nAre there scans missing?\nDid you select the correct checkboxes?\n")
             return
 
@@ -134,7 +136,7 @@ class combined_calibration:
                 try:
                     full_filename1 = os.path.join(save_folder, "files_used_" + str(counter) +".txt") 
                     with open(full_filename1, "x") as f:
-                        print(f"Saving files used to {full_filename1}...\n")
+                        textbox.append(f"\nSaving files used to {full_filename1}...")
                         for file in files_list:
                             f.write(file+"\n")
                     break
@@ -153,14 +155,14 @@ class combined_calibration:
                 transducer = word
         if details[0] != transducer: # for dealing with files like '320_T1500H750' instead of '320-T1500H750'
             transducer = details[0]+"-"+transducer
-        print("\nTransducer:", transducer)
-        print("Frequency:", freq, "\n")
+        textbox.append("\nTransducer: "+ transducer)
+        textbox.append("Frequency: "+ freq+"\n")
 
         """
         VOLTAGE SWEEP 
         """
         if sweep_data: 
-            create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file=eb50_file)
+            create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file, textbox)
 
         """
         FIELD GRAPHS
@@ -169,16 +171,16 @@ class combined_calibration:
 
             x_data, y_data, z_data, pressure, intensity = fetch_data(axial_filename, "axial")
             # Pressure field 
-            field_graph(y_data, z_data, pressure, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', interp_step, save, save_folder)
+            field_graph(y_data, z_data, pressure, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', interp_step, save, save_folder, textbox)
             # Intensity field 
-            field_graph(y_data, z_data, intensity, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', interp_step, save, save_folder)
+            field_graph(y_data, z_data, intensity, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', interp_step, save, save_folder, textbox)
 
         if lateral_field:
             x_data, y_data, z_data, pressure, intensity = fetch_data(lateral_filename, "lateral")
             # Pressure field 
-            field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', interp_step, save, save_folder)
+            field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', interp_step, save, save_folder, textbox)
             # Intensity field 
-            field_graph(x_data, z_data, intensity, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', interp_step, save, save_folder)
+            field_graph(x_data, z_data, intensity, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', interp_step, save, save_folder, textbox)
         
         """
         LINEAR GRAPHS 
@@ -189,23 +191,23 @@ class combined_calibration:
 
             x_data, y_data, z_data, pressure, intensity = fetch_data(y_line_scan, "axial")
 
-            line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', save, save_folder)
+            line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', save, save_folder, textbox)
             y_pressure_fwhmx = fwhmx(y_data, pressure, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Pressure')
-            line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', save, save_folder)
+            line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', save, save_folder, textbox)
             y_intensity_fwhmx = fwhmx(y_data, intensity, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Intensity')
 
             # AXIAL FWHMX
-            print(f"Axial Pressure FWHMX: {y_pressure_fwhmx:0.1f} mm")
-            print(f"Axial Intensity FWHMX: {y_intensity_fwhmx:0.1f} mm")
+            textbox.append(f"Axial Pressure FWHMX: {y_pressure_fwhmx:0.1f} mm")
+            textbox.append(f"Axial Intensity FWHMX: {y_intensity_fwhmx:0.1f} mm")
 
         if lateral_line:
             # X LINE SCAN 
             x_data, y_data, z_data, pressure, intensity = fetch_data(x_line_scan, "lateral")
             # Pressure line plot 
-            line_graph(x_data, pressure, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', save, save_folder)
+            line_graph(x_data, pressure, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', save, save_folder, textbox)
             x_pressure_fwhmx = fwhmx(x_data, pressure, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Pressure')
             # Intensity line plot 
-            line_graph(x_data, intensity, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', save, save_folder)
+            line_graph(x_data, intensity, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', save, save_folder, textbox)
             x_intensity_fwhmx = fwhmx(x_data, intensity, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Intensity')
 
             # # Z LINE SCAN 
@@ -216,8 +218,8 @@ class combined_calibration:
             # LATERAL FWHMX (AVERAGE OF X AND Z)
             averaged_pressure_fwhmx = (x_pressure_fwhmx+z_pressure_fwhmx)/2.0
             averaged_intensity_fwhmx = (x_intensity_fwhmx+z_intensity_fwhmx)/2.0
-            print(f"Averaged Lateral Pressure FWHMX: {averaged_pressure_fwhmx:0.1f} mm")
-            print(f"Averaged Lateral Intensity FWHMX: {averaged_intensity_fwhmx:0.1f} mm")
+            textbox.append(f"Averaged Lateral Pressure FWHMX: {averaged_pressure_fwhmx:0.1f} mm")
+            textbox.append(f"Averaged Lateral Intensity FWHMX: {averaged_intensity_fwhmx:0.1f} mm")
 
         # plt.show()
 
