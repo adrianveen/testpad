@@ -1,15 +1,14 @@
 import sys
 
-import numpy as np
+# import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
 # from mpl_toolkits.mplot3d import axes3d
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Slot
 # from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QApplication, QCheckBox, QDialogButtonBox, QFileDialog, QPushButton, QComboBox, QDialog, QGridLayout, QGroupBox, 
-                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMainWindow, QSlider,
-                               QTableWidget, QTableWidgetItem, QTabWidget, QTextBrowser, QVBoxLayout,
-                               QWidget, QSizePolicy)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
+                                QLabel, QLineEdit, QMainWindow, QTabWidget, QTextBrowser, QVBoxLayout,
+                               QWidget)
 from combined_calibration_figures_python import combined_calibration
 
 

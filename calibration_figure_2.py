@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import decimal
-from PySide6.QtWidgets import QTextBrowser, QWidget, QVBoxLayout, QGroupBox
+from PySide6.QtWidgets import QTextBrowser
 from matplotlib.backends.backend_qtagg import FigureCanvas
 
 class sweep_graph():

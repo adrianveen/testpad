@@ -1,19 +1,19 @@
 import numpy as np
-import tkinter as tk
-import tkinter.ttk as ttk
+# import tkinter as tk
+# import tkinter.ttk as ttk
 import sys 
 import matplotlib.pyplot as plt
-from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames
+# from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames
 from calibration_resources import create_sweep_file, fetch_data, field_graph, line_graph, fwhmx
 import os
-from pathlib import Path
+# from pathlib import Path
 
 # from PySide6.QtCore import QObject, Slot
 # from PySide6.QtWidgets import QApplication
 # # from PySide6.QtGui import QGuiApplication DO NOT USE BECAUSE CLOSING THE GRAPH WILL CLOSE THE PROGRAM
 # from PySide6.QtQml import QQmlApplicationEngine, QmlElement
 
-from PySide6.QtWidgets import QTextBrowser, QWidget
+from PySide6.QtWidgets import QTextBrowser
 
 
 # QML_IMPORT_NAME = "calibration_reports"
