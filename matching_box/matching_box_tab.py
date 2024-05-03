@@ -74,6 +74,10 @@ class MatchingBoxTab(QWidget):
         # matching_vals_layout.addWidget(self.image_display, 6, 0, 1, 3)
         matching_vals_group.setLayout(matching_vals_layout)
 
+        # matching values layout 
+        matching_col_layout = QVBoxLayout()
+        matching_col_layout.addWidget(matching_vals_group)
+
         # CSV GRAPHS GROUP 
         # Column 0 
         csv_graphs_group = QGroupBox("CSV Graphs")
@@ -116,12 +120,16 @@ class MatchingBoxTab(QWidget):
         csv_graphs_layout.addWidget(self.graph_display, 7, 0, 1, 3)
         csv_graphs_group.setLayout(csv_graphs_layout)
 
+        # csv graphs layout 
+        csv_col_layout = QVBoxLayout()
+        csv_col_layout.addWidget(csv_graphs_group)
+
         # main layout of matching box section 
         main_layout = QGridLayout()
-        # main_layout.setColumnStretch(0, 1)
-        # main_layout.setColumnStretch(1, 1)
-        main_layout.addWidget(matching_vals_group, 0, 0)
-        main_layout.addWidget(csv_graphs_group, 0, 1)
+        main_layout.setColumnStretch(0, 1)
+        main_layout.setColumnStretch(1, 1)
+        main_layout.addLayout(matching_col_layout, 0, 0)
+        main_layout.addLayout(csv_col_layout, 0, 1)
 
         self.setLayout(main_layout)
 
@@ -173,4 +181,4 @@ class MatchingBoxTab(QWidget):
         impedance_graph, phase_graph = csv_graph(self.freq_csv_field.text(), self.freq_csv_combobox.currentText(), self.selected_csv_file, self.save_checkbox.isChecked(), self.selected_save_folder).returnGraphs()
         self.graph_display.addTab(impedance_graph, "Impedance Graph")
         self.graph_display.addTab(phase_graph, "Phase Graph")
-        self.graph_display.adjustSize()
+        # self.graph_display.adjustSize()

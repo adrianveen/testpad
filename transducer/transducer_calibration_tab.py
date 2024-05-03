@@ -5,7 +5,7 @@ from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser,
-                               QWidget)
+                               QVBoxLayout, QWidget)
 from transducer.combined_calibration_figures_python import combined_calibration
 
 class TransducerCalibrationTab(QWidget):
@@ -77,13 +77,18 @@ class TransducerCalibrationTab(QWidget):
         
         choose_file_group.setLayout(choose_file_layout)
 
-        # CONNECTING BUTTONS 
+        # connecting buttons
         self.data_files_button.clicked.connect(lambda: self.openFileDialog("data"))
         self.save_folder_button.clicked.connect(lambda: self.openFileDialog("save"))
         self.eb50_file_button.clicked.connect(lambda: self.openFileDialog("eb50"))
 
         # TEXT DISPLAY GROUP 
         self.text_display_group = QTextBrowser()
+
+        # file selection/text display layout 
+        file_text_layout = QVBoxLayout()
+        file_text_layout.addWidget(choose_file_group)
+        file_text_layout.addWidget(self.text_display_group)
 
         # TEXT FIELDS GROUP 
         text_fields_group = QGroupBox("Specifications")
@@ -114,7 +119,7 @@ class TransducerCalibrationTab(QWidget):
         # add buttons to group
         for i in range(len(text_fields_list_col_1)): 
             text_fields_list_col_1[i].setMaximumWidth(200)
-            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1)
+            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1, Qt.AlignCenter)
         
         text_fields_group.setLayout(text_field_layout)
 
@@ -123,6 +128,11 @@ class TransducerCalibrationTab(QWidget):
         print_graph.setStyleSheet("background-color: #74BEA3")
         print_graph.clicked.connect(lambda: self.printGraph())
 
+        # text fields/print button layout 
+        text_print_layout = QVBoxLayout()
+        text_print_layout.addWidget(text_fields_group)
+        text_print_layout.addWidget(print_graph)
+
         # DISPLAY WINDOW (Change to tabs window, currently a placeholder)
         self.graph_group = QTabWidget()
         self.graph_group.setTabsClosable(True)
@@ -130,12 +140,18 @@ class TransducerCalibrationTab(QWidget):
         
         # MAIN LAYOUT 
         main_layout = QGridLayout()
-        main_layout.addWidget(checkbox_group, 0, 0, 2, 1)
-        main_layout.addWidget(choose_file_group, 0, 1)
-        main_layout.addWidget(self.text_display_group, 1, 1)
-        main_layout.addWidget(text_fields_group, 2, 0)
-        main_layout.addWidget(self.graph_group, 2, 1, 2, 1)
-        main_layout.addWidget(print_graph, 3, 0)
+        main_layout.setColumnStretch(0, 1)
+        main_layout.setColumnStretch(1, 1)
+        main_layout.setRowStretch(0, 1)
+        main_layout.setRowStretch(1, 1)
+        main_layout.addWidget(checkbox_group, 0, 0)
+        main_layout.addLayout(file_text_layout, 0, 1)
+        # main_layout.addWidget(choose_file_group, 0, 1)
+        # main_layout.addWidget(self.text_display_group, 1, 1)
+        main_layout.addLayout(text_print_layout, 1, 0)
+        main_layout.addWidget(self.graph_group, 1, 1)
+        # main_layout.addWidget(self.graph_group, 2, 1, 2, 1)
+        # main_layout.addWidget(print_graph, 3, 0)
         self.setLayout(main_layout)
 
     @Slot()

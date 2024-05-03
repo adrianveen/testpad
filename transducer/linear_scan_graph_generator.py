@@ -13,19 +13,18 @@ from PySide6.QtWidgets import QTextBrowser
 A script to create linear graphs for analysis during transducer calibration. 
 """
 
-
-def main():
+class linear_scan():
     def __init__(self, variables_dict: list, textbox: QTextBrowser):
         plt.close("all") # closes previous graphs 
 
-        graphs_list = [None]*3
+        self.graphs_list = [None]*3
         
         textbox.append("\n*******************GENERATING GRAPHS***********************\n") # divider 
 
         # assigns dictionary values to variables (probably wildly inefficient, might need reworking)
         # files, save_folder, x_line, y_line, z_line, save = map(variables_dict.get, ('Data Files', 'Save Folder', 'Print x line graph?', 'Print y line graph?', 'Print z line graph?', 'Save file?'))
         files, save, save_folder = variables_dict[:3]
-        x_line, y_line, z_line = variables_dict[4:]
+        x_line, y_line, z_line = variables_dict[3:]
 
         """
         MANUAL PARAMETER OVERRIDE (THE MANUAL FILE OVERRIDE IS BELOW)
@@ -113,32 +112,36 @@ def main():
                 transducer = word
         if details[0] != transducer: # for dealing with files like '320_T1500H750' instead of '320-T1500H750'
             transducer = details[0]+"-"+transducer
-        textbox.append("\nTransducer:", transducer)
-        textbox.append("Frequency:", freq, "\n")
+        textbox.append("\nTransducer: " + transducer)
+        textbox.append("Frequency: " + freq+"\n")
 
         """
         GRAPHING
         """
         if x_line:
             # X LINE SCAN 
-            print("Outputting x line scan linear graph...")
+            textbox.append("Outputting x line scan linear graph...")
             x_data, y_data, z_data, pressure, intensity = fetch_data(x_line_scan, "lateral")
             
             # Pressure line plot 
-            x_graph = line_graph(horizontal=x_data, pressure_or_intensity=pressure, left_field_length=None, right_field_length=None, name=transducer+"_"+freq+"_x_linear_", type_of_scan='Lateral ', type_of_data='Pressure', save=save, save_folder=save_folder)
-            graphs_list[0] = x_graph
+            x_graph = line_graph(horizontal=x_data, pressure_or_intensity=pressure, left_field_length="linear", right_field_length="linear", name=transducer+"_"+freq+"_x_linear_", type_of_scan='Lateral ', type_of_data='Pressure', save=save, save_folder=save_folder, textbox=textbox)
+            self.graphs_list[0] = x_graph
 
         if y_line:
             textbox.append("Outputting y line scan linear graph...")
             x_data, y_data, z_data, pressure, intensity = fetch_data(y_line_scan, "axial")
 
-            y_graph = line_graph(horizontal=y_data, pressure_or_intensity=pressure, left_field_length=None, right_field_length=None, name=transducer+"_"+freq+"_y_linear_", type_of_scan='Axial ', type_of_data='Pressure', save=save, save_folder=save_folder)
-            graphs_list[1] = y_graph
+            y_graph = line_graph(horizontal=y_data, pressure_or_intensity=pressure, left_field_length="linear", right_field_length="linear", name=transducer+"_"+freq+"_y_linear_", type_of_scan='Axial ', type_of_data='Pressure', save=save, save_folder=save_folder, textbox=textbox)
+            self.graphs_list[1] = y_graph
 
         if z_line:
             # # Z LINE SCAN 
-            print("Outputting z line scan linear graph...")
+            textbox.append("Outputting z line scan linear graph...")
             x_data, y_data, z_data, pressure, intensity = fetch_data(z_line_scan, "lateral")
-            z_graph = line_graph(horizontal=z_data, pressure_or_intensity=np.transpose(pressure), left_field_length=None, right_field_length=None, name=transducer+"_"+freq+"_z_linear_", type_of_scan='Lateral ', type_of_data='Pressure', save=save, save_folder=save_folder)
-            graphs_list[2] = z_graph
+            z_graph = line_graph(horizontal=z_data, pressure_or_intensity=np.transpose(pressure), left_field_length="linear", right_field_length="linear", name=transducer+"_"+freq+"_z_linear_", type_of_scan='Lateral ', type_of_data='Pressure', save=save, save_folder=save_folder, textbox=textbox)
+            self.graphs_list[2] = z_graph
+
         textbox.append("\n***********************FINISHED****************************\n")
+
+    def getGraphs(self):
+        return(self.graphs_list)

@@ -1,18 +1,9 @@
 import sys
-# sys.path.append('../')
-# import numpy as np
-from matplotlib.backends.backend_qtagg import FigureCanvas
-from matplotlib.figure import Figure
-# from mpl_toolkits.mplot3d import axes3d
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtGui import QPixmap
-# from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QMainWindow, QTabWidget, QTextBrowser, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from matching_box.matching_box_tab import MatchingBoxTab
 from rfb.rfb_tab import RFBTab
 from transducer.transducer_calibration_tab import TransducerCalibrationTab
+from transducer.transducer_linear_tab import TransducerLinearTab
 from eb50.eb50_tab import EboxTab
 
 # application window (inherits QMainWindow)
@@ -29,17 +20,15 @@ class ApplicationWindow(QMainWindow):
         
         # tab_widget.setMinimumSize(QMainWindow.sizeHint())
         # tab_widget.showFullScreen()
-        tab_widget.addTab(MatchingBoxTab(self), "Matching Box")
-        tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration")
-        tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report")
-        tab_widget.addTab(RFBTab(self), "Radiation Force Balance")
+        tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs 
+        tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 
+        tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
+        tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
+        tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 
 
         main_layout = QVBoxLayout()
-
         main_layout.addWidget(tab_widget)
-
         self.setLayout(main_layout)
-
         self.setCentralWidget(tab_widget)
 
 
