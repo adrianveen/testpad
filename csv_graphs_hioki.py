@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 # import numpy as np
 import pandas as pd 
+from matplotlib.backends.backend_qtagg import FigureCanvas
 # from pathlib import Path
 
 # from PySide6.QtCore import QObject, Slot
@@ -18,7 +19,7 @@ import pandas as pd
 
 class csv_graph():
     def __init__(self, frequency, unit, filename, save, save_folder: str = None):
-        self.selected_freq = frequency
+        self.selected_freq = float(frequency)
         if unit == "kHz":
             self.selected_freq *= 1e3
         elif unit == "MHz":
@@ -36,8 +37,6 @@ class csv_graph():
         except Exception as e: 
             print(str(e) + "\nWARNING: Unable to open file. Did you select a CSV file?\n")
             return()
-            # sys.exit(1)
-        # print(lines)
 
         self.frequencies = lines[:, 0]
         self.impedances = lines[:, 1]
@@ -54,6 +53,7 @@ class csv_graph():
 
     def graph(self, x, y, xlabel:str=None, ylabel:str=None, title:str=None, type:str=None):
         fig, ax = plt.subplots(1, 1)
+        canvas = FigureCanvas(fig)
 
         ax.plot(x, y, "o-", alpha = 0.3)
 
@@ -80,33 +80,9 @@ class csv_graph():
             except Exception as e: 
                 print(str(e)+"\nWARNING: Unable to save. Did you select a save location?\n")
             
-
-        fig.show()
-
-# @QmlElement
-# class TextBox(QObject): 
-#     # function for the button
-#     # frequency, filename, save, save_folder
-#     @Slot(float, str, str, bool, str, result=None)
-#     def printGraph(self, frequency, unit, filename, save, save_folder):
-#         csv_graph(frequency, unit, filename, save, save_folder)
-#     @Slot(None, result=None)
-#     def closeAll(self): 
-#         plt.close('all')
-
-# if __name__ == '__main__':
-#     #Set up the application window
-#     app = QApplication(sys.argv)
-#     engine = QQmlApplicationEngine()
-#     engine.quit.connect(app.quit)
-
-#     #Load the QML file
-#     qml_file = Path(__file__).parent / "widget_hioki.qml"
-#     engine.load(qml_file)
-
-#     # #Show the window
-#     if not engine.rootObjects():
-#         sys.exit(-1)
-
-#     sys.exit(app.exec())
+        fig.set_canvas(canvas)
+        return(canvas)
+        # fig.show()
     
+    def returnGraphs(self):
+        return(self.impedance_graph, self.phase_graph)
