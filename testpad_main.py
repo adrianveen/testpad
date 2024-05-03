@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton
 from combined_calibration_figures_python import combined_calibration
 from lc_circuit_matching import Calculations
 from csv_graphs_hioki import csv_graph
-# from PyQt5 import AspectRatioMode
 
 # application window (inherits QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -78,7 +77,8 @@ class MatchingBoxTab(QWidget):
         self.toroid_box = QComboBox()
         self.toroid_box.addItems(["200", "280", "160"])
         self.toroid_box.setCurrentText("200")
-        get_val = QPushButton("Get Values") 
+        get_val = QPushButton("GET VALUES") 
+        get_val.setStyleSheet("background-color: #74BEA3")
         get_val.clicked.connect(lambda: self.getValues())
         matching_list_col_1 = [self.freq_textbox, self.z_textbox, self.phase_textbox, self.toroid_box]
         # column 2 
@@ -121,7 +121,8 @@ class MatchingBoxTab(QWidget):
         file_label = QLabel("File: ")
         save_label = QLabel("Save graphs?")
         save_folder_label = QLabel("Save folder: ")
-        print_graphs_button = QPushButton("Print Graphs")
+        print_graphs_button = QPushButton("PRINT GRAPHS")
+        print_graphs_button.setStyleSheet("background-color: #74BEA3")
         print_graphs_button.clicked.connect(lambda: self.printCSVGraphs())
         csv_list_col_0 = [freq_csv_label, file_label, save_label, save_folder_label]
         # Column 1 
@@ -146,7 +147,10 @@ class MatchingBoxTab(QWidget):
             csv_graphs_layout.addWidget(csv_list_col_0[i], i, 0)
         csv_graphs_layout.addWidget(print_graphs_button, 4, 0, 1, 3)
         for i in range(len(csv_list_col_1)): 
-            csv_graphs_layout.addWidget(csv_list_col_1[i], i, 1, Qt.AlignCenter)
+            if csv_list_col_1[i] == self.save_checkbox:
+                csv_graphs_layout.addWidget(csv_list_col_1[i], i, 1, Qt.AlignCenter)
+            else: 
+                csv_graphs_layout.addWidget(csv_list_col_1[i], i, 1)
         for i in range(len(csv_list_col_2)): 
             csv_graphs_layout.addWidget(csv_list_col_2[i], i, 2)
         csv_graphs_layout.addWidget(self.graph_display, 7, 0, 1, 3)
@@ -204,6 +208,8 @@ class MatchingBoxTab(QWidget):
     @Slot()
     def printCSVGraphs(self):
         self.graph_display.clear()
+        print(self.selected_csv_file)
+        print(self.selected_save_folder)
         impedance_graph, phase_graph = csv_graph(self.freq_csv_field.text(), self.freq_csv_combobox.currentText(), self.selected_csv_file, self.save_checkbox.isChecked(), self.selected_save_folder).returnGraphs()
         self.graph_display.addTab(impedance_graph, "Impedance Graph")
         self.graph_display.addTab(phase_graph, "Phase Graph")
@@ -266,7 +272,7 @@ class TransducerCalibrationTab(QWidget):
         # add checkboxes to group
         for i in range(len(checkbox_list_col_1)): 
             # checkbox_list_col_1[i].setAlignment()
-            checkbox_layout.addWidget(checkbox_list_col_1[i], i, 1)
+            checkbox_layout.addWidget(checkbox_list_col_1[i], i, 1, Qt.AlignCenter)
 
         checkbox_group.setLayout(checkbox_layout)
 
@@ -338,7 +344,7 @@ class TransducerCalibrationTab(QWidget):
         # add buttons to group
         for i in range(len(text_fields_list_col_1)): 
             text_fields_list_col_1[i].setMaximumWidth(200)
-            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1)
+            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1, Qt.AlignCenter)
         
         text_fields_group.setLayout(text_field_layout)
 
