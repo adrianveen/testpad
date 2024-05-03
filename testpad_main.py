@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton
                                QWidget)
 from matching_box.matching_box_tab import MatchingBoxTab
 from rfb.rfb_tab import RFBTab
-from calibration_reports.transducer_calibration_tab import TransducerCalibrationTab
+from transducer.transducer_calibration_tab import TransducerCalibrationTab
 from eb50.eb50_tab import EboxTab
 
 # application window (inherits QMainWindow)

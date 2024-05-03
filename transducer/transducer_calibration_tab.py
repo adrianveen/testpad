@@ -6,7 +6,7 @@ from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser,
                                QWidget)
-from calibration_reports.combined_calibration_figures_python import combined_calibration
+from transducer.combined_calibration_figures_python import combined_calibration
 
 class TransducerCalibrationTab(QWidget):
     def __init__(self, parent: QWidget):
