@@ -10,10 +10,10 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QMainWindow, QTabWidget, QTextBrowser, QVBoxLayout,
                                QWidget)
-from combined_calibration_figures_python import combined_calibration
-from lc_circuit_matching import Calculations
-from csv_graphs_hioki import csv_graph
-from testpad_tabs import MatchingBoxTab, EboxTab, TransducerCalibrationTab, RFBTab
+from matching_box.matching_box_tab import MatchingBoxTab
+from rfb.rfb_tab import RFBTab
+from calibration_reports.transducer_calibration_tab import TransducerCalibrationTab
+from eb50.eb50_tab import EboxTab
 
 # application window (inherits QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -41,7 +41,6 @@ class ApplicationWindow(QMainWindow):
         self.setLayout(main_layout)
 
         self.setCentralWidget(tab_widget)
-
 
 
 if __name__ == "__main__":

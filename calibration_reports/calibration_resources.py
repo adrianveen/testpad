@@ -9,8 +9,8 @@ import re
 import os
 import decimal
 import yaml
-from cm_data import cm_data
-from calibration_figure_2 import sweep_graph
+from calibration_reports.cm_data import cm_data
+from calibration_reports.calibration_figure_2 import sweep_graph
 from PySide6.QtWidgets import QTextBrowser, QWidget
 from matplotlib.backends.backend_qtagg import FigureCanvas
 

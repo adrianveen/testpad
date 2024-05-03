@@ -4,7 +4,7 @@ import numpy as np
 import sys 
 import matplotlib.pyplot as plt
 # from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames
-from calibration_resources import create_sweep_file, fetch_data, field_graph, line_graph, fwhmx
+from calibration_reports.calibration_resources import create_sweep_file, fetch_data, field_graph, line_graph, fwhmx
 import os
 # from pathlib import Path
 
