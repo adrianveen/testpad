@@ -518,9 +518,6 @@ def field_graph(horizontal, vertical, pressure_or_intensity, left_field_length, 
 
 # line graph svg 
 # used for both combined_calibration_figures_python.py and linear_scan_graph_generator.py
-# this can lead to a glitch in combined_calibration_figures_python where you can actually run linear_scan_graph_generator if no numbers are in the entry fields...
-# it's not a bug, it's a feature
-# (seriously should fix this at some point though)
 @mpl.rc_context(style_1)
 def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field_length, name, type_of_scan, type_of_data, save, save_folder, textbox: QTextBrowser):
     minimum = pressure_or_intensity.min()
@@ -541,7 +538,7 @@ def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field
     """
     x axis 
     """
-    if left_field_length != 0 and right_field_length != 0:
+    if left_field_length != "linear" and right_field_length != "linear":
         ax2.set_aspect(abs((-abs(left_field_length)-abs(right_field_length))/(-2))*(3.75/4)) # aspect ratio (FOR MANUAL ADJUSTMENT, change 3.75/4 to your desired ratio)
 
         left_field_length = abs(left_field_length)
@@ -581,7 +578,7 @@ def line_graph(horizontal, pressure_or_intensity, left_field_length, right_field
 
     ax2.axhline(y=0.5, color='k', linestyle='dashed', dashes=(15, 10), lw=0.8) # half-max line
     # this causes the glitch where combined_calibration_figures_python can run linear_scan_graph_generator
-    if left_field_length != 0 and right_field_length != 0:
+    if left_field_length != "linear" and right_field_length != "linear":
         ax2.plot(horizontal, new_pressure_or_intensity, color='#74BEA3', lw=2.8, solid_capstyle='round') # graph the maximum pressure curve
         # fig2.set_size_inches(7, 5)
     else:
