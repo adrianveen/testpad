@@ -4,7 +4,7 @@ import sys
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.figure import Figure
 # from mpl_toolkits.mplot3d import axes3d
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, Qt
 from PySide6.QtGui import QPixmap
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QFileDialog, QPushButton
 from combined_calibration_figures_python import combined_calibration
 from lc_circuit_matching import Calculations
 from csv_graphs_hioki import csv_graph
+# from PyQt5 import AspectRatioMode
 
 # application window (inherits QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -89,6 +90,9 @@ class MatchingBoxTab(QWidget):
         self.text_display = QTextBrowser()
         # text box which displays image 
         self.image_display = QLabel(self)
+        self.pixmap = QPixmap()
+        # self.pixmap.scaled(100, 100)
+        # self.image_display.setScaledContents(True)
 
         matching_vals_layout = QGridLayout()
         # add all widgets to grid layout 
@@ -156,10 +160,13 @@ class MatchingBoxTab(QWidget):
         new_match = Calculations()
         text = new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), float(self.toroid_box.currentText()))
         self.text_display.append(text)
-        self.text_display.append(QTextBrowser.searchPaths(new_match.image_file))
-        # self.pixmap = QPixmap(new_match.image_file)
-        # self.image_display.setPixmap(self.pixmap)
-        # self.image_display.update()
+        self.pixmap = QPixmap(new_match.image_file)
+        self.image_display.setPixmap(self.pixmap.scaled(self.text_display.width(), self.text_display.height(), aspectMode=Qt.KeepAspectRatio))
+        # print(new_match.image_file)
+        # self.pixmap.load(new_match.image_file)
+        # # self.text_display.append(QTextBrowser.searchPaths(new_match.image_file))
+        # self.image_display.repaint()
+        self.image_display.adjustSize()
 
 class EboxTab(QWidget):
     def __init__(self, parent: QWidget):

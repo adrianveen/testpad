@@ -137,14 +137,14 @@ class Calculations():
         if type == 'n':
             self.text += ('\ncapacitors across the source input\n\n')
             # creating the image filepath
-            self.image_file = 'file:///' + os.path.join(os.path.dirname(os.path.realpath(__file__)), "cap_across_source.jpg")
+            self.image_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cap_across_source.jpg")
             # print(self.image_file)
             
         # otherwise, if the type is r, add a picture of the capacitors across the load (and print it in the output textbox)
         elif type == 'r':
             self.text += ('\ncapacitors across the transducer load\n\n')
             # creating the image filepath
-            self.image_file = 'file:///' + os.path.join(os.path.dirname(os.path.realpath(__file__)), "cap_across_load.jpg")
+            self.image_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cap_across_load.jpg")
             # print(self.image_file)
 
         # print all the details such as capacitance, inductance, number of turns 
