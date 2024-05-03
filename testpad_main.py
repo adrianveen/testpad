@@ -86,13 +86,17 @@ class MatchingBoxTab(QWidget):
         self.affix_box.addItems(["MHz", "kHz"])
         self.affix_box.setCurrentText("MHz")
         matching_list_col_2 = [self.affix_box]
+
+        # text display + image layout 
+        text_image_layout = QVBoxLayout()
         # text box which displays text 
-        self.text_display = QTextBrowser()
+        self.text_display = QTextBrowser() 
         # text box which displays image 
-        self.image_display = QLabel(self)
-        self.pixmap = QPixmap()
-        # self.pixmap.scaled(100, 100)
-        # self.image_display.setScaledContents(True)
+        self.image_display = QLabel(self) 
+        self.pixmap = QPixmap() 
+        # add to layout 
+        text_image_layout.addWidget(self.text_display)
+        text_image_layout.addWidget(self.image_display)
 
         matching_vals_layout = QGridLayout()
         # add all widgets to grid layout 
@@ -104,9 +108,9 @@ class MatchingBoxTab(QWidget):
 
         for i in range(len(matching_list_col_2)): 
             matching_vals_layout.addWidget(matching_list_col_2[i], i, 2)
-
-        matching_vals_layout.addWidget(self.text_display, 5, 0, 1, 3)
-        matching_vals_layout.addWidget(self.image_display, 6, 0, 1, 3)
+        matching_vals_layout.addLayout(text_image_layout, 5, 0, 1, 3)
+        # matching_vals_layout.addWidget(self.text_display, 5, 0, 1, 3)
+        # matching_vals_layout.addWidget(self.image_display, 6, 0, 1, 3)
         matching_vals_group.setLayout(matching_vals_layout)
 
         # CSV GRAPHS GROUP 
@@ -150,6 +154,7 @@ class MatchingBoxTab(QWidget):
 
     @Slot()
     def getValues(self):
+        self.text_display.clear()
         freq = 0
         if self.freq_textbox.text():
             freq = float(self.freq_textbox.text())
