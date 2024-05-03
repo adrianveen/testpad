@@ -59,6 +59,9 @@ class MatchingBoxTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
 
+        # need to initialise these variables for saving to happen 
+        self.selected_csv_file, self.selected_save_folder = "", ""
+
         # MATCHING VALUES GROUP 
         matching_vals_group = QGroupBox("Matching Box Values")
         # Column 0
@@ -91,6 +94,7 @@ class MatchingBoxTab(QWidget):
         text_image_layout = QVBoxLayout()
         # text box which displays text 
         self.text_display = QTextBrowser() 
+        # self.text_display.
         # text box which displays image 
         self.image_display = QLabel(self) 
         self.pixmap = QPixmap() 
@@ -158,8 +162,8 @@ class MatchingBoxTab(QWidget):
 
         # main layout of matching box section 
         main_layout = QGridLayout()
-        main_layout.setColumnStretch(0, 1)
-        main_layout.setColumnStretch(1, 1)
+        # main_layout.setColumnStretch(0, 1)
+        # main_layout.setColumnStretch(1, 1)
         main_layout.addWidget(matching_vals_group, 0, 0)
         main_layout.addWidget(csv_graphs_group, 0, 1)
 
@@ -190,7 +194,7 @@ class MatchingBoxTab(QWidget):
     # choose files 
     @Slot() 
     def openFileDialog(self, type):
-        self.selected_csv_file, self.selected_save_folder = None, None
+        # self.selected_csv_file, self.selected_save_folder = None, None
         if type == "file":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("CSV File")
@@ -243,6 +247,7 @@ class TransducerCalibrationTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
 
+        # need to initialise these so that saving can happen 
         self.selected_data_files, self.selected_save_folder, self.selected_eb50_file = [], "", ""
 
         # CHECKBOX GROUP
@@ -344,7 +349,7 @@ class TransducerCalibrationTab(QWidget):
         # add buttons to group
         for i in range(len(text_fields_list_col_1)): 
             text_fields_list_col_1[i].setMaximumWidth(200)
-            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1, Qt.AlignCenter)
+            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1)
         
         text_fields_group.setLayout(text_field_layout)
 

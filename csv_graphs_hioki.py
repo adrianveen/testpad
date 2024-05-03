@@ -7,15 +7,6 @@ import matplotlib.pyplot as plt
 # import numpy as np
 import pandas as pd 
 from matplotlib.backends.backend_qtagg import FigureCanvas
-# from pathlib import Path
-
-# from PySide6.QtCore import QObject, Slot
-# from PySide6.QtWidgets import QApplication
-# from PySide6.QtGui import QGuiApplication
-# from PySide6.QtQml import QQmlApplicationEngine, QmlElement
-
-# QML_IMPORT_NAME = "matching_graphs"
-# QML_IMPORT_MAJOR_VERSION = 1
 
 class csv_graph():
     def __init__(self, frequency, unit, filename, save, save_folder: str = None):
@@ -36,7 +27,7 @@ class csv_graph():
             lines = np.array(pd.read_csv(self.filename, header=0, sep=',', usecols=[1, 7, 9], skiprows=20))
         except Exception as e: 
             print(str(e) + "\nWARNING: Unable to open file. Did you select a CSV file?\n")
-            return()
+            return(None)
 
         self.frequencies = lines[:, 0]
         self.impedances = lines[:, 1]
@@ -70,10 +61,7 @@ class csv_graph():
             # save_filename = PurePath(self.save_folder, graph_type+'_'+type+'.svg')
             # save_filename = str(save_filename).replace('\\\\', '\\')
             # save_filename = os.path.normpath(str(save_filename))
-            if sys.platform.startswith('win'):
-                save_filename = (self.save_folder[1:]+'/'+graph_type+'_'+type+'.svg')
-            else: 
-                save_filename = (self.save_folder+'/'+graph_type+'_'+type+'.svg')
+            save_filename = os.path.join(self.save_folder, graph_type+'_'+type+'.svg')
             print(f"Saving {title} graph to {save_filename}...")
             try:
                 fig.savefig(save_filename, bbox_inches='tight', format='svg', pad_inches = 0, transparent=True) # pad_inches = 0 removes need to shrink image in Inkscape
