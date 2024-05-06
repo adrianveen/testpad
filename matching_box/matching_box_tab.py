@@ -82,7 +82,7 @@ class MatchingBoxTab(QWidget):
 
         # CSV GRAPHS GROUP 
         # Column 0 
-        csv_graphs_group = QGroupBox("CSV Graphs")
+        self.csv_graphs_group = QGroupBox("CSV Graphs")
         freq_csv_label = QLabel("Frequency: ")
         file_label = QLabel("File: ")
         save_label = QLabel("Save graphs?")
@@ -120,11 +120,11 @@ class MatchingBoxTab(QWidget):
         for i in range(len(csv_list_col_2)): 
             csv_graphs_layout.addWidget(csv_list_col_2[i], i, 2)
         csv_graphs_layout.addWidget(self.graph_display, 7, 0, 1, 3)
-        csv_graphs_group.setLayout(csv_graphs_layout)
+        self.csv_graphs_group.setLayout(csv_graphs_layout)
 
         # csv graphs layout 
         csv_col_layout = QVBoxLayout()
-        csv_col_layout.addWidget(csv_graphs_group)
+        csv_col_layout.addWidget(self.csv_graphs_group)
 
         # main layout of matching box section 
         main_layout = QGridLayout()
@@ -138,11 +138,15 @@ class MatchingBoxTab(QWidget):
     # when resized, resize image 
     def resizeEvent(self, event: QResizeEvent) -> None:
         if self.new_match is not None: 
-            print("resized")
-            # self.pixmap = QPixmap(self.new_match.image_file)
-            self.image_display.setPixmap(self.pixmap.scaledToWidth(self.text_display.width()))
+            # print("resized")
+            # wipe the previous pixmap
+            # self.pixmap = QPixmap()
+            # self.image_display.setPixmap(self.pixmap)
             self.text_display.adjustSize()
             self.text_display.update()
+            # self.pixmap = QPixmap(self.new_match.image_file)
+            self.image_display.setPixmap(self.pixmap.scaled(self.text_display.width(), self.text_display.height()*2))
+            
         return super().resizeEvent(event)
 
     # execute matching box program 
@@ -160,7 +164,7 @@ class MatchingBoxTab(QWidget):
         text = self.new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), float(self.toroid_box.currentText()))
         self.text_display.append(text)
         self.pixmap = QPixmap(self.new_match.image_file)
-        self.image_display.setPixmap(self.pixmap.scaledToWidth(self.text_display.width()))
+        self.image_display.setPixmap(self.pixmap.scaledToWidth(self.csv_graphs_group.width()))
         # print(new_match.image_file)
         # self.pixmap.load(new_match.image_file)
         # # self.text_display.append(QTextBrowser.searchPaths(new_match.image_file))
