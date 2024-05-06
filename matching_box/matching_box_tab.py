@@ -145,6 +145,8 @@ class MatchingBoxTab(QWidget):
             # self.image_display.setPixmap(self.pixmap)
             self.text_display.adjustSize()
             self.text_display.update()
+            # self.image_display.adjustSize()
+            # self.image_display.update()
             # self.pixmap = QPixmap(self.new_match.image_file)
             self.pixmap = self.pixmap.scaled(self.text_display.width(), self.text_display.height()*1.75, mode=Qt.SmoothTransformation)
             self.image_display.setPixmap(self.pixmap)

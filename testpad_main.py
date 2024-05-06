@@ -40,7 +40,7 @@ class ApplicationWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setStyleSheet("QLabel{font-size: 11pt;}")
+    app.setStyleSheet("QLabel{font-size: 11pt;}") # increase font size slightly of QLabels
 
     tab_dialog = ApplicationWindow()
     tab_dialog.setWindowTitle("FUS Testpad")

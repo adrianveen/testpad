@@ -13,6 +13,7 @@ from transducer.cm_data import cm_data
 from transducer.calibration_figure_2 import sweep_graph
 from PySide6.QtWidgets import QTextBrowser, QWidget
 from matplotlib.backends.backend_qtagg import FigureCanvas
+# import matplotlib.backends.backend_svg
 
 # PARULA MAP! (list of colormap data is in separate file)
 parula_map = LinearSegmentedColormap.from_list('parula', cm_data)

@@ -12,6 +12,17 @@ class RFBTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
 
+        # Controls group 
+        controls_group = QGroupBox() 
+        # Column 0
+        file_label = QLabel("File: ")
+        save_label = QLabel("Save graphs?")
+        save_folder_label = QLabel("Save folder: ")
+        controls_list_col_0 = [file_label, save_label, save_folder_label]
+        # Column 1
+        
+
         main_layout = QGridLayout()
+
 
         self.setLayout(main_layout)
