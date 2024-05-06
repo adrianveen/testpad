@@ -1,5 +1,5 @@
 import sys
-from PySide6.QtGui import QResizeEvent
+# from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from matching_box.matching_box_tab import MatchingBoxTab
 from rfb.rfb_tab import RFBTab
@@ -16,7 +16,12 @@ class ApplicationWindow(QMainWindow):
         super().__init__(parent)
 
         tab_widget = QTabWidget()
-        tab_widget.setStyleSheet("QTabBar::tab:selected {background: #74BEA3;}")
+        # tab_pal = tab_widget.palette()
+        # tab_widget.setAutoFillBackground(True)
+        # tab_pal.setColor(QPalette.NoRole, "#74BEA3")
+        # tab_widget.setPalette(tab_pal)
+        # tab_widget.update()
+        # tab_widget.setStyleSheet("QTabBar::tab:selected {background: #74BEA3;}")
         # sp = tab_widget.sizePolicy()
         # sp.Policy = QSizePolicy.Expanding
         

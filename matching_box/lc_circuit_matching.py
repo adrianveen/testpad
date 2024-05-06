@@ -112,7 +112,7 @@ class Calculations():
             # raise an error if inductance/capacitance is below 0 
             if L < 0 or C < 0: 
                 self.text += (f"\nType {type} gives error. Switching type.\n")
-                raise Exception("Error: inductance or capacitance is less than 0. Switching type.")
+                raise Exception("Error: inductance or capacitance is less than 0. Switching type to find alternative solution.")
 
             N = np.sqrt(L / AL) * 100  # number of turns
 

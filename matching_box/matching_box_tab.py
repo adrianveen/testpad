@@ -161,7 +161,7 @@ class MatchingBoxTab(QWidget):
         freq = 0
         if self.freq_textbox.text():
             freq = float(self.freq_textbox.text())
-        if self.affix_box.currentText == "kHz":
+        if self.affix_box.currentText() == "kHz": 
             freq *= 1e3
         else: 
             freq *= 1e6

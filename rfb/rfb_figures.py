@@ -24,6 +24,7 @@ from PySide6.QtWidgets import QTextBrowser
 # class for creating the RFB graphs 
 class create_rfb_graph():
     def __init__(self, filenames:list, save_folder:str=None, save:bool=False, textbox: QTextBrowser=None) -> None:
+        plt.close("all")
         self.filenames = filenames
         self.graphs_list = []
         self.save_folder = save_folder
@@ -62,6 +63,8 @@ class create_rfb_graph():
             # self.save_folder+"\\"+"average_data.txt"
             np.savetxt(filename, self.data_mtx, fmt="%.2f", delimiter=",", header=header, comments='')
             self.textbox.append("[+] finished creating txt")
+
+        self.textbox.append("[+] finished executing\n")
 
     # gets the raw data lines 
     def get_raw_data(self):

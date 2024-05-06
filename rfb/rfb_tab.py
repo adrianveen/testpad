@@ -37,7 +37,10 @@ class RFBTab(QWidget):
         for i in range(len(controls_list_col_0)):
             controls_layout.addWidget(controls_list_col_0[i], i, 0)
         for i in range(len(controls_list_col_1)):
-            controls_layout.addWidget(controls_list_col_1[i], i, 1)
+            if (i == 1):
+                controls_layout.addWidget(controls_list_col_1[i], i, 1, Qt.AlignCenter)
+            else:
+                controls_layout.addWidget(controls_list_col_1[i], i, 1)
         controls_layout.addWidget(self.print_graph_button, 3, 0, 1, 2)
         controls_layout.addWidget(self.text_display, 4, 0, 1, 2)
         controls_group.setLayout(controls_layout)

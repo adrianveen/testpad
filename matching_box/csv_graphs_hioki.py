@@ -10,6 +10,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 
 class csv_graph():
     def __init__(self, frequency, unit, filename, save, save_folder: str = None):
+        plt.close("all")
         self.selected_freq = float(frequency)
         if unit == "kHz":
             self.selected_freq *= 1e3
