@@ -89,6 +89,7 @@ class TransducerLinearTab(QWidget):
     @Slot()
     def printGraphs(self):
         # self.text_display.clear()
+        # print(self.selected_data_files, self.selected_save_folder)
         variables_dict = [self.selected_data_files, self.save_graph.isChecked(), self.selected_save_folder, self.x_graph_box.isChecked(), self.y_graph_box.isChecked(), self.z_graph_box.isChecked()]
         x_graph, y_graph, z_graph = linear_scan(variables_dict, self.text_display).getGraphs()
 

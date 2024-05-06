@@ -1,4 +1,5 @@
 import sys
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from matching_box.matching_box_tab import MatchingBoxTab
 from rfb.rfb_tab import RFBTab
@@ -20,6 +21,7 @@ class ApplicationWindow(QMainWindow):
         
         # tab_widget.setMinimumSize(QMainWindow.sizeHint())
         # tab_widget.showFullScreen()
+        # self.matching_tab = MatchingBoxTab(self) # declare as separate object to resize image 
         tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs 
         tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 
         tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
@@ -30,6 +32,10 @@ class ApplicationWindow(QMainWindow):
         main_layout.addWidget(tab_widget)
         self.setLayout(main_layout)
         self.setCentralWidget(tab_widget)
+    
+    # def resizeEvent(self, event: QResizeEvent) -> None:
+    #     # super().resizeEvent(event)
+    #     self.matching_tab.resizeImage()
 
 
 if __name__ == "__main__":

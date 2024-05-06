@@ -2,7 +2,7 @@
 # from matplotlib.figure import Figure
 # from mpl_toolkits.mplot3d import axes3d
 from PySide6.QtCore import Slot, Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QResizeEvent
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout,
@@ -17,6 +17,7 @@ class MatchingBoxTab(QWidget):
 
         # need to initialise these variables for saving to happen 
         self.selected_csv_file, self.selected_save_folder = "", ""
+        self.new_match = None
 
         # MATCHING VALUES GROUP 
         matching_vals_group = QGroupBox("Matching Box Values")
@@ -53,6 +54,7 @@ class MatchingBoxTab(QWidget):
         # self.text_display.
         # text box which displays image 
         self.image_display = QLabel(self) 
+        self.image_display.setScaledContents(True)
         self.pixmap = QPixmap() 
         # add to layout 
         text_image_layout.addWidget(self.text_display)
@@ -132,6 +134,16 @@ class MatchingBoxTab(QWidget):
         main_layout.addLayout(csv_col_layout, 0, 1)
 
         self.setLayout(main_layout)
+    
+    # when resized, resize image 
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        if self.new_match is not None: 
+            print("resized")
+            # self.pixmap = QPixmap(self.new_match.image_file)
+            self.image_display.setPixmap(self.pixmap.scaledToWidth(self.text_display.width()))
+            self.text_display.adjustSize()
+            self.text_display.update()
+        return super().resizeEvent(event)
 
     # execute matching box program 
     @Slot()
@@ -144,16 +156,23 @@ class MatchingBoxTab(QWidget):
             freq *= 1e3
         else: 
             freq *= 1e6
-        new_match = Calculations()
-        text = new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), float(self.toroid_box.currentText()))
+        self.new_match = Calculations()
+        text = self.new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), float(self.toroid_box.currentText()))
         self.text_display.append(text)
-        self.pixmap = QPixmap(new_match.image_file)
+        self.pixmap = QPixmap(self.new_match.image_file)
         self.image_display.setPixmap(self.pixmap.scaledToWidth(self.text_display.width()))
         # print(new_match.image_file)
         # self.pixmap.load(new_match.image_file)
         # # self.text_display.append(QTextBrowser.searchPaths(new_match.image_file))
         # self.image_display.repaint()
         # self.image_display.adjustSize()
+
+    # @Slot()
+    # def resizeImage(self):
+    #     # resize the image if the matching calculations have already been made
+    #     if self.new_match is not None: 
+    #         self.pixmap = QPixmap(self.new_match.image_file)
+    #         self.image_display.setPixmap(self.pixmap.scaledToWidth(self.text_display.width()))
 
     # choose files 
     @Slot() 
