@@ -54,6 +54,7 @@ class MatchingBoxTab(QWidget):
         # self.text_display.
         # text box which displays image 
         self.image_display = QLabel(self) 
+        self.image_display.resize(self.text_display.size())
         self.image_display.setScaledContents(True)
         self.pixmap = QPixmap() 
         # add to layout 
@@ -145,13 +146,15 @@ class MatchingBoxTab(QWidget):
             self.text_display.adjustSize()
             self.text_display.update()
             # self.pixmap = QPixmap(self.new_match.image_file)
-            self.image_display.setPixmap(self.pixmap.scaled(self.text_display.width(), self.text_display.height()*2))
+            self.pixmap = self.pixmap.scaled(self.text_display.width(), self.text_display.height()*1.75, mode=Qt.SmoothTransformation)
+            self.image_display.setPixmap(self.pixmap)
             
         return super().resizeEvent(event)
 
     # execute matching box program 
     @Slot()
     def getValues(self):
+        self.text_display.adjustSize()
         self.text_display.clear()
         freq = 0
         if self.freq_textbox.text():
