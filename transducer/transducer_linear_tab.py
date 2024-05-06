@@ -1,7 +1,7 @@
 from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser,
+                                QLabel, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 from transducer.linear_scan_graph_generator import linear_scan
 
