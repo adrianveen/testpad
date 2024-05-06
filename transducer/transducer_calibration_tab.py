@@ -133,7 +133,7 @@ class TransducerCalibrationTab(QWidget):
         text_print_layout.addWidget(text_fields_group)
         text_print_layout.addWidget(print_graph)
 
-        # DISPLAY WINDOW (Change to tabs window, currently a placeholder)
+        # DISPLAY WINDOW 
         self.graph_group = QTabWidget()
         self.graph_group.setTabsClosable(True)
         self.graph_group.tabCloseRequested.connect(lambda index: self.graph_group.removeTab(index))

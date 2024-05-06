@@ -16,6 +16,7 @@ class ApplicationWindow(QMainWindow):
         super().__init__(parent)
 
         tab_widget = QTabWidget()
+        tab_widget.setStyleSheet("QTabBar::tab:selected {background: #74BEA3;}")
         # sp = tab_widget.sizePolicy()
         # sp.Policy = QSizePolicy.Expanding
         
