@@ -177,9 +177,7 @@ class create_rfb_graph():
         # ax2.plot(self.time, self.aco_pwr, label="Acoustic Power (W)", color=color)
         # ax2.tick_params(axis='y', labelcolor=color)
         # ax2.set_ylim(self.ax.get_ylim())
-
-        # self.ax.grid()
-
+        
         # print average efficiency per graph
         printed_average_efficiency = self.data_summary["Average efficiency (%)"]
         self.textbox.append(f"[+] average efficiency: {printed_average_efficiency:.1f}%")
