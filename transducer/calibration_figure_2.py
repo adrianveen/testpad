@@ -60,7 +60,7 @@ class sweep_graph():
 
         # temporarily change plot style
         with plt.rc_context({
-                'figure.figsize': [6.50, 3.25],
+                # 'figure.figsize': [6.50, 3.25],
                 'font.family': 'calibri',
                 'font.weight': 'medium',
                 'axes.labelweight': 'medium',

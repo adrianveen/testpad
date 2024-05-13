@@ -6,6 +6,7 @@ Script for generating radiation force balance figures.
 import numpy as np 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.ticker import FormatStrFormatter
 # from tkinter.filedialog import askopenfilenames, askdirectory
 import sys
 import os
@@ -32,6 +33,7 @@ class create_rfb_graph():
         self.save = save
         self.textbox = textbox
         self.data_mtx = np.zeros((len(self.filenames), 4)) # np array where all the average data will be stored 
+        self.textbox.append("********************GENERATING GRAPHS********************")
 
         # open the filename, read the lines 
         # print(self.filenames)
@@ -53,18 +55,18 @@ class create_rfb_graph():
         self.data_mtx = self.data_mtx[self.data_mtx[:, 0].argsort()]
         # print(self.data_mtx)
         average_average_efficiency = np.average(self.data_mtx[:, 3]) # average of the average efficiencies
-        self.textbox.append(f"\nAverage of all average efficiencies: {average_average_efficiency:.2f}%")
+        self.textbox.append(f"\nAverage of all average efficiencies: {average_average_efficiency:.1f}%")
         
         # save the array of average information to a txt
         if self.save:
             self.textbox.append("[+] creating txt file...")
-            header = f"Average of average efficiences (%): {average_average_efficiency:.2f}\n\nAverage forward power (W), Average reflected power (W), Average acoustic power (W), Average efficiency (%)"
+            header = f"Average of average efficiences (%): {average_average_efficiency:.1f}\n\nAverage forward power (W), Average reflected power (W), Average acoustic power (W), Average efficiency (%)"
             filename = os.path.join(self.save_folder, "average_data.txt")
             # self.save_folder+"\\"+"average_data.txt"
-            np.savetxt(filename, self.data_mtx, fmt="%.2f", delimiter=",", header=header, comments='')
+            np.savetxt(filename, self.data_mtx, fmt="%.1f", delimiter=",", header=header, comments='')
             self.textbox.append("[+] finished creating txt")
 
-        self.textbox.append("[+] finished executing\n")
+        self.textbox.append("********************FINISHED EXECUTING*******************\n")
 
     # gets the raw data lines 
     def get_raw_data(self):
@@ -123,9 +125,11 @@ class create_rfb_graph():
     # makes the power vs balance reading graphs
     def graph(self):
         
+        
         self.fig, self.ax = plt.subplots(1, 1)
+        # plt.style.use('seaborn-v0_8-whitegrid')
         canvas = FigureCanvas(self.fig)
-        self.fig.suptitle("Radiation Force Balance Measurements")
+        # self.fig.suptitle("Radiation Force Balance Measurements") # title 
 
         # find nearest power, use as graph heading 
         # list_of_power = [0.5, 1.0, 1.5, 2.0, 2.5]
@@ -138,24 +142,49 @@ class create_rfb_graph():
         self.textbox.append(f"[+] creating {graph_heading} graph...")
 
         color = 'black'
-        self.ax.plot(self.time, self.fwd_pwr, label="Forward power", color=color)
+        self.ax.plot(self.time, self.fwd_pwr, label="Forward Electrical Power (W)", color=color)
         # ax1.plot(self.time, self.refl_pwr, label = "Reflected power (W)")
         # ax1.plot(self.time, self.aco_pwr, label="Acoustic power")
-        self.ax.set_ylabel("Forward Power (W)", color=color)
+        self.ax.set_ylabel("Forward Electrical Power (W)", color=color)
         self.ax.set_xlabel("Time (s)")
         # ax[0].set_title("Radiation Force Balance Measurements")
         self.ax.tick_params(axis='y', labelcolor=color)
+        # set bounds to align grid with axis 2 
+        first_bound = self.ax.get_ybound()[0]
+        second_bound = self.ax.get_ybound()[1]
+        self.ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        self.ax.set_yticks(np.linspace(first_bound, second_bound, 5))
         # ax.set_ylim(0, None)        
+        self.ax.grid()
 
         ax2 = self.ax.twinx()
 
         color = '#6bb097'
         ax2.set_ylabel("Balance Reading (g)", color=color)
-        ax2.plot(self.time, self.bal_read, label="Balance reading", color=color)
+        ax2.plot(self.time, self.bal_read, label="Balance reading (g)", color=color)
         ax2.tick_params(axis='y', labelcolor=color)
         average_efficiency = self.data_summary["Average efficiency (%)"]/100
         # print(average_efficiency)
         ax2.set_ylim(None, max(self.bal_read)/average_efficiency) # setting the peak of the balance reading graphs to be at the average efficiency level 
+        # set bounds to align grid with axis 1
+        first_bound = ax2.get_ybound()[0]
+        second_bound = ax2.get_ybound()[1]
+        ax2.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        ax2.set_yticks(np.linspace(first_bound, second_bound, 5))
+
+        # color = '#6bb097'
+        # ax2.set_ylabel("Acoustic Power (W)", color=color)
+        # ax2.plot(self.time, self.aco_pwr, label="Acoustic Power (W)", color=color)
+        # ax2.tick_params(axis='y', labelcolor=color)
+        # ax2.set_ylim(self.ax.get_ylim())
+
+        # self.ax.grid()
+
+        # print average efficiency per graph
+        printed_average_efficiency = self.data_summary["Average efficiency (%)"]
+        self.textbox.append(f"[+] average efficiency: {printed_average_efficiency:.1f}%")
+        # print(average_efficiency)
+        # ax2.set_ylim(None, max(self.bal_read)/average_efficiency) # setting the peak of the acoustic power graphs to be at the average efficiency level 
 
         self.fig.tight_layout()
 
@@ -170,37 +199,3 @@ class create_rfb_graph():
         self.graphs_list.append([canvas, graph_heading])
         
         # fig.show()
-
-# @QmlElement
-# class TextBox(QObject): 
-#     # function for the button
-#     # frequency, filename, save, save_folder
-#     @Slot(list, str, bool, result=None)
-#     def printGraph(self, filenames, save_folder, save):
-#         create_rfb_graph(filenames, save_folder, save)
-#     # close all open graphs upon termination of program 
-#     @Slot(None, result=None)
-#     def closeAll(self): 
-#         plt.close('all')
-
-# if __name__ == '__main__':
-
-#     # filename goes here 
-#     # filenames = r"C:\Users\RKPC\Documents\summer_2023\radiation_force_balance\317-T1150H550\measurements\RFBTest_2023-08-18 10-40-27_317-T1150H550_2850mVpp.csv"
-
-#     # call the rfb graph 
-#     # create_rfb_graph(filenames=askopenfilenames())
-#     #Set up the application window
-#     app = QApplication(sys.argv)
-#     engine = QQmlApplicationEngine()
-#     engine.quit.connect(app.quit)
-
-#     #Load the QML file
-#     qml_file = Path(__file__).parent / "widget_rfb.qml"
-#     engine.load(qml_file)
-
-#     # #Show the window
-#     if not engine.rootObjects():
-#         sys.exit(-1)
-
-#     sys.exit(app.exec())
