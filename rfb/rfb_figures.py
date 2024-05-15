@@ -34,6 +34,9 @@ class create_rfb_graph():
         self.textbox = textbox
         self.data_mtx = np.zeros((len(self.filenames), 4)) # np array where all the average data will be stored 
         self.textbox.append("********************GENERATING GRAPHS********************")
+        self.extractInfoAndGraph()
+
+    def extractInfoAndGraph(self):
 
         # open the filename, read the lines 
         # print(self.filenames)
@@ -42,8 +45,13 @@ class create_rfb_graph():
                 self.lines = f.readlines()
 
             # get the indices of the data summary heading and the header row 
-            self.heading = self.lines.index("DATA SUMMARY\n") # data summary row begins
-            self.header_row = self.lines.index("Time (s),Forward power (W),Reflected power (W),Balance reading (g),Acoustic power (W)\n") # header row to start finding data 
+            try: 
+                self.heading = self.lines.index("DATA SUMMARY\n") # data summary row begins
+                self.header_row = self.lines.index("Time (s),Forward power (W),Reflected power (W),Balance reading (g),Acoustic power (W)\n") # header row to start finding data 
+            except ValueError as e: 
+                self.textbox.append("\nValueError: "+ str(e))
+                self.textbox.append("Did you select the correct file? The necessary raw data values were not found.\n")
+                return()
             # print(self.filenames.index(filename))
             self.get_data_summary()
             self.averages_mtx(self.filenames.index(filename))
