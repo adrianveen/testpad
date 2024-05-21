@@ -229,13 +229,14 @@ class TransducerCalibrationTab(QWidget):
     def printGraph(self): 
         # clear all tabs
         self.graph_group.clear()
+        # print(self.ax_left)
 
         # sweep_data, axial_field, axial_line, lateral_field, lateral_line
         # axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step
         var_dict = [self.selected_data_files, self.selected_save_folder, self.selected_eb50_file, 
              self.sweep_box.isChecked(), self.ax_field_graphs_box.isChecked(), self.ax_line_graphs_box.isChecked(), self.lat_field_graphs_box.isChecked(), self.lat_line_graphs_box.isChecked(), self.save_box.isChecked(),
              self.ax_left_field_length_field.text(), self.ax_right_field_length_field.text(), self.ax_field_height_field.text(), 
-             self.ax_left_field_length_field.text(), self.ax_right_line_length_field.text(), self.lat_field_length_field.text(), self.interp_step_field.text()]
+             self.ax_left_line_length_field.text(), self.ax_right_line_length_field.text(), self.lat_field_length_field.text(), self.interp_step_field.text()]
         graphs = combined_calibration(var_dict, self.text_display_group).getGraphs()
         
         # add graphs to tabs 

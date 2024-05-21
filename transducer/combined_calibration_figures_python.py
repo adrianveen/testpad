@@ -39,7 +39,6 @@ class combined_calibration:
         files, save_folder, eb50_file = [i for i in variables_dict[:3]]
         sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [bool(i) for i in variables_dict[3:9]]
         axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step = [float(i) if i != '' else 0 for i in variables_dict[9:]]
-
         # assign tabs 
         # sweep_tab, ax_field_tab, lat_field_tab, ax_line_tab, lat_line_tab = [i for i in graph_tabs_list]
 
