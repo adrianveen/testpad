@@ -196,7 +196,7 @@ class create_rfb_graph():
 
         if self.save:
             self.textbox.append("[+] saving graphs...")
-            filename = os.path.join(self.save_folder, "rfb_measurments_"+graph_heading+".svg") 
+            filename = os.path.join(self.save_folder, "rfb_measurements_"+graph_heading+".svg") 
             self.fig.savefig(filename, format='svg', bbox_inches='tight', pad_inches=0, transparent=True)
         
         self.textbox.append(f"[+] finished making {graph_heading} graph")
