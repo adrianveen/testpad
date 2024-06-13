@@ -161,7 +161,7 @@ def fetch_data(filename, axial_or_lateral):
 """
 FWHMX
 """
-def fwhmx(horizontal, pressure_or_intensity, left_field_length, right_field_length, axis, type_of_scan, type_of_data):
+def fwhmx(horizontal, pressure_or_intensity, left_field_length, right_field_length, axis, type_of_scan, type_of_data, textbox:QTextBrowser):
     minimum = pressure_or_intensity.min()
     maximum = pressure_or_intensity.max()
 
@@ -193,8 +193,12 @@ def fwhmx(horizontal, pressure_or_intensity, left_field_length, right_field_leng
     half_max_line.fill(0.5)
     indices = np.argwhere(np.diff(np.sign(y - half_max_line))).flatten()
     max_location = np.argwhere(y == 1)[0][0] # position of peak 
-    first_index = x[indices[np.argwhere(indices < max_location)[-1]]][0] # first intersection with half_max_line, to the left of the peak 
-    last_index = x[indices[np.argwhere(indices > max_location)[0]]][0] # last intersection with half_max_line, to the right of the peak 
+    try:
+        first_index = x[indices[np.argwhere(indices < max_location)[-1]]][0] # first intersection with half_max_line, to the left of the peak 
+        last_index = x[indices[np.argwhere(indices > max_location)[0]]][0] # last intersection with half_max_line, to the right of the peak 
+    except IndexError as e:
+        textbox.append(f"{e}: couldn't output fwhmx")
+        return(str(e))
     # print("Intersection", indices)
 
     # THE FOV METHOD (OBSOLETE)

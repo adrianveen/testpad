@@ -203,15 +203,18 @@ class combined_calibration:
             # Pressure line
             y_pressure_line_graph = line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', save, save_folder, textbox)
             self.graph_list[5] = y_pressure_line_graph
-            y_pressure_fwhmx = fwhmx(y_data, pressure, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Pressure')
+            y_pressure_fwhmx = fwhmx(y_data, pressure, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Pressure', textbox)
             # Intensity line
             y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', save, save_folder, textbox)
             self.graph_list[6] = y_intensity_line_graph
-            y_intensity_fwhmx = fwhmx(y_data, intensity, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Intensity')
+            y_intensity_fwhmx = fwhmx(y_data, intensity, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Intensity', textbox)
 
             # PRINT AXIAL FWHMX
-            textbox.append(f"Axial Pressure FWHMX: {y_pressure_fwhmx:0.1f} mm")
-            textbox.append(f"Axial Intensity FWHMX: {y_intensity_fwhmx:0.1f} mm")
+            if type(y_pressure_fwhmx) is not str and type(y_intensity_fwhmx) is not str:
+                textbox.append(f"Axial Pressure FWHMX: {y_pressure_fwhmx:0.1f} mm")
+                textbox.append(f"Axial Intensity FWHMX: {y_intensity_fwhmx:0.1f} mm")
+            else:
+                textbox.append("Couldn't output FWHMX for y-axis. Your data may be faulty.")
 
         if lateral_line:
             # X LINE SCAN 
@@ -219,22 +222,25 @@ class combined_calibration:
             # Pressure line plot 
             x_pressure_line_graph = line_graph(x_data, pressure, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', save, save_folder, textbox)
             self.graph_list[7] = x_pressure_line_graph
-            x_pressure_fwhmx = fwhmx(x_data, pressure, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Pressure')
+            x_pressure_fwhmx = fwhmx(x_data, pressure, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Pressure', textbox)
             # Intensity line plot 
             x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', save, save_folder, textbox)
             self.graph_list[8] = x_intensity_line_graph
-            x_intensity_fwhmx = fwhmx(x_data, intensity, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Intensity')
+            x_intensity_fwhmx = fwhmx(x_data, intensity, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Intensity', textbox)
 
             # # Z LINE SCAN 
             x_data, y_data, z_data, pressure, intensity = fetch_data(z_line_scan, "lateral")
-            z_pressure_fwhmx = fwhmx(z_data, np.transpose(pressure), lateral_field_length, lateral_field_length, 'Z', 'Lateral ', 'Pressure')
-            z_intensity_fwhmx = fwhmx(z_data, np.transpose(intensity), lateral_field_length, lateral_field_length, 'Z', 'Lateral ', 'Intensity')
+            z_pressure_fwhmx = fwhmx(z_data, np.transpose(pressure), lateral_field_length, lateral_field_length, 'Z', 'Lateral ', 'Pressure', textbox)
+            z_intensity_fwhmx = fwhmx(z_data, np.transpose(intensity), lateral_field_length, lateral_field_length, 'Z', 'Lateral ', 'Intensity', textbox)
 
             # LATERAL FWHMX (AVERAGE OF X AND Z)
-            averaged_pressure_fwhmx = (x_pressure_fwhmx+z_pressure_fwhmx)/2.0
-            averaged_intensity_fwhmx = (x_intensity_fwhmx+z_intensity_fwhmx)/2.0
-            textbox.append(f"Averaged Lateral Pressure FWHMX: {averaged_pressure_fwhmx:0.1f} mm")
-            textbox.append(f"Averaged Lateral Intensity FWHMX: {averaged_intensity_fwhmx:0.1f} mm")
+            if type(x_pressure_fwhmx) is not str and type(x_intensity_fwhmx) is not str and type(z_pressure_fwhmx) is not str and type(z_intensity_fwhmx) is not str:
+                averaged_pressure_fwhmx = (x_pressure_fwhmx+z_pressure_fwhmx)/2.0
+                averaged_intensity_fwhmx = (x_intensity_fwhmx+z_intensity_fwhmx)/2.0
+                textbox.append(f"Averaged Lateral Pressure FWHMX: {averaged_pressure_fwhmx:0.1f} mm")
+                textbox.append(f"Averaged Lateral Intensity FWHMX: {averaged_intensity_fwhmx:0.1f} mm")
+            else:
+                textbox.append("Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty.")
 
     def getGraphs(self):
         # plt.show()
