@@ -71,6 +71,7 @@ class create_rfb_graph():
             header = f"Average of average efficiences (%): {average_average_efficiency:.1f}\n\nAverage forward power (W), Average reflected power (W), Average acoustic power (W), Average efficiency (%)"
             filename = os.path.join(self.save_folder, "average_data.txt")
             # self.save_folder+"\\"+"average_data.txt"
+            filename_table = os.path.join(self.save_folder, "average_data_TABLE.txt")
             np.savetxt(filename, self.data_mtx, fmt="%.1f", delimiter=",", header=header, comments='')
             self.textbox.append("[+] finished creating txt")
 
