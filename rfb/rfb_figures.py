@@ -63,16 +63,18 @@ class create_rfb_graph():
         self.data_mtx = self.data_mtx[self.data_mtx[:, 0].argsort()]
         # print(self.data_mtx)
         average_average_efficiency = np.average(self.data_mtx[:, 3]) # average of the average efficiencies
-        self.textbox.append(f"\nAverage of all average efficiencies: {average_average_efficiency:.1f}%")
+        std_average_efficiency = np.std(self.data_mtx[:, 3])
+        self.textbox.append(f"\nAverage of all average efficiencies: {average_average_efficiency:.1f} ± {std_average_efficiency:.1f}%")
         
         # save the array of average information to a txt
         if self.save:
             self.textbox.append("[+] creating txt file...")
-            header = f"Average of average efficiences (%): {average_average_efficiency:.1f}\n\nAverage forward power (W), Average reflected power (W), Average acoustic power (W), Average efficiency (%)"
+            header = f"Average of average efficiences (%): {average_average_efficiency:.1f} ± {std_average_efficiency:.1f}\n\nAverage forward power (W), Average reflected power (W), Average acoustic power (W), Average efficiency (%)"
             filename = os.path.join(self.save_folder, "average_data.txt")
-            # self.save_folder+"\\"+"average_data.txt"
             filename_table = os.path.join(self.save_folder, "average_data_TABLE.txt")
+            table_for_report = np.delete(self.data_mtx, 1, 1)
             np.savetxt(filename, self.data_mtx, fmt="%.1f", delimiter=",", header=header, comments='')
+            np.savetxt(filename_table, table_for_report, fmt="%.1f", delimiter=",", comments='')
             self.textbox.append("[+] finished creating txt")
 
         self.textbox.append("********************FINISHED EXECUTING*******************\n")
