@@ -6,6 +6,7 @@ from rfb.rfb_tab import RFBTab
 from transducer.transducer_calibration_tab import TransducerCalibrationTab
 from transducer.transducer_linear_tab import TransducerLinearTab
 from eb50.eb50_tab import EboxTab
+from vol2press.vol2press_tab import Vol2PressTab
 
 # application window (inherits QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -33,6 +34,7 @@ class ApplicationWindow(QMainWindow):
         tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
         tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
         tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 
+        tab_widget.addTab(Vol2PressTab(self), "Sweep Analysis") # linear regression of sweep line using two different gains
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(tab_widget)

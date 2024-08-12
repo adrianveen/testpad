@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout,
 import numpy as np
 import yaml
 import decimal
+import matplotlib.pyplot as plt 
+from matplotlib.backends.backend_qtagg import FigureCanvas
 
 # x values: input mV (get average from 5 sweeps [SHOULD BE THE SAME FOR ALL OF THEM, THOUGH])
 # y values: neg pressure (get average from 5 sweeps)
@@ -19,13 +21,18 @@ import decimal
 class Vol2Press():
     def __init__(self, cal_eb50_file, sys_eb50_file, sweep_txt) -> None:
         self.freq = sweep_txt.split("_")[-2]
+        # print(self.freq)
         self.closest_cal_freq, self.cal_eb50_dict = self.closest_frequency(self.freq, cal_eb50_file)
+        # print(self.closest_cal_freq)
         self.closest_sys_freq, self.sys_eb50_dict = self.closest_frequency(self.freq, sys_eb50_file)
+        # print(self.closest_sys_freq)
         self.sweep_array = np.loadtxt(sweep_txt, delimiter=",", skiprows=5)
         self.input_mV = self.sweep_array[:, 3]
         self.neg_pressure = self.sweep_array[:, 0]
         self.cal_avg_gain = np.mean(self.cal_eb50_dict['gain'])
         self.sys_avg_gain = np.mean(self.sys_eb50_dict['gain'])
+        # print(self.cal_avg_gain)
+        # print(self.sys_avg_gain)
 
         self.gain_diff = self.cal_avg_gain - self.sys_avg_gain
 
@@ -33,26 +40,25 @@ class Vol2Press():
         self.y_values = self.neg_pressure
 
     def return_B_value(self):
-        # linear regression here 
-        # Preparation matrix to solve y=m*x + b
-        # Force the y-intercept to go through the origin, i.e. b=0
         A = np.vstack([self.x_values]).T
-
         self.m = np.linalg.lstsq(A, self.y_values, rcond=None)[0][0]
-        # self.textbox.append('[+] m value: {}'.format(self.m))
-
-        # correlation_matrix = np.corrcoef(self.x_values, self.y_values)
-        # correlation_xy = correlation_matrix[0, 1]
-        # r_squared = correlation_xy**2
-        # # self.textbox.append('[+] r squared: {}'.format(r_squared))
-
-        # # Truncate the r squared value to four decimal places
-        # r_trunc = decimal.Decimal(r_squared)
-        # self.r_trunc_out = float(round(r_trunc, 4))
-        # # self.textbox.append(f"[+] truncated r squared: {self.r_trunc_out}")
-
         return(self.m)
+    
+    def getGraphs(self):
+        self.fig, self.ax = plt.subplots(1, 1)
+        self.canvas = FigureCanvas(self.fig)
 
+        self.ax.plot(self.input_mV, self.neg_pressure, label="With calibration EB-50", ls='None', marker='o')
+        self.ax.plot(self.x_values, self.y_values, label="With customer EB-50", ls='None', marker='o')
+        self.ax.axline((0, 0), slope=self.m, label="Regression line", color='g')
+
+        self.ax.set_xlabel("Input voltage (Vpp)")
+        self.ax.set_ylabel("Pressure (MPa)")
+
+        self.ax.legend()
+
+        self.fig.set_canvas(self.canvas)
+        return(self.canvas)
 
     # convert Hz to kHz, MHz 
     def fmt(self, freq):
