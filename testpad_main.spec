@@ -5,8 +5,8 @@ a = Analysis(
     ['testpad_main.py'],
     pathex=[],
     binaries=[],
-    datas=[(r"C:\Users\RKPC\Documents\summer_2024\testpad\matching_box\cap_across_load.jpg", "matching_box"), \
-    (r"C:\Users\RKPC\Documents\summer_2024\testpad\matching_box\cap_across_source.jpg", "matching_box")],
+    datas=[(r"matching_box\cap_across_load.jpg", "matching_box"), \
+    (r"matching_box\cap_across_source.jpg", "matching_box")],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={"matplotlib": {
