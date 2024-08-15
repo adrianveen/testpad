@@ -9,7 +9,6 @@ import numpy as np
 import yaml
 import decimal
 
-
 class Vol2PressTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
