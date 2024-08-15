@@ -36,7 +36,7 @@ class ApplicationWindow(QMainWindow):
         tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
         tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 
         tab_widget.addTab(Vol2PressTab(self), "Sweep Analysis") # linear regression of sweep line using two different gains
-        tab_widget.addTab(BurninTab(self), "Burn-in Graph Viewer")
+        tab_widget.addTab(BurninTab(self), "Burn-in Graph Viewer") # graphs HDF5 files from burn-in for user manipulation 
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(tab_widget)

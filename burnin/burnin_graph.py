@@ -18,9 +18,6 @@ class BurninGraph():
         with h5py.File(self.burnin_file) as file:
             self.error = list(file['Error (counts)'])
             self.time = list(file['Time (s)'])
-            
-            # print(self.time)
-            # print(self.error)
 
     def getGraph(self):
         self.fig, self.ax = plt.subplots(1, 1)
