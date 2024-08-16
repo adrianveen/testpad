@@ -10,7 +10,6 @@ import yaml
 import decimal
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 
-
 class BurninTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -18,19 +17,12 @@ class BurninTab(QWidget):
         selections_group = QGroupBox()
         self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))
-        # self.select_save_folder_btn = QPushButton("SELECT SAVE FOLDER")
-        # self.select_save_folder_btn.clicked.connect(lambda: self.openFileDialog("save"))
-        # save_graph_label = QLabel("Save graph?")
-        # self.save_graph_box = QCheckBox()
         self.print_graph_btn = QPushButton("PRINT GRAPH")
         self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
         self.print_graph_btn.clicked.connect(self.printGraphs)
 
         selections_layout = QGridLayout()
         selections_layout.addWidget(self.select_burnin_file_btn, 0, 0, 1, 2)
-        # selections_layout.addWidget(self.select_save_folder_btn, 1, 0, 1, 2)
-        # selections_layout.addWidget(save_graph_label, 2, 0)
-        # selections_layout.addWidget(self.save_graph_box, 2, 1)
         selections_layout.addWidget(self.print_graph_btn, 1, 0, 1, 2)
         selections_group.setLayout(selections_layout)
 
@@ -45,6 +37,7 @@ class BurninTab(QWidget):
         self.setLayout(main_layout)
 
     @Slot()
+    # file dialog boxes 
     def openFileDialog(self, d_type):
         if d_type == "burn":
             self.dialog1 = QFileDialog(self)
@@ -56,7 +49,7 @@ class BurninTab(QWidget):
                 self.text_display.append("Burn-in File: ")
                 self.burnin_file = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.burnin_file+"\n")
-        elif d_type == "save":
+        elif d_type == "save": # not including save anymore because graph of burn-in is already saved as SVG 
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Save Folder")
             self.dialog1.setFileMode(QFileDialog.Directory)
@@ -66,6 +59,7 @@ class BurninTab(QWidget):
                 self.save_folder = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.save_folder+"\n")
 
+    # prints burn-in graph with navigation tool bar to pan/zoom
     def printGraphs(self):
         self.graph_display.clear()
 

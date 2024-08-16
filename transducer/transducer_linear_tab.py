@@ -46,7 +46,7 @@ class TransducerLinearTab(QWidget):
             if i >= 2:
                 selections_layout.addWidget(linear_col_1[i], i, 1, Qt.AlignCenter)
             else: 
-                selections_layout.addWidget(linear_col_1[i], i, 1)
+                selections_layout.addWidget(linear_col_1[i], i, 1) 
         selections_layout.addWidget(print_graph_button, 6, 0, 1, 2)
         selections_layout.addWidget(self.text_display, 7, 0, 1, 2)
 

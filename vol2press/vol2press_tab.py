@@ -55,6 +55,7 @@ class Vol2PressTab(QWidget):
         self.setLayout(main_layout)
 
     @Slot()
+    # file dialog boxes to select sweep/calibration eb-50/customer eb-50 files 
     def openFileDialog(self, d_type):
         if d_type == "sweep":
             self.dialog1 = QFileDialog(self)
@@ -82,6 +83,7 @@ class Vol2PressTab(QWidget):
                 self.text_display.append(self.sys_eb50_file+"\n")
 
     @Slot()
+    # return calc values 
     def get_calcs(self):
         if self.sweep_file is not None and self.cal_eb50_file is not None and self.sys_eb50_file is not None:
             self.calcs = Vol2Press(self.cal_eb50_file, self.sys_eb50_file, self.sweep_file)
@@ -98,8 +100,6 @@ class Vol2PressTab(QWidget):
     @Slot()
     def printGraphs(self):
         self.graph_display.clear()
-        # print(self.selected_data_files, self.selected_save_folder)
-        # variables_dict = [self.selected_data_files, self.save_graph.isChecked(), self.selected_save_folder, self.x_graph_box.isChecked(), self.y_graph_box.isChecked(), self.z_graph_box.isChecked()]
         comparison_graph = self.calcs.getGraphs()
         self.graph_display.addTab(comparison_graph, "Comparison Graph")
 

@@ -9,7 +9,7 @@ from eb50.eb50_tab import EboxTab
 from vol2press.vol2press_tab import Vol2PressTab
 from burnin.burnin_tab import BurninTab
 
-# application window (inherits QMainWindow)
+# application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
     def __init__(self, parent: QWidget=None): 
 
@@ -29,7 +29,7 @@ class ApplicationWindow(QMainWindow):
         
         # tab_widget.setMinimumSize(QMainWindow.sizeHint())
         # tab_widget.showFullScreen()
-        # self.matching_tab = MatchingBoxTab(self) # declare as separate object to resize image 
+        # self.matching_tab = MatchingBoxTab(self) # declare as separate object to resize image?
         tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs 
         tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 
         tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 

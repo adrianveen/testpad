@@ -19,6 +19,7 @@ class BurninGraph():
             self.error = list(file['Error (counts)'])
             self.time = list(file['Time (s)'])
 
+    # graphs error vs time 
     def getGraph(self):
         self.fig, self.ax = plt.subplots(1, 1)
         self.canvas = FigureCanvas(self.fig)
@@ -30,9 +31,5 @@ class BurninGraph():
 
         self.fig.set_canvas(self.canvas)
         return(self.canvas)
-    
-    # def saveGraph(self):
-    #     counter = 1
 
-    #     while True: 
 
