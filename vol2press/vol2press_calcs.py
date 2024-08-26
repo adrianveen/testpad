@@ -72,6 +72,9 @@ class Vol2Press():
     def fmt_kHz_to_MHz(self, freq):
         new_freq = float(freq[:-3])/1000
         return(new_freq, "MHz")
+    
+    def get_freq(self):
+        return(float(self.freq[:-3])*1000)
 
     # find the closest frequency to the requested frequency (parsing YAML file)
     def closest_frequency(self, frequency, filename):

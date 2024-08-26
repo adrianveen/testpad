@@ -47,7 +47,6 @@ class ApplicationWindow(QMainWindow):
     #     # super().resizeEvent(event)
     #     self.matching_tab.resizeImage()
 
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyleSheet("QLabel{font-size: 11pt;}") # increase font size slightly of QLabels
