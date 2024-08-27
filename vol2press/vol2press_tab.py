@@ -102,7 +102,7 @@ class Vol2PressTab(QWidget):
         offset_layout.addWidget(self.offset_field_2)
         offset_layout.addWidget(self.offset_field_3)
         offset_widget.setLayout(offset_layout)
-        uni_cali_label = QLabel("unified_calibration")
+        uni_cali_label = QLabel("unified_vol2press")
         self.uni_cali_field = QLineEdit()
 
         self.fields_list = [self.freq_field, self.axial_field, self.lateral_field, self.offset_field_1, \
@@ -275,7 +275,7 @@ class Vol2PressTab(QWidget):
         self.add_to_dict("TxAxialFocalDiameter", self.axial_field.text(), spec_freq_dict)
         self.add_to_dict("TxLateralFocalDiameter", self.lateral_field.text(), spec_freq_dict)
         self.add_to_dict("offset", [self.offset_field_1.text(), self.offset_field_2.text(), self.offset_field_3.text()], spec_freq_dict)
-        self.add_to_dict("unified_calibration", self.uni_cali_field.text(), spec_freq_dict)
+        self.add_to_dict("unified_vol2press", self.uni_cali_field.text(), spec_freq_dict)
 
         self.freq_dict[freq] = spec_freq_dict
 
