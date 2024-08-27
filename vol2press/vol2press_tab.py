@@ -3,7 +3,7 @@ from vol2press.vol2press_calcs import Vol2Press
 from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser,
+                                QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 import numpy as np
 import yaml
@@ -219,9 +219,20 @@ class Vol2PressTab(QWidget):
         self.add_to_yaml_btn.setEnabled(True)
 
     def clear_dicts(self):
-        self.freq_dict = {}
-        self.values_dict = {}
-        self.summary_dict = {}
+        qReply = QMessageBox.question(
+            self,
+            'Confirm Clear',
+            'Are you sure you want to clear all previously stored frequency data?',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if qReply == QMessageBox.Yes:  # if user says yes, clear previous dicts
+            self.freq_dict = {}
+            self.values_dict = {}
+            self.summary_dict = {}
+            self.text_display.append("Previous frequency data cleared.\n")
+        
 
     @Slot()
     # return calc values 
