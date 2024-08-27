@@ -39,6 +39,8 @@ class Vol2PressTab(QWidget):
         # ONE TIME FIELDS 
         # available frequencies should be deduced 
         single_fields_group = QGroupBox("Transducer Fields")
+        transducer_label = QLabel("Transducer Serial No.")
+        self.transducer_field = QLineEdit()
         impedance_label = QLabel("impedance_fund")
         self.impedance_field = QLineEdit()
         phase_label = QLabel("phase_fund")
@@ -50,19 +52,23 @@ class Vol2PressTab(QWidget):
         focal_point_label = QLabel("txFocalPointFactor")
         self.focal_point_field = QLineEdit()
 
+        self.one_time_fields_list = [self.transducer_field, self.impedance_field, self.phase_field, self.pcd_field, self.focal_point_field]
+
         single_fields_layout = QGridLayout()
         single_fields_layout.setColumnStretch(0, 1)
         single_fields_layout.setColumnStretch(1, 1)
-        single_fields_layout.addWidget(impedance_label, 0, 0)
-        single_fields_layout.addWidget(self.impedance_field, 0, 1)
-        single_fields_layout.addWidget(phase_label, 1, 0)
-        single_fields_layout.addWidget(self.phase_field, 1, 1)
-        single_fields_layout.addWidget(pcd_label, 2, 0)
-        single_fields_layout.addWidget(self.pcd_field, 2, 1)
-        single_fields_layout.addWidget(diameter_label, 3, 0)
-        single_fields_layout.addWidget(self.diameter_field, 3, 1)
-        single_fields_layout.addWidget(focal_point_label, 4, 0)
-        single_fields_layout.addWidget(self.focal_point_field, 4, 1)
+        single_fields_layout.addWidget(transducer_label, 0, 0)
+        single_fields_layout.addWidget(self.transducer_field, 0, 1)
+        single_fields_layout.addWidget(impedance_label, 1, 0)
+        single_fields_layout.addWidget(self.impedance_field, 1, 1)
+        single_fields_layout.addWidget(phase_label, 2, 0)
+        single_fields_layout.addWidget(self.phase_field, 2, 1)
+        single_fields_layout.addWidget(pcd_label, 3, 0)
+        single_fields_layout.addWidget(self.pcd_field, 3, 1)
+        single_fields_layout.addWidget(diameter_label, 4, 0)
+        single_fields_layout.addWidget(self.diameter_field, 4, 1)
+        single_fields_layout.addWidget(focal_point_label, 5, 0)
+        single_fields_layout.addWidget(self.focal_point_field, 5, 1)
         single_fields_group.setLayout(single_fields_layout)
 
         # FIELDS PER FREQUENCY 
@@ -129,6 +135,9 @@ class Vol2PressTab(QWidget):
         results_btn = QPushButton("PRINT TO YAML")
         results_btn.setStyleSheet("background-color: #74BEA3")
         results_btn.clicked.connect(lambda: self.create_yaml())
+        clear_btn = QPushButton("CLEAR DATA")
+        clear_btn.clicked.connect(lambda: self.clear_dicts())
+        clear_btn.clicked.connect(lambda: self.enable_btn())
 
         # TEXT CONSOLE 
         console_box = QGroupBox("Console Output")
@@ -149,8 +158,9 @@ class Vol2PressTab(QWidget):
         main_layout.addWidget(freq_fields_group, 2, 0)
         main_layout.addWidget(self.add_to_yaml_btn, 3, 0)
         main_layout.addWidget(results_btn, 4, 0)
-        main_layout.addWidget(console_box, 5, 0)
-        main_layout.addWidget(self.graph_display, 0, 1, 6, 1)
+        main_layout.addWidget(clear_btn, 5, 0)
+        main_layout.addWidget(console_box, 6, 0)
+        main_layout.addWidget(self.graph_display, 0, 1, 7, 1)
 
         self.setLayout(main_layout)
 
@@ -208,6 +218,11 @@ class Vol2PressTab(QWidget):
     def enable_btn(self):
         self.add_to_yaml_btn.setEnabled(True)
 
+    def clear_dicts(self):
+        self.freq_dict = {}
+        self.values_dict = {}
+        self.summary_dict = {}
+
     @Slot()
     # return calc values 
     def get_calcs(self):
@@ -264,8 +279,10 @@ class Vol2PressTab(QWidget):
         self.add_to_dict("txDiameter", self.focal_point_field.text(), self.values_dict)
 
         self.values_dict = self.values_dict | self.freq_dict # ensure that all frequency dictionary values are placed at the end 
+        self.summary_dict = {}
+        self.summary_dict[self.transducer_field.text()] = self.values_dict
 
         with open(self.save_location, 'wt', encoding='utf8') as f:
             self.text_display.append(f"Writing dictionary to {self.save_location}...\n")
-            yaml.dump(self.values_dict, f, default_flow_style=None, sort_keys=False)
+            yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
 
