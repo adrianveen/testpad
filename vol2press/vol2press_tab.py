@@ -165,7 +165,7 @@ class Vol2PressTab(QWidget):
         self.setLayout(main_layout)
 
     @Slot()
-    # file dialog boxes to select sweep/calibration eb-50/customer eb-50 files 
+    # file dialog boxes to select sweep/calibration eb-50/customer eb-50 files/a save location
     def openFileDialog(self, d_type):
         if d_type == "sweep":
             self.dialog1 = QFileDialog(self)
@@ -211,13 +211,16 @@ class Vol2PressTab(QWidget):
                 self.text_display.append("Save Location: ")
                 self.save_location = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.save_location+"\n")
-
+    
+    # disable the add frequency button 
     def disable_btn(self):
         self.add_to_yaml_btn.setEnabled(False)
     
+    # enable the add frequency button 
     def enable_btn(self):
         self.add_to_yaml_btn.setEnabled(True)
 
+    # clear previous frequency data (useful for creating data for new transducer)
     def clear_dicts(self):
         qReply = QMessageBox.question(
             self,
@@ -251,12 +254,14 @@ class Vol2PressTab(QWidget):
             if self.sys_eb50_file is None:
                 self.text_display.append(f"Missing file: customer EB-50 file")
 
+    # print the graphs
     @Slot()
     def printGraphs(self):
         self.graph_display.clear()
         comparison_graph = self.calcs.getGraphs()
         self.graph_display.addTab(comparison_graph, "Comparison Graph")
 
+    # add data to a dictionary 
     def add_to_dict(self, key, value, dictionary):
         if value != '':
             if key == "offset":
@@ -266,6 +271,7 @@ class Vol2PressTab(QWidget):
             else:
                 dictionary[key] = float(value)
 
+    # add frequency data to frequency dictionary 
     @Slot()
     def add_to_frequency(self):
         freq = float(self.freq_field.text())*1000000 # MHz to Hz
@@ -279,6 +285,7 @@ class Vol2PressTab(QWidget):
 
         self.freq_dict[freq] = spec_freq_dict
 
+    # create a yaml file with all dictionaries 
     @Slot()
     def create_yaml(self):
         available_frequencies = np.array([key for key in self.freq_dict if type(key) is float]).tolist() # gets a list of the existing frequencies in the field 
