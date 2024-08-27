@@ -19,8 +19,8 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 # linear regression between x values and y values 
 
 class Vol2Press():
-    def __init__(self, cal_eb50_file, sys_eb50_file, sweep_txt) -> None:
-        self.freq = sweep_txt.split("_")[-2] # get frequency from file name 
+    def __init__(self, cal_eb50_file, sys_eb50_file, sweep_txt, freq) -> None:
+        self.freq = freq # frequency given in MHz
 
         self.closest_cal_freq, self.cal_eb50_dict = self.closest_frequency(self.freq, cal_eb50_file) # find closest freq dict in file 
         self.closest_sys_freq, self.sys_eb50_dict = self.closest_frequency(self.freq, sys_eb50_file)
@@ -79,7 +79,8 @@ class Vol2Press():
     # find the closest frequency to the requested frequency (parsing YAML file)
     def closest_frequency(self, frequency, filename):
         # requested frequency 
-        frequency, ending = self.fmt_kHz_to_MHz(frequency)
+        ending = "MHz"
+        # frequency, ending = self.fmt_kHz_to_MHz(frequency)
         # print("Requested frequency:", str(frequency)+ending)
         
         # opens the eb50 file to get the frequencies

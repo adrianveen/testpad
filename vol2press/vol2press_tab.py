@@ -2,7 +2,7 @@ from vol2press.vol2press_calcs import Vol2Press
 
 from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 import numpy as np
@@ -17,6 +17,7 @@ class Vol2PressTab(QWidget):
         self.sys_eb50_file = None
         self.save_location = None
         self.values_dict = {}
+        self.freq_dict = {}
 
         # BUTTONS 
         selections_group = QGroupBox("File Selections")
@@ -68,30 +69,56 @@ class Vol2PressTab(QWidget):
         freq_fields_group = QGroupBox("Info Per Frequency")
         sweep_btn = QPushButton("SELECT SWEEP TXT")
         sweep_btn.clicked.connect(lambda: self.openFileDialog("sweep"))
+        freq_label = QLabel("Frequency (MHz)")
+        self.freq_field = QLineEdit()
+        freq_affix = QComboBox()
+        freq_affix.addItems(["MHz, kHz"])
+        freq_affix.setCurrentText("MHz")
         axial_len_label = QLabel("TxAxialFocalDiameter")
         self.axial_field = QLineEdit()
         lateral_len_label = QLabel("TxLateralFocalDiameter")
         self.lateral_field = QLineEdit()
         offset_label = QLabel("offset")
-        self.offset_field = QLineEdit()
+        offset_widget = QWidget()
+        offset_widget.setContentsMargins(0, 0, 0, 0)
+        offset_layout = QHBoxLayout()
+        offset_layout.setContentsMargins(0, 0, 0, 0)
+        self.offset_field_1 = QLineEdit()
+        self.offset_field_1.setText("0")
+        self.offset_field_1.setPlaceholderText("0")
+        self.offset_field_2 = QLineEdit()
+        self.offset_field_2.setText("0")
+        self.offset_field_2.setPlaceholderText("0")
+        self.offset_field_3 = QLineEdit()
+        self.offset_field_3.setText("0")
+        self.offset_field_3.setPlaceholderText("0")
+        offset_layout.addWidget(self.offset_field_1)
+        offset_layout.addWidget(self.offset_field_2)
+        offset_layout.addWidget(self.offset_field_3)
+        offset_widget.setLayout(offset_layout)
+        uni_cali_label = QLabel("unified_calibration")
+        self.uni_cali_field = QLineEdit()
 
-        self.fields_list = [self.axial_field, self.lateral_field, self.offset_field]
+        self.fields_list = [self.freq_field, self.axial_field, self.lateral_field, self.offset_field_1, \
+                            self.offset_field_2, self.offset_field_3, self.uni_cali_field]
 
         for field in self.fields_list:
             field.textChanged.connect(lambda: self.enable_btn())
-
-        # self.fields_dict = {"TxAxialFocalDiameter": axial_field, "TxLateralFocalDiameter": lateral_field}
 
         fields_layout = QGridLayout()
         fields_layout.setColumnStretch(0, 1)
         fields_layout.setColumnStretch(1, 1)
         fields_layout.addWidget(sweep_btn, 0, 0, 1, 2)
-        fields_layout.addWidget(axial_len_label, 1, 0)
-        fields_layout.addWidget(self.axial_field, 1, 1)
-        fields_layout.addWidget(lateral_len_label, 2, 0)
-        fields_layout.addWidget(self.lateral_field, 2, 1)
-        fields_layout.addWidget(offset_label, 3, 0)
-        fields_layout.addWidget(self.offset_field, 3, 1)
+        fields_layout.addWidget(freq_label, 1, 0)
+        fields_layout.addWidget(self.freq_field, 1, 1)
+        fields_layout.addWidget(axial_len_label, 2, 0)
+        fields_layout.addWidget(self.axial_field, 2, 1)
+        fields_layout.addWidget(lateral_len_label, 3, 0)
+        fields_layout.addWidget(self.lateral_field, 3, 1)
+        fields_layout.addWidget(offset_label, 4, 0)
+        fields_layout.addWidget(offset_widget, 4, 1)
+        fields_layout.addWidget(uni_cali_label, 5, 0)
+        fields_layout.addWidget(self.uni_cali_field, 5, 1)
         freq_fields_group.setLayout(fields_layout)
 
         # RESULTS BUTTONS
@@ -102,7 +129,6 @@ class Vol2PressTab(QWidget):
         results_btn = QPushButton("PRINT TO YAML")
         results_btn.setStyleSheet("background-color: #74BEA3")
         results_btn.clicked.connect(lambda: self.create_yaml())
-        # results_btn.clicked.connect(lambda: self.get_calcs())
 
         # TEXT CONSOLE 
         console_box = QGroupBox("Console Output")
@@ -124,7 +150,7 @@ class Vol2PressTab(QWidget):
         main_layout.addWidget(self.add_to_yaml_btn, 3, 0)
         main_layout.addWidget(results_btn, 4, 0)
         main_layout.addWidget(console_box, 5, 0)
-        main_layout.addWidget(self.graph_display, 0, 1, 5, 1)
+        main_layout.addWidget(self.graph_display, 0, 1, 6, 1)
 
         self.setLayout(main_layout)
 
@@ -186,7 +212,7 @@ class Vol2PressTab(QWidget):
     # return calc values 
     def get_calcs(self):
         if self.sweep_file is not None and self.cal_eb50_file is not None and self.sys_eb50_file is not None:
-            self.calcs = Vol2Press(self.cal_eb50_file, self.sys_eb50_file, self.sweep_file)
+            self.calcs = Vol2Press(self.cal_eb50_file, self.sys_eb50_file, self.sweep_file, float(self.freq_field.text()))
             self.r_value = float(f"{self.calcs.return_B_value():.4f}")
             self.text_display.append(f"Regression value: {self.r_value} MPa/Vpp\n")
             self.printGraphs()
@@ -205,27 +231,41 @@ class Vol2PressTab(QWidget):
         comparison_graph = self.calcs.getGraphs()
         self.graph_display.addTab(comparison_graph, "Comparison Graph")
 
+    def add_to_dict(self, key, value, dictionary):
+        if value != '':
+            if key == "offset":
+                dictionary[key] = np.array([float(value[0]), float(value[1]), float(value[2])]).tolist()
+            elif key == "vol2press":
+                dictionary[key] = value
+            else:
+                dictionary[key] = float(value)
+
     @Slot()
     def add_to_frequency(self):
-        freq = self.calcs.get_freq()
-        self.text_display.append(f"Adding {freq} Hz values to dictionary...\n")
-        freq_dict = {}
-        freq_dict["vol2press"] = [0, self.r_value, 0]
-        freq_dict["TxAxialFocalDiameter"] = float(self.axial_field.text())
-        freq_dict["TxLateralFocalDiameter"] = float(self.lateral_field.text())
-        freq_dict["offset"] = self.offset_field.text()
-        self.values_dict[freq] = freq_dict
+        freq = float(self.freq_field.text())*1000000 # MHz to Hz
+        self.text_display.append(f"Adding {freq} Hz information to dictionary...\n")
+        spec_freq_dict = {}
+        self.add_to_dict("vol2press", self.r_value, spec_freq_dict)
+        self.add_to_dict("TxAxialFocalDiameter", self.axial_field.text(), spec_freq_dict)
+        self.add_to_dict("TxLateralFocalDiameter", self.lateral_field.text(), spec_freq_dict)
+        self.add_to_dict("offset", [self.offset_field_1.text(), self.offset_field_2.text(), self.offset_field_3.text()], spec_freq_dict)
+        self.add_to_dict("unified_calibration", self.uni_cali_field.text(), spec_freq_dict)
+
+        self.freq_dict[freq] = spec_freq_dict
 
     @Slot()
     def create_yaml(self):
-        available_frequencies = [key for key in self.values_dict if type(key) is float] # gets a list of the existing frequencies in the field 
+        available_frequencies = np.array([key for key in self.freq_dict if type(key) is float]).tolist() # gets a list of the existing frequencies in the field 
         self.values_dict["txAvailableFrequencies"] = available_frequencies
-        self.values_dict["impedance_fund"] = float(self.impedance_field.text())
-        self.values_dict["phase_fund"] = float(self.phase_field.text())
-        self.values_dict["PCD_freq"] = float(self.diameter_field.text())
-        self.values_dict["txDiameter"] = float(self.focal_point_field.text())
+
+        self.add_to_dict("impedance_fund", self.impedance_field.text(), self.values_dict)
+        self.add_to_dict("phase_fund", self.phase_field.text(), self.values_dict)
+        self.add_to_dict("PCD_freq", self.pcd_field.text(), self.values_dict)
+        self.add_to_dict("txDiameter", self.focal_point_field.text(), self.values_dict)
+
+        self.values_dict = self.values_dict | self.freq_dict # ensure that all frequency dictionary values are placed at the end 
 
         with open(self.save_location, 'wt', encoding='utf8') as f:
             self.text_display.append(f"Writing dictionary to {self.save_location}...\n")
-            yaml.dump(self.values_dict, f, default_flow_style=None)
+            yaml.dump(self.values_dict, f, default_flow_style=None, sort_keys=False)
 
