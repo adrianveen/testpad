@@ -32,7 +32,7 @@ class ApplicationWindow(QMainWindow):
         # tab_widget.showFullScreen()
         # self.matching_tab = MatchingBoxTab(self) # declare as separate object to resize image?
         tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs 
-        tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 
+        tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 (CURRENTLY EMPTY)
         tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
         tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
         tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 

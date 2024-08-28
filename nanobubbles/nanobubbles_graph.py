@@ -12,39 +12,29 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 class NanobubblesGraph():
     def __init__(self, nanobubble_txt) -> None:
         with open(nanobubble_txt, "r") as f:
-            self.data = np.array(np.loadtxt(f, skiprows=89, delimiter="\t"))
+            self.data = np.array(np.loadtxt(f, skiprows=89, delimiter="\t")) # SKIPS 89 ROWS (assumed to be metadata)
 
-        # self.data = self.data[self.data[:, 0].argsort()] # sort numpy data by the size column 
-
-        # counter = 0
-        # while counter <= len(self.data):
-        #     if self.data[counter][0] > 1000:
-        #         break
-        #     counter += 1
-
-        # self.data = self.data[:counter]
-
+        # create a giant array where every size is represented count number of times 
+        # ex. if there are 80 120nm nanobubbles, add 120nm to this array 80 times 
         self.aggregate_representation = np.array([])
 
         for row in self.data:
             if row[0] != -1:
-                for i in range(int(row[1])):    
+                for i in range(int(row[1])): # adds the nanobubble size count number of times 
                     self.aggregate_representation = np.append(self.aggregate_representation, row[0])
             
-        self.size = self.data[:, 0]
-        self.count = self.data[:, 1]
+        # self.size = self.data[:, 0]
+        # self.count = self.data[:, 1]
 
-        # self.all_data = self.data[:, :2]
-        # print(self.all_data)
-
-    def get_graphs(self):
+    # returns canvas of mpl graph to UI 
+    # bin_width determines width of histogram bars 
+    def get_graphs(self, bin_width):
         fig, ax = plt.subplots(1, 1)
         canvas = FigureCanvas(fig)
 
-        # ax.plot(self.size, self.count, ls='None', marker='o')
-        ax.hist(self.aggregate_representation, bins='auto')
+        # ax.plot(self.size, self.count, ls='None', marker='o') # scatter plot
+        ax.hist(self.aggregate_representation, bins=np.arange(0, 1000+bin_width, bin_width)) # histogram 
 
-        # ax.set_xlim([0, 1000])
         ax.set_xlabel("Size/nm")
         ax.set_ylabel("Number")
 

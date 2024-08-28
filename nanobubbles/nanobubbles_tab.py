@@ -15,16 +15,33 @@ class NanobubblesTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        # BUTTONS 
+        self.nanobubbles_file = None
+
+        # USER INTERACTION AREA
         buttons_groupbox = QGroupBox()
         select_file_btn = QPushButton("SELECT FILE")
         select_file_btn.clicked.connect(lambda: self.openFileDialog("txt"))
+
+        bin_widget = QWidget()
+        bin_widget.setContentsMargins(0, 0, 0, 0)
+        bin_width_label = QLabel("Bin width")
+        self.bin_width_field = QLineEdit()
+        self.bin_width_field.setText("25")
+        bin_layout = QGridLayout()
+        bin_layout.setColumnStretch(0, 1)
+        bin_layout.setColumnStretch(1, 1)
+        bin_layout.setContentsMargins(0, 0, 0, 0)
+        bin_layout.addWidget(bin_width_label, 0, 0)
+        bin_layout.addWidget(self.bin_width_field, 0, 1)
+        bin_widget.setLayout(bin_layout)
+
         print_graph_btn = QPushButton("PRINT GRAPH")
         print_graph_btn.setStyleSheet("background-color: #74BEA3")
         print_graph_btn.clicked.connect(lambda: self.create_graph())
         
         buttons_layout = QVBoxLayout()
         buttons_layout.addWidget(select_file_btn)
+        buttons_layout.addWidget(bin_widget)
         buttons_layout.addWidget(print_graph_btn)
         buttons_groupbox.setLayout(buttons_layout)
 
@@ -43,7 +60,7 @@ class NanobubblesTab(QWidget):
         main_layout.addWidget(self.graph_tab, 0, 1, 3, 1)
         self.setLayout(main_layout)
 
-    # 
+    # opens txt file for reading
     @Slot()
     def openFileDialog(self, d_type):
         if d_type == "txt":
@@ -60,18 +77,21 @@ class NanobubblesTab(QWidget):
     # add graph + navtoolbar to graph display 
     @Slot()
     def create_graph(self):
-        self.graph_tab.clear()
+        if self.nanobubbles_file is not None:
+            self.graph_tab.clear()
 
-        graph = NanobubblesGraph(self.nanobubbles_file).get_graphs()
-        nav_tool = NavigationToolbar(graph)
+            graph = NanobubblesGraph(self.nanobubbles_file).get_graphs(float(self.bin_width_field.text()))
+            nav_tool = NavigationToolbar(graph)
 
-        graph_widget = QWidget()
-        burn_layout = QVBoxLayout()
-        burn_layout.addWidget(nav_tool)
-        burn_layout.addWidget(graph)
-        graph_widget.setLayout(burn_layout)
+            graph_widget = QWidget()
+            burn_layout = QVBoxLayout()
+            burn_layout.addWidget(nav_tool)
+            burn_layout.addWidget(graph)
+            graph_widget.setLayout(burn_layout)
 
-        self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
+            self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
+        else:
+            self.text_display.append("No nanobubble txt found!\n")
 
 
     
