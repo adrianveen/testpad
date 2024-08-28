@@ -14,16 +14,19 @@ class NanobubblesGraph():
         with open(nanobubble_txt, "r") as f:
             self.data = np.loadtxt(f, skiprows=89, delimiter="\t")
 
-        self.data = self.data[self.data[:, 0].argsort()] # sort numpy data by the size column 
+        # self.data = self.data[self.data[:, 0].argsort()] # sort numpy data by the size column 
             
         self.size = self.data[:, 0]
         self.count = self.data[:, 1]
+
+        self.all_data = self.data[:, :2]
 
     def get_graphs(self):
         fig, ax = plt.subplots(1, 1)
         canvas = FigureCanvas(fig)
 
-        ax.plot(self.size, self.count)
+        ax.plot(self.size, self.count, ls='None', marker='o')
+        ax.hist(self.all_data, bins=100)
 
         ax.set_xlim([0, 1000])
         ax.set_xlabel("Size/nm")
