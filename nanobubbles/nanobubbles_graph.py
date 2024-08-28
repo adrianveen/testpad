@@ -12,23 +12,39 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 class NanobubblesGraph():
     def __init__(self, nanobubble_txt) -> None:
         with open(nanobubble_txt, "r") as f:
-            self.data = np.loadtxt(f, skiprows=89, delimiter="\t")
+            self.data = np.array(np.loadtxt(f, skiprows=89, delimiter="\t"))
 
         # self.data = self.data[self.data[:, 0].argsort()] # sort numpy data by the size column 
+
+        # counter = 0
+        # while counter <= len(self.data):
+        #     if self.data[counter][0] > 1000:
+        #         break
+        #     counter += 1
+
+        # self.data = self.data[:counter]
+
+        self.aggregate_representation = np.array([])
+
+        for row in self.data:
+            if row[0] != -1:
+                for i in range(int(row[1])):    
+                    self.aggregate_representation = np.append(self.aggregate_representation, row[0])
             
         self.size = self.data[:, 0]
         self.count = self.data[:, 1]
 
-        self.all_data = self.data[:, :2]
+        # self.all_data = self.data[:, :2]
+        # print(self.all_data)
 
     def get_graphs(self):
         fig, ax = plt.subplots(1, 1)
         canvas = FigureCanvas(fig)
 
-        ax.plot(self.size, self.count, ls='None', marker='o')
-        ax.hist(self.all_data, bins=100)
+        # ax.plot(self.size, self.count, ls='None', marker='o')
+        ax.hist(self.aggregate_representation, bins='auto')
 
-        ax.set_xlim([0, 1000])
+        # ax.set_xlim([0, 1000])
         ax.set_xlabel("Size/nm")
         ax.set_ylabel("Number")
 
