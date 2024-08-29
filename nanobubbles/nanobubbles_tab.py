@@ -34,6 +34,19 @@ class NanobubblesTab(QWidget):
         bin_layout.addWidget(bin_width_label, 0, 0)
         bin_layout.addWidget(self.bin_width_field, 0, 1)
         bin_widget.setLayout(bin_layout)
+        
+        save_widget = QWidget()
+        save_widget.setContentsMargins(0, 0, 0, 0)
+        save_label = QLabel("Save file?")
+        self.save_box = QCheckBox()
+        save_folder_btn = QPushButton("SAVE LOCATION")
+        save_folder_btn.clicked.connect(lambda: self.openFileDialog("save"))
+        save_layout = QGridLayout()
+        save_layout.setContentsMargins(0, 0, 0, 0)
+        save_layout.addWidget(save_label, 0, 0)
+        save_layout.addWidget(self.save_box, 0, 1, Qt.AlignCenter)
+        save_layout.addWidget(save_folder_btn, 1, 0, 1, 2)
+        save_widget.setLayout(save_layout)
 
         print_graph_btn = QPushButton("PRINT GRAPH")
         print_graph_btn.setStyleSheet("background-color: #74BEA3")
@@ -42,6 +55,7 @@ class NanobubblesTab(QWidget):
         buttons_layout = QVBoxLayout()
         buttons_layout.addWidget(select_file_btn)
         buttons_layout.addWidget(bin_widget)
+        buttons_layout.addWidget(save_widget)
         buttons_layout.addWidget(print_graph_btn)
         buttons_groupbox.setLayout(buttons_layout)
 
@@ -73,6 +87,16 @@ class NanobubblesTab(QWidget):
                 self.text_display.append("Nanobubble File: ")
                 self.nanobubbles_file = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.nanobubbles_file+"\n")
+        
+        elif d_type == "save":
+            self.dialog = QFileDialog(self)
+            self.dialog.setWindowTitle("Graph Save Location")
+            # self.dialog.setDefaultSuffix("*.txt")
+            self.dialog.setFileMode(QFileDialog.Directory)
+            if self.dialog.exec():
+                self.text_display.append("Save Location: ")
+                self.file_save_location = self.dialog.selectedFiles()[0]
+                self.text_display.append(self.file_save_location+"\n")
 
     # add graph + navtoolbar to graph display 
     @Slot()
@@ -80,7 +104,8 @@ class NanobubblesTab(QWidget):
         if self.nanobubbles_file is not None:
             self.graph_tab.clear()
 
-            graph = NanobubblesGraph(self.nanobubbles_file).get_graphs(float(self.bin_width_field.text()))
+            nanobubbles_object = NanobubblesGraph(self.nanobubbles_file)
+            graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()))
             nav_tool = NavigationToolbar(graph)
 
             graph_widget = QWidget()
@@ -90,6 +115,10 @@ class NanobubblesTab(QWidget):
             graph_widget.setLayout(burn_layout)
 
             self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
+
+            if self.save_box.isChecked():
+                save_loc = nanobubbles_object.save_graph(self.file_save_location)
+                self.text_display.append(f"Saved to {save_loc}")
         else:
             self.text_display.append("No nanobubble txt found!\n")
 

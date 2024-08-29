@@ -8,10 +8,13 @@ import yaml
 import decimal
 import matplotlib.pyplot as plt 
 from matplotlib.backends.backend_qtagg import FigureCanvas
+from pathlib import Path
+import os
 
 class NanobubblesGraph():
     def __init__(self, nanobubble_txt) -> None:
-        with open(nanobubble_txt, "r") as f:
+        self.nanobubble_txt = nanobubble_txt
+        with open(self.nanobubble_txt, "r") as f:
             self.data = np.array(np.loadtxt(f, skiprows=89, delimiter="\t")) # SKIPS 89 ROWS (assumed to be metadata)
 
         # create a giant array where every size is represented count number of times 
@@ -29,17 +32,23 @@ class NanobubblesGraph():
     # returns canvas of mpl graph to UI 
     # bin_width determines width of histogram bars 
     def get_graphs(self, bin_width):
-        fig, ax = plt.subplots(1, 1)
-        canvas = FigureCanvas(fig)
+        self.fig, self.ax = plt.subplots(1, 1)
+        canvas = FigureCanvas(self.fig)
 
         # ax.plot(self.size, self.count, ls='None', marker='o') # scatter plot
-        ax.hist(self.aggregate_representation, bins=np.arange(0, 1000+bin_width, bin_width)) # histogram 
+        self.ax.hist(self.aggregate_representation, bins=np.arange(0, 1000+bin_width, bin_width)) # histogram 
 
-        ax.set_xlabel("Size/nm")
-        ax.set_ylabel("Number")
+        self.ax.set_xlabel("Size/nm")
+        self.ax.set_ylabel("Number")
 
-        fig.set_canvas(canvas)
+        self.fig.set_canvas(canvas)
         return(canvas)
+    
+    def save_graph(self, folder):
+        nanobubble_svg_filename = (Path(self.nanobubble_txt).name).split(".")[0]
+        full_save_name = os.path.join(folder, str(nanobubble_svg_filename)+".svg")
+        self.fig.savefig(full_save_name, format='svg', bbox_inches='tight', pad_inches=0, transparent=True)
+        return(full_save_name)
 
 
 if __name__ == "__main__":
