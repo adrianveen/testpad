@@ -16,6 +16,7 @@ class Calculations():
         self.text = ""
         self.image_file = None
 
+    # returns values to calculation function below 
     def lmatch(self, ZG, ZL, type):
         if np.ndim(ZG) == 0 and np.ndim(ZL) == 0:
             ZG = np.array([ZG], dtype=complex)
@@ -66,6 +67,7 @@ class Calculations():
         # print(X12)
         return X12
     
+    # performs all the actual calculations returned to the UI 
     def calculations(self, frequency, absZ, phase, toroid):
         if frequency == 0 and absZ == 0 and phase == 0: 
             return("Please enter values!")
@@ -75,7 +77,7 @@ class Calculations():
         # AL = 280 # in uH/100 turns for small blue ferrite toroid
         # AL = 200 # in uH/100 turns for small blue ferrite toroid
         # AL = 160 # in uH/100 turns for small blue ferrite toroid, 0.5 - 5 MHz
-        AL = toroid # AL = the selected number for the toroid 
+        AL = toroid # AL = the selected number for the toroid in the UI 
         # print("AL: "+str(AL))
 
         # AL = 140 # in µH/100 turns for large red toroid 2 - 30 MHz

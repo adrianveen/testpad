@@ -5,6 +5,8 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QComboBox, Q
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout,
                                QWidget)
 
+# CURRENTLY A PLACEHOLDER
+
 class EboxTab(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)

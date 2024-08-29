@@ -13,7 +13,8 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 class BurninTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-
+        
+        # user interaction area 
         selections_group = QGroupBox()
         self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))

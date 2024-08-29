@@ -15,6 +15,7 @@ class BurninGraph():
     def __init__(self, burnin_file) -> None:
         self.burnin_file = burnin_file
 
+        # open burn-in file and extract error/time 
         with h5py.File(self.burnin_file) as file:
             self.error = list(file['Error (counts)'])
             self.time = list(file['Time (s)'])

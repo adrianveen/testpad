@@ -44,6 +44,7 @@ class NanobubblesGraph():
         self.fig.set_canvas(canvas)
         return(canvas)
     
+    # save the canvas graph as a SVG 
     def save_graph(self, folder):
         nanobubble_svg_filename = (Path(self.nanobubble_txt).name).split(".")[0]
         full_save_name = os.path.join(folder, str(nanobubble_svg_filename)+".svg")

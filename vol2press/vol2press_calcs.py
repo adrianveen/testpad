@@ -36,7 +36,7 @@ class Vol2Press():
         self.x_values = self.input_mV * (10**(self.gain_diff/20))
         self.y_values = self.neg_pressure
 
-    # return regression value 
+    # return r-value (THIS FUNCTION SHOULD PROBBALY BE RENAMED)
     def return_B_value(self):
         A = np.vstack([self.x_values]).T
         self.m = np.linalg.lstsq(A, self.y_values, rcond=None)[0][0]
@@ -105,6 +105,7 @@ class Vol2Press():
         idx = (np.abs(array - value)).argmin()
         return array[idx]
 
+# testing 
 if __name__ == "__main__":
     a = Vol2Press(r"C:\Users\RKPC\Downloads\2183-eb50_1.yaml", r"C:\Users\RKPC\Downloads\BRNO-eb50_1.yaml", r"C:\Users\RKPC\Downloads\336-T1200H600\336-T1200H600\1st_harmonic\Report\sweep_336-T1200H600_1200kHz_1.txt")
     print(a.return_B_value())

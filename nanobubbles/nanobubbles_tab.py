@@ -18,10 +18,11 @@ class NanobubblesTab(QWidget):
         self.nanobubbles_file = None
 
         # USER INTERACTION AREA
+        # select file button 
         buttons_groupbox = QGroupBox()
         select_file_btn = QPushButton("SELECT FILE")
         select_file_btn.clicked.connect(lambda: self.openFileDialog("txt"))
-
+        # bin width 
         bin_widget = QWidget()
         bin_widget.setContentsMargins(0, 0, 0, 0)
         bin_width_label = QLabel("Bin width")
@@ -34,7 +35,7 @@ class NanobubblesTab(QWidget):
         bin_layout.addWidget(bin_width_label, 0, 0)
         bin_layout.addWidget(self.bin_width_field, 0, 1)
         bin_widget.setLayout(bin_layout)
-        
+        # save fields 
         save_widget = QWidget()
         save_widget.setContentsMargins(0, 0, 0, 0)
         save_label = QLabel("Save file?")
@@ -47,7 +48,7 @@ class NanobubblesTab(QWidget):
         save_layout.addWidget(self.save_box, 0, 1, Qt.AlignCenter)
         save_layout.addWidget(save_folder_btn, 1, 0, 1, 2)
         save_widget.setLayout(save_layout)
-
+        # print graph button 
         print_graph_btn = QPushButton("PRINT GRAPH")
         print_graph_btn.setStyleSheet("background-color: #74BEA3")
         print_graph_btn.clicked.connect(lambda: self.create_graph())
@@ -77,7 +78,7 @@ class NanobubblesTab(QWidget):
     # opens txt file for reading
     @Slot()
     def openFileDialog(self, d_type):
-        if d_type == "txt":
+        if d_type == "txt": # open nanobubble txt 
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Nanobubble TXT File")
             self.dialog1.setFileMode(QFileDialog.ExistingFile)
@@ -88,7 +89,7 @@ class NanobubblesTab(QWidget):
                 self.nanobubbles_file = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.nanobubbles_file+"\n")
         
-        elif d_type == "save":
+        elif d_type == "save": # save graph SVG location 
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
             # self.dialog.setDefaultSuffix("*.txt")

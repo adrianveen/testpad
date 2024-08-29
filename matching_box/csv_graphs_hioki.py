@@ -42,7 +42,7 @@ class csv_graph():
 
         # plt.draw()
 
-
+    # graphing function 
     def graph(self, x, y, xlabel:str=None, ylabel:str=None, title:str=None, type:str=None):
         fig, ax = plt.subplots(1, 1)
         canvas = FigureCanvas(fig)
@@ -73,5 +73,6 @@ class csv_graph():
         return(canvas)
         # fig.show()
     
+    # return graphs to UI 
     def returnGraphs(self):
         return(self.impedance_graph, self.phase_graph)
