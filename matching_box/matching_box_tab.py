@@ -136,7 +136,7 @@ class MatchingBoxTab(QWidget):
 
         self.setLayout(main_layout)
     
-    # when resized, resize image 
+    # when resized, resize image (CURRENTLY A BIT JANKY)
     def resizeEvent(self, event: QResizeEvent) -> None:
         if self.new_match is not None: 
             # print("resized")
