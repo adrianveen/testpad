@@ -39,7 +39,6 @@ class ApplicationWindow(QMainWindow):
         tab_widget.addTab(Vol2PressTab(self), "Sweep Analysis") # linear regression of sweep line using two different gains
         tab_widget.addTab(BurninTab(self), "Burn-in Graph Viewer") # graphs HDF5 files from burn-in for user manipulation 
         tab_widget.addTab(NanobubblesTab(self), "Nanobubbles Tab") # graphs nanobubbles size vs. count
-        #tab_widget.addTab(Vol2PressTab(self), "Sweep Analysis_test") # duplicate of Vol2PressTab for testing purposes
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(tab_widget)
