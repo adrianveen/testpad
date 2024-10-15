@@ -1,14 +1,6 @@
 import sys
-# from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
-from matching_box.matching_box_tab import MatchingBoxTab
-from rfb.rfb_tab import RFBTab
-from transducer.transducer_calibration_tab import TransducerCalibrationTab
-from transducer.transducer_linear_tab import TransducerLinearTab
-from eb50.eb50_tab import EboxTab
 from vol2press.vol2press_tab import Vol2PressTab
-from burnin.burnin_tab import BurninTab
-from nanobubbles.nanobubbles_tab import NanobubblesTab
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -31,15 +23,14 @@ class ApplicationWindow(QMainWindow):
         # tab_widget.setMinimumSize(QMainWindow.sizeHint())
         # tab_widget.showFullScreen()
         # self.matching_tab = MatchingBoxTab(self) # declare as separate object to resize image?
-        tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs 
-        tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 (CURRENTLY EMPTY)
-        tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
-        tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
-        tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 
+        # tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs 
+        # tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 (CURRENTLY EMPTY)
+        # tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
+        # tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
+        # tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 
         tab_widget.addTab(Vol2PressTab(self), "Sweep Analysis") # linear regression of sweep line using two different gains
-        tab_widget.addTab(BurninTab(self), "Burn-in Graph Viewer") # graphs HDF5 files from burn-in for user manipulation 
-        tab_widget.addTab(NanobubblesTab(self), "Nanobubbles Tab") # graphs nanobubbles size vs. count
-        #tab_widget.addTab(Vol2PressTab(self), "Sweep Analysis_test") # duplicate of Vol2PressTab for testing purposes
+        # tab_widget.addTab(BurninTab(self), "Burn-in Graph Viewer") # graphs HDF5 files from burn-in for user manipulation 
+        # tab_widget.addTab(NanobubblesTab(self), "Nanobubbles Tab") # graphs nanobubbles size vs. count
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(tab_widget)
@@ -60,7 +51,7 @@ if __name__ == "__main__":
     # tab_dialog.setMaximumSize()
     # tab_dialog.setFixedSize(700, 500)
     tab_dialog.showMaximized() # full screen 
-    
+
     # tab_dialog.raise_() # look up what this does
 
     sys.exit(app.exec())

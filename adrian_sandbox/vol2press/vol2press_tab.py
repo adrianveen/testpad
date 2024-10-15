@@ -267,7 +267,7 @@ class Vol2PressTab(QWidget):
             if key == "offset":
                 dictionary[key] = np.array([float(value[0]), float(value[1]), float(value[2])]).tolist()
             elif key == "vol2press":
-                dictionary[key] = [0, value, 0]
+                dictionary[key] = np.array([int(0), value, int(0)]).tolist()
             else:
                 dictionary[key] = float(value)
 
