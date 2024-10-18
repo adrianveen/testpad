@@ -35,8 +35,14 @@ class MatchingBoxTab(QWidget):
         self.phase_textbox = QLineEdit()
         self.phase_textbox.setMaximumWidth(200)
         self.toroid_box = QComboBox()
-        self.toroid_box.addItems(["200", "280", "160"])
+        self.toroid_box.addItems(["200", "280", "160", "Custom"])
         self.toroid_box.setCurrentText("200")
+        # adds a text box for a custom Toroid AL value and disables it by default
+        self.toroid_textbox = QLineEdit()
+        self.toroid_textbox.setMaximumWidth(100)
+        self.toroid_textbox.setEnabled(False)
+        # when custom value is set, enable the text box
+        self.toroid_box.currentIndexChanged.connect(self.update_toroid_textbox)
         get_val = QPushButton("GET VALUES") 
         get_val.setStyleSheet("background-color: #74BEA3")
         get_val.clicked.connect(lambda: self.getValues())
@@ -70,8 +76,12 @@ class MatchingBoxTab(QWidget):
         for i in range(len(matching_list_col_1)): 
             matching_vals_layout.addWidget(matching_list_col_1[i], i, 1)
 
-        for i in range(len(matching_list_col_2)): 
-            matching_vals_layout.addWidget(matching_list_col_2[i], i, 2)
+        matching_vals_layout.addWidget(self.toroid_textbox, 3, 2)
+
+        for i, widget in enumerate(matching_list_col_2): 
+            if widget != self.toroid_textbox:
+                matching_vals_layout.addWidget(widget, i, 2)
+                
         matching_vals_layout.addLayout(text_image_layout, 5, 0, 1, 3)
         # matching_vals_layout.addWidget(self.text_display, 5, 0, 1, 3)
         # matching_vals_layout.addWidget(self.image_display, 6, 0, 1, 3)
@@ -136,6 +146,13 @@ class MatchingBoxTab(QWidget):
 
         self.setLayout(main_layout)
     
+    # enable custom toroid textbox when custom is selected
+    def update_toroid_textbox(self):
+            if self.toroid_box.currentText() == "Custom":
+                self.toroid_textbox.setEnabled(True)
+            else:
+                self.toroid_textbox.setEnabled(False)
+
     # when resized, resize image (CURRENTLY A BIT JANKY)
     def resizeEvent(self, event: QResizeEvent) -> None:
         if self.new_match is not None: 
@@ -166,7 +183,13 @@ class MatchingBoxTab(QWidget):
         else: 
             freq *= 1e6
         self.new_match = Calculations()
-        text = self.new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), float(self.toroid_box.currentText()))
+
+        if self.toroid_box.currentText() == "Custom":
+            AL_value = float(self.toroid_textbox.text())
+        else: 
+            AL_value= float(self.toroid_box.currentText())
+
+        text = self.new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), AL_value)
         self.text_display.append(text)
         self.pixmap = QPixmap(self.new_match.image_file)
         self.image_display.setPixmap(self.pixmap.scaledToWidth(self.csv_graphs_group.width()))

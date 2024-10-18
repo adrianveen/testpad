@@ -150,6 +150,7 @@ class Calculations():
             # print(self.image_file)
 
         # print all the details such as capacitance, inductance, number of turns 
+        self.text += ('AL value selected = %.2f \n' % AL)
         self.text += ('capacitance = %.2f pF\n' % C)
         self.text += ('inductance = %.2f µH\n' % L)
         self.text += ('number of turns = %.1f\n' % N)
