@@ -211,8 +211,9 @@ class combined_calibration:
 
             # PRINT AXIAL FWHMX
             if type(y_pressure_fwhmx) is not str and type(y_intensity_fwhmx) is not str:
-                textbox.append(f"Axial Pressure FWHMX: {y_pressure_fwhmx:0.1f} mm")
-                textbox.append(f"Axial Intensity FWHMX: {y_intensity_fwhmx:0.1f} mm")
+                textbox.append(f"Axial FWHMX:")
+                textbox.append(f"Pressure Axial Diameter: {y_pressure_fwhmx:0.1f} mm")
+                textbox.append(f"Intensity Axial Diameter: {y_intensity_fwhmx:0.1f} mm")
             else:
                 textbox.append("Couldn't output FWHMX for y-axis. Your data may be faulty.")
 
@@ -237,8 +238,9 @@ class combined_calibration:
             if type(x_pressure_fwhmx) is not str and type(x_intensity_fwhmx) is not str and type(z_pressure_fwhmx) is not str and type(z_intensity_fwhmx) is not str:
                 averaged_pressure_fwhmx = (x_pressure_fwhmx+z_pressure_fwhmx)/2.0
                 averaged_intensity_fwhmx = (x_intensity_fwhmx+z_intensity_fwhmx)/2.0
-                textbox.append(f"Averaged Lateral Pressure FWHMX: {averaged_pressure_fwhmx:0.1f} mm")
-                textbox.append(f"Averaged Lateral Intensity FWHMX: {averaged_intensity_fwhmx:0.1f} mm")
+                textbox.append(f"\nLateral FWHMX (averaged):")
+                textbox.append(f"Pressure Lateral Diameter: {averaged_pressure_fwhmx:0.1f} mm")
+                textbox.append(f"Intensity Lateral Diameter: {averaged_intensity_fwhmx:0.1f} mm")
             else:
                 textbox.append("Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty.")
 

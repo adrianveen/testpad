@@ -35,6 +35,7 @@ class sweep_graph():
         # Force the y-intercept to go through the origin, i.e. b=0
         A = np.vstack([x]).T
 
+        self.textbox.append('Full m and r square values:')
         self.m = np.linalg.lstsq(A, y, rcond=None)[0][0]
         self.textbox.append('[+] m value: {}'.format(self.m))
 
@@ -43,16 +44,18 @@ class sweep_graph():
         r_squared = correlation_xy**2
         self.textbox.append('[+] r squared: {}'.format(r_squared))
 
-        # Truncate the r squared value to four decimal places
+        # Truncate the m value and r squared value to 6 decimal places
+        self.textbox.append('\nTruncated m and r squared values:')
+        self.textbox.append('[+] truncated m value: {:.6f}'.format(self.m))
         r_trunc = decimal.Decimal(r_squared)
-        self.r_trunc_out = float(round(r_trunc, 4))
+        self.r_trunc_out = float(round(r_trunc, 6))
         self.textbox.append(f"[+] truncated r squared: {self.r_trunc_out}")
 
         y_calc = self.m * x
         r2 = 1 - np.sum((y - y_calc) ** 2.0) / np.sum((y - np.mean(y)) ** 2.0)
         r2_trunc = decimal.Decimal(r2)
         self.r2_trunc_out = float(round(r2_trunc, 4))
-        self.textbox.append(f"matlab r squared: {self.r2_trunc_out}\n")
+        self.textbox.append(f"\nMATLAB r squared: {self.r2_trunc_out}\n")
 
         # create dummy arrays to populate our line of best fit for display
         x_fit = np.array([0, x_last+(x_first)]) # changes x-fit to last point + the difference between the first x and 0 

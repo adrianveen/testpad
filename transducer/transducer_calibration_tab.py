@@ -27,10 +27,15 @@ class TransducerCalibrationTab(QWidget):
         checkbox_list_col_0 = [sweep_label, ax_field_graphs_label, ax_line_graphs_label, lat_field_graphs_label, lat_line_graphs_label, save_label]
         # Column 1
         self.sweep_box = QCheckBox()
+        self.sweep_box.setChecked(True)
         self.ax_field_graphs_box = QCheckBox()
+        self.ax_field_graphs_box.setChecked(True)
         self.ax_line_graphs_box = QCheckBox()
+        self.ax_line_graphs_box.setChecked(True)
         self.lat_field_graphs_box = QCheckBox()
+        self.lat_field_graphs_box.setChecked(True)
         self.lat_line_graphs_box = QCheckBox()
+        self.lat_line_graphs_box.setChecked(True)
         self.save_box = QCheckBox()
         checkbox_list_col_1 = [self.sweep_box, self.ax_field_graphs_box, self.ax_line_graphs_box, self.lat_field_graphs_box, self.lat_line_graphs_box, self.save_box]
 
@@ -103,12 +108,19 @@ class TransducerCalibrationTab(QWidget):
         text_fields_list_col_0 = [self.ax_left_field_length, self.ax_right_field_length, self.ax_field_height, self.ax_left_line_length, self.ax_right_line_length, self.lat_field_length, self.interp_step]
         # Column 1
         self.ax_left_field_length_field = QLineEdit()
+        self.ax_left_field_length_field.setText("7.5")
         self.ax_right_field_length_field = QLineEdit()
+        self.ax_right_field_length_field.setText("7.5")
         self.ax_field_height_field = QLineEdit()
+        self.ax_field_height_field.setText("3")
         self.ax_left_line_length_field = QLineEdit()
+        self.ax_left_line_length_field.setText("7.5")
         self.ax_right_line_length_field = QLineEdit()
+        self.ax_right_line_length_field.setText("7.5")
         self.lat_field_length_field = QLineEdit()
+        self.lat_field_length_field.setText("3")
         self.interp_step_field = QLineEdit()
+        self.interp_step_field.setText("0.1")
         text_fields_list_col_1 = [self.ax_left_field_length_field, self.ax_right_field_length_field, self.ax_field_height_field, self.ax_left_line_length_field, self.ax_right_line_length_field, self.lat_field_length_field, self.interp_step_field]
 
         # layout for text fields

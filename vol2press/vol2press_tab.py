@@ -41,7 +41,7 @@ class Vol2PressTab(QWidget):
         single_fields_group = QGroupBox("Transducer Fields")
         transducer_label = QLabel("Transducer Serial No.")
         self.transducer_field = QLineEdit()
-        impedance_label = QLabel("impedance_fund  [\u03A9]")
+        impedance_label = QLabel("impedance_fund [\u03A9]")
         self.impedance_field = QLineEdit()
         phase_label = QLabel("phase_fund [\u00B0]")
         self.phase_field = QLineEdit()
