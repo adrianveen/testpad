@@ -304,3 +304,4 @@ class Vol2PressTab(QWidget):
         with open(self.save_location, 'wt', encoding='utf8') as f:
             self.text_display.append(f"Writing dictionary to {self.save_location}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
+            self.text_display.append("Writing to dictionary complete.")
