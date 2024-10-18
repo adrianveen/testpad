@@ -31,12 +31,20 @@ class NanobubblesGraph():
 
     # returns canvas of mpl graph to UI 
     # bin_width determines width of histogram bars 
-    def get_graphs(self, bin_width):
+    def get_graphs(self, bin_width, scale):
         self.fig, self.ax = plt.subplots(1, 1)
         canvas = FigureCanvas(self.fig)
-
+        # if scale = log, set x-axis to log scale from 1-1000
+        if scale:
+            self.ax.set_xscale('log')
+            self.ax.set_xlim(1, 1000)
+            bins = np.logspace(np.log10(1), np.log10(1000), num=int(bin_width))
+        else:
+            # Linear scale: use linear bins
+            bins = np.arange(0, 1000 + bin_width, bin_width)
         # ax.plot(self.size, self.count, ls='None', marker='o') # scatter plot
-        self.ax.hist(self.aggregate_representation, bins=np.arange(0, 1000+bin_width, bin_width)) # histogram 
+        self.ax.hist(self.aggregate_representation, bins=bins)
+        # self.ax.hist(self.aggregate_representation, bins=np.arange(0, 1000+bin_width, bin_width)) # histogram 
 
         self.ax.set_xlabel("Size/nm")
         self.ax.set_ylabel("Number")

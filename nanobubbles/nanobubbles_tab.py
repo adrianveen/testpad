@@ -25,9 +25,9 @@ class NanobubblesTab(QWidget):
         # bin width 
         bin_widget = QWidget()
         bin_widget.setContentsMargins(0, 0, 0, 0)
-        bin_width_label = QLabel("Bin width")
+        bin_width_label = QLabel("Bin Width/Bin Count (log scale)")
         self.bin_width_field = QLineEdit()
-        self.bin_width_field.setText("25")
+        self.bin_width_field.setText("30")
         bin_layout = QGridLayout()
         bin_layout.setColumnStretch(0, 1)
         bin_layout.setColumnStretch(1, 1)
@@ -35,6 +35,19 @@ class NanobubblesTab(QWidget):
         bin_layout.addWidget(bin_width_label, 0, 0)
         bin_layout.addWidget(self.bin_width_field, 0, 1)
         bin_widget.setLayout(bin_layout)
+        
+        # log fields 
+        log_widget = QWidget()
+        log_widget.setContentsMargins(0, 0, 0, 0)
+        log_label = QLabel("Logarithmic Scale?")
+        self.log_box = QCheckBox()
+        log_layout = QGridLayout()
+        log_layout.setContentsMargins(0, 0, 0, 0)
+        log_layout.addWidget(log_label, 0, 0)
+        log_layout.addWidget(self.log_box, 0, 1, Qt.AlignCenter)
+        # save_layout.addWidget(save_folder_btn, 1, 0, 1, 2)
+        log_widget.setLayout(log_layout)
+
         # save fields 
         save_widget = QWidget()
         save_widget.setContentsMargins(0, 0, 0, 0)
@@ -48,6 +61,7 @@ class NanobubblesTab(QWidget):
         save_layout.addWidget(self.save_box, 0, 1, Qt.AlignCenter)
         save_layout.addWidget(save_folder_btn, 1, 0, 1, 2)
         save_widget.setLayout(save_layout)
+        
         # print graph button 
         print_graph_btn = QPushButton("PRINT GRAPH")
         print_graph_btn.setStyleSheet("background-color: #74BEA3")
@@ -56,6 +70,7 @@ class NanobubblesTab(QWidget):
         buttons_layout = QVBoxLayout()
         buttons_layout.addWidget(select_file_btn)
         buttons_layout.addWidget(bin_widget)
+        buttons_layout.addWidget(log_widget)
         buttons_layout.addWidget(save_widget)
         buttons_layout.addWidget(print_graph_btn)
         buttons_groupbox.setLayout(buttons_layout)
@@ -105,17 +120,30 @@ class NanobubblesTab(QWidget):
         if self.nanobubbles_file is not None:
             self.graph_tab.clear()
 
-            nanobubbles_object = NanobubblesGraph(self.nanobubbles_file)
-            graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()))
-            nav_tool = NavigationToolbar(graph)
+            if not self.log_box.isChecked():
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_file)
+                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), False)
+                nav_tool = NavigationToolbar(graph)
 
-            graph_widget = QWidget()
-            burn_layout = QVBoxLayout()
-            burn_layout.addWidget(nav_tool)
-            burn_layout.addWidget(graph)
-            graph_widget.setLayout(burn_layout)
+                graph_widget = QWidget()
+                burn_layout = QVBoxLayout()
+                burn_layout.addWidget(nav_tool)
+                burn_layout.addWidget(graph)
+                graph_widget.setLayout(burn_layout)
 
-            self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
+                self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
+            else: #log scale
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_file)
+                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), "log")
+                nav_tool = NavigationToolbar(graph)
+
+                graph_widget = QWidget()
+                burn_layout = QVBoxLayout()
+                burn_layout.addWidget(nav_tool)
+                burn_layout.addWidget(graph)
+                graph_widget.setLayout(burn_layout)
+
+                self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
 
             if self.save_box.isChecked():
                 save_loc = nanobubbles_object.save_graph(self.file_save_location)
