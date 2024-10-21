@@ -1,4 +1,5 @@
 from burnin.burnin_graph import BurninGraph
+from burnin.burnin_stats import BurninStats
 
 from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
@@ -9,6 +10,7 @@ import numpy as np
 import yaml
 import decimal
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+import os
 
 class BurninTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -18,13 +20,19 @@ class BurninTab(QWidget):
         selections_group = QGroupBox()
         self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))
+        self.print_statistics_lbl = QLabel("Print Statistics?")
+        self.print_statistics_box = QCheckBox()
+        self.print_statistics_box.setChecked(False)
         self.print_graph_btn = QPushButton("PRINT GRAPH")
         self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
         self.print_graph_btn.clicked.connect(self.printGraphs)
 
+        #layout for user interaction area
         selections_layout = QGridLayout()
         selections_layout.addWidget(self.select_burnin_file_btn, 0, 0, 1, 2)
-        selections_layout.addWidget(self.print_graph_btn, 1, 0, 1, 2)
+        selections_layout.addWidget(self.print_statistics_lbl, 1, 0)
+        selections_layout.addWidget(self.print_statistics_box, 1, 1)
+        selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
         selections_group.setLayout(selections_layout)
 
         self.text_display = QTextBrowser()
@@ -40,20 +48,33 @@ class BurninTab(QWidget):
     @Slot()
     # file dialog boxes 
     def openFileDialog(self, d_type):
+        default_path = r"G:\Shared drives\FUS_Team\RK300 Software Testing\Software Releases\rk300_program_v2.9.1"    
+
+        #check if default path exists, otherwise set to home directory
+        if not os.path.exists(default_path):
+            default_path = os.path.expanduser("~")
+
         if d_type == "burn":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Burn-in File")
             self.dialog1.setFileMode(QFileDialog.ExistingFile)
             self.dialog1.setNameFilter("*.hdf5")
 
+            #set default directory
+            self.dialog1.setDirectory(default_path)
+
             if self.dialog1.exec(): 
                 self.text_display.append("Burn-in File: ")
                 self.burnin_file = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.burnin_file+"\n")
+
         elif d_type == "save": # not including save anymore because graph of burn-in is already saved as SVG 
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Save Folder")
             self.dialog1.setFileMode(QFileDialog.Directory)
+
+            #set default directory
+            self.dialog1.setDirectory(default_path)
 
             if self.dialog1.exec(): 
                 self.text_display.append("Save Folder: ")
@@ -65,6 +86,13 @@ class BurninTab(QWidget):
         self.graph_display.clear()
 
         self.burnin = BurninGraph(self.burnin_file)
+        self.stats = BurninStats(self.burnin_file, self.text_display)
+
+        self.text_display.append("Burn-in Statistics: ")
+
+        # check if print statistics is checked and call printStats() if it is
+        if self.print_statistics_box.isChecked():
+            self.stats.printStats()
 
         burn_graph = self.burnin.getGraph()
         nav_tool = NavigationToolbar(burn_graph)
@@ -76,4 +104,6 @@ class BurninTab(QWidget):
         burn_widget.setLayout(burn_layout)
 
         self.graph_display.addTab(burn_widget, "Burn-in Graph")
+
+        
 
