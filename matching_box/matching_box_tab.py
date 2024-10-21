@@ -2,7 +2,7 @@
 # from matplotlib.figure import Figure
 # from mpl_toolkits.mplot3d import axes3d
 from PySide6.QtCore import Slot, Qt
-from PySide6.QtGui import QPixmap, QResizeEvent
+from PySide6.QtGui import QPixmap, QResizeEvent, QDoubleValidator
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout,
@@ -39,6 +39,7 @@ class MatchingBoxTab(QWidget):
         self.toroid_box.setCurrentText("200")
         # adds a text box for a custom Toroid AL value and disables it by default
         self.toroid_textbox = QLineEdit()
+        self.toroid_textbox.setValidator(QDoubleValidator())
         self.toroid_textbox.setMaximumWidth(100)
         self.toroid_textbox.setEnabled(False)
         # when custom value is set, enable the text box
