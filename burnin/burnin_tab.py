@@ -18,12 +18,12 @@ class BurninTab(QWidget):
         
         # user interaction area 
         selections_group = QGroupBox()
-        self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")
+        self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")        # checkbox for selecting burn-in file
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))
-        self.print_statistics_lbl = QLabel("Print Statistics?")
+        self.print_statistics_lbl = QLabel("Print Summary Statistics?")       # checkbox for printing statistics
         self.print_statistics_box = QCheckBox()
-        self.print_statistics_box.setChecked(False)
-        self.print_graph_btn = QPushButton("PRINT GRAPH")
+        self.print_statistics_box.setChecked(False)      # default for printing statistics is unchecked
+        self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
         self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
         self.print_graph_btn.clicked.connect(self.printGraphs)
 
@@ -66,7 +66,7 @@ class BurninTab(QWidget):
             if self.dialog1.exec(): 
                 self.text_display.append("Burn-in File: ")
                 self.burnin_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.burnin_file+"\n")
+                self.text_display.append(self.burnin_file+ "\n")
 
         elif d_type == "save": # not including save anymore because graph of burn-in is already saved as SVG 
             self.dialog1 = QFileDialog(self)
@@ -88,14 +88,32 @@ class BurninTab(QWidget):
         self.burnin = BurninGraph(self.burnin_file)
         self.stats = BurninStats(self.burnin_file, self.text_display)
 
-        self.text_display.append("Burn-in Statistics: ")
+        # Determine the axis name based on the filename
+        if "_axis_A_" in self.burnin_file:
+            axis_name = "Axis A"
+        elif "_axis_B_" in self.burnin_file:
+            axis_name = "Axis B"
+        else:
+            axis_name = "Unknown Axis"
+
+        # Extract the test number after the last underscore
+        try:
+            test_number = self.burnin_file.split('_')[-1].split('.')[0]  # Split by underscore and get the last part, then remove file extension
+        except IndexError:
+            test_number = "Unknown"
+
+        # Update text display with axis-specific and test number message
+        self.text_display.append(f"Summary Statistics for: {axis_name}; test no. {test_number}:\n")
 
         # check if print statistics is checked and call printStats() if it is
         if self.print_statistics_box.isChecked():
             self.stats.printStats()
 
         burn_graph = self.burnin.getGraph()
+        seperate_graph = self.burnin.getGraphs_separated()
         nav_tool = NavigationToolbar(burn_graph)
+        # nav_tool_A = NavigationToolbar(burn_graph_A)
+        nav_tool_2 = NavigationToolbar(seperate_graph)
 
         burn_widget = QWidget()
         burn_layout = QVBoxLayout()
@@ -104,6 +122,21 @@ class BurninTab(QWidget):
         burn_widget.setLayout(burn_layout)
 
         self.graph_display.addTab(burn_widget, "Burn-in Graph")
+        # Create Motor A Tab
+        separated_widget = QWidget()
+        separated_layout = QVBoxLayout()
+        separated_layout.addWidget(nav_tool_2)
+        separated_layout.addWidget(seperate_graph)
+        separated_widget.setLayout(separated_layout)
 
+        self.graph_display.addTab(separated_widget, "Error vs Time with directions separated")
+
+        # # Create Motor B Tab
+        # motor_b_widget = QWidget()
+        # motor_b_layout = QVBoxLayout()
+        # #motor_b_layout.addWidget(nav_tool)
+        # motor_b_widget.setLayout(motor_b_layout)
+
+        # self.graph_display.addTab(motor_b_widget, "Motor B")
         
 
