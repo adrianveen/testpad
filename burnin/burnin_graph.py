@@ -58,6 +58,9 @@ class BurninGraph():
             self.ax.set_title("Unknown Axis")  # Fallback title in case of unexpected filename
 
         self.fig.set_canvas(self.canvas)
+
+        plt.close('all')
+
         return(self.canvas)
     
     #graph error vs time with 0 values remove
@@ -67,8 +70,8 @@ class BurninGraph():
         self.fig, self.ax = plt.subplots(1, 1)
 
         # Plotting
-        plt.plot(self.time, self.positive_errors, label='Positive Error (counts)')
-        plt.plot(self.time, self.negative_errors, label='Negative Error (counts)', color='#73A89E')
+        self.ax.plot(self.time, self.positive_errors, label='Positive Error (counts)', color='#5A8FAE')
+        self.ax.plot(self.time, self.negative_errors, label='Negative Error (counts)', color='#73A89E')
 
         # Labels and title
         self.ax.set_xlabel("Time (ms)")
@@ -87,14 +90,17 @@ class BurninGraph():
 
         self.canvas = FigureCanvas(self.fig)
 
+        plt.close('all')  # close all figures to prevent memory leak
+
         return self.canvas
     
     # calculate moving average of error values and produce graph for positive and negative error separately
     def movingAvg(self):
         """
         Takes the already separated negative and positive error, and produces two graphs via a for loop.
+        The old code is commented out below the for loop.
         Each graph will have it's own canvas and will be returned as a list of canvases.
-        The graphs will display the error values and their respective moving averages. 
+        The graphs will display the error values and their respective moving averages.
         """
         errors_list = [self.positive_errors, self.negative_errors]
         canvases = []
@@ -109,8 +115,12 @@ class BurninGraph():
 
             self.fig, self.ax = plt.subplots(1, 1)
 
-            self.ax.plot(error_df['time'], error_df['error'], label='Error Data', color='#73A89E')
-            self.ax.plot(error_df['time'], error_df['moving_avg'], label='Moving Average', color='#A8737E')
+            if i == 0:
+                self.ax.plot(error_df['time'], error_df['error'], label='Error Data', color='#5A8FAE')
+                self.ax.plot(error_df['time'], error_df['moving_avg'], label='Moving Average', color='#A8737E')
+            else:
+                self.ax.plot(error_df['time'], error_df['error'], label='Error Data', color='#73A89E')
+                self.ax.plot(error_df['time'], error_df['moving_avg'], label='Moving Average', color='#A8737E')
 
             if i == 0:
                 self.ax.set_title("Error in Positive Direction")
@@ -124,7 +134,7 @@ class BurninGraph():
             #append canvas to list
             canvases.append(FigureCanvas(self.fig))
         
-        
+        ## OLD CODE NOT USING FOR LOOT TO PLOT GRAPHS ##
         # error_df_pos = pd.DataFrame({
         #     'time': self.time,
         #     'error_pos':self.positive_errors
@@ -179,4 +189,6 @@ class BurninGraph():
 
         # self.neg_canvas = FigureCanvas(self.fig_neg) # assign negative error figure to canvas var
 
-        return canvases #self.pos_canvas, self.neg_canvas
+        plt.close('all')  # close all figures to prevent memory leak
+
+        return canvases #self.pos_canvas, self.neg_canvas - RETURN VALUE OF OLD CODE

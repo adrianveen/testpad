@@ -20,15 +20,19 @@ class BurninTab(QWidget):
         selections_group = QGroupBox()
         self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")        # checkbox for selecting burn-in file
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))
-        
+        # check box for summary statistics
         self.print_statistics_lbl = QLabel("Print Summary Statistics?")       # checkbox for printing statistics
         self.print_statistics_box = QCheckBox()
         self.print_statistics_box.setChecked(False)      # default for printing statistics is unchecked
-        
+        # check box to show separated error values by direction
+        self.separate_errors_lbl = QLabel("Show error values separated by direction?")       # checkbox for separated error values
+        self.separate_errors_box = QCheckBox()
+        self.separate_errors_box.setChecked(False)      # default for separated error values is unchecked
+        # check box to show moving avg with separate graphs
         self.moving_avg_lbl = QLabel("Add moving average?")       # checkbox for adding a moving average
         self.moving_avg_box = QCheckBox()
         self.moving_avg_box.setChecked(False)      # default for adding moving avg is unchecked
-
+        # button to print graphs (this prints all selected graphs)
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
         self.print_graph_btn.setStyleSheet("background-color: #73A89E")
         self.print_graph_btn.clicked.connect(self.printGraphs)
@@ -36,20 +40,24 @@ class BurninTab(QWidget):
         #layout for user interaction area
         selections_layout = QGridLayout()
         selections_layout.addWidget(self.select_burnin_file_btn, 0, 0, 1, 2)
-        
+        # add print statistics label and checkbox
         selections_layout.addWidget(self.print_statistics_lbl, 1, 0)
         selections_layout.addWidget(self.print_statistics_box, 1, 1)
-        
-        selections_layout.addWidget(self.moving_avg_lbl, 2, 0)
-        selections_layout.addWidget(self.moving_avg_box, 2, 1)
-
-        selections_layout.addWidget(self.print_graph_btn, 3, 0, 1, 2)
+        # box to show separated error values by direction
+        selections_layout.addWidget(self.separate_errors_lbl, 2, 0)
+        selections_layout.addWidget(self.separate_errors_box, 2, 1)
+        # add moving avg label and checkbox
+        selections_layout.addWidget(self.moving_avg_lbl, 3, 0)
+        selections_layout.addWidget(self.moving_avg_box, 3, 1)
+        #print graph button - all figures produced with this button
+        selections_layout.addWidget(self.print_graph_btn, 4, 0, 1, 2)
         selections_group.setLayout(selections_layout)
 
         self.text_display = QTextBrowser()
 
         self.graph_display = QTabWidget()
 
+        # organizes layout in grid
         main_layout = QGridLayout()
         main_layout.addWidget(selections_group, 0, 0)
         main_layout.addWidget(self.text_display, 1, 0)
@@ -96,7 +104,7 @@ class BurninTab(QWidget):
     def printGraphs(self):
         self.graph_display.clear()
 
-        self.burnin = BurninGraph(self.burnin_file, [self.moving_avg_box.isChecked()])
+        self.burnin = BurninGraph(self.burnin_file, [self.moving_avg_box.isChecked(),self.separate_errors_box.isChecked()])
         self.stats = BurninStats(self.burnin_file, self.text_display)
 
         # Determine the axis name based on the filename
@@ -122,9 +130,7 @@ class BurninTab(QWidget):
             self.stats.printStats()
 
         burn_graph = self.burnin.getGraph()
-        seperate_graph = self.burnin.getGraphs_separated()
         nav_tool = NavigationToolbar(burn_graph)
-        nav_tool_2 = NavigationToolbar(seperate_graph)
 
         burn_widget = QWidget()
         burn_layout = QVBoxLayout()
@@ -135,13 +141,18 @@ class BurninTab(QWidget):
         self.graph_display.addTab(burn_widget, "Burn-in Graph")
 
         # Create Tab for separated error values
-        separated_widget = QWidget()
-        separated_layout = QVBoxLayout()
-        separated_layout.addWidget(nav_tool_2)
-        separated_layout.addWidget(seperate_graph)
-        separated_widget.setLayout(separated_layout)
+        if self.separate_errors_box.isChecked():
+            seperate_graph = self.burnin.getGraphs_separated()
+            nav_tool_sep = NavigationToolbar(seperate_graph)
+            separated_widget = QWidget()
+            separated_layout = QVBoxLayout()
+            separated_layout.addWidget(nav_tool_sep)
+            separated_layout.addWidget(seperate_graph)
+            separated_widget.setLayout(separated_layout)
 
-        self.graph_display.addTab(separated_widget, "Error vs Time with directions separated")
+            self.graph_display.addTab(separated_widget, "Error vs Time with directions separated")
+        else:
+            pass
 
         # add tab for positive error and negative error if moving average is checked
         if self.moving_avg_box.isChecked():
