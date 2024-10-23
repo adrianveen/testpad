@@ -137,7 +137,8 @@ class BurninTab(QWidget):
         burn_widget.setLayout(burn_layout)
 
         self.graph_display.addTab(burn_widget, "Burn-in Graph")
-        # Create Motor A Tab
+
+        # Create Tab for separated error values
         separated_widget = QWidget()
         separated_layout = QVBoxLayout()
         separated_layout.addWidget(nav_tool_2)
@@ -146,6 +147,17 @@ class BurninTab(QWidget):
 
         self.graph_display.addTab(separated_widget, "Error vs Time with directions separated")
 
+        # add tab for positive error and negative error if moving average is checked
+        if self.moving_avg_box.isChecked():
+            # call movingAvg() function from BurninGraph class
+            
+
+            # create tab for positive error values
+            nav_tool_pos = NavigationToolbar()
+            
+            pos_error_widget = QWidget()
+            pos_error_layout = QVBoxLayout()
+            pos_error_layout.addWidget(nav_tool_pos)
         # # Create Motor B Tab
         # motor_b_widget = QWidget()
         # motor_b_layout = QVBoxLayout()
