@@ -53,10 +53,10 @@ class BurninGraph():
 
         # Plotting
         plt.plot(self.time, positive_errors, label='Positive Error (counts)')
-        plt.plot(self.time, negative_errors, label='Negative Error (counts)')
+        plt.plot(self.time, negative_errors, label='Negative Error (counts)', color='#4EA888')
 
         # Labels and title
-        self.ax.set_xlabel("Time")
+        self.ax.set_xlabel("Time (ms)")
         self.ax.set_ylabel("Error (counts)")
         
         # Determine title based on filename
@@ -68,7 +68,7 @@ class BurninGraph():
             title = "Unknown Axis"  # Fallback title in case of unexpected filename
         self.ax.set_title(title)
         # add the legend in the best location around the center of the graph
-        self.ax.legend(loc='best', bbox_to_anchor=(0.5, 0.5, 0, 0))
+        self.ax.legend(loc='best')
 
         self.canvas = FigureCanvas(self.fig)
 

@@ -20,9 +20,15 @@ class BurninTab(QWidget):
         selections_group = QGroupBox()
         self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")        # checkbox for selecting burn-in file
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))
+        
         self.print_statistics_lbl = QLabel("Print Summary Statistics?")       # checkbox for printing statistics
         self.print_statistics_box = QCheckBox()
         self.print_statistics_box.setChecked(False)      # default for printing statistics is unchecked
+        
+        self.moving_avg_lbl = QLabel("Add moving average?")       # checkbox for adding a moving average
+        self.moving_avg_box = QCheckBox()
+        self.moving_avg_box.setChecked(False)      # default for adding moving avg is unchecked
+
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
         self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
         self.print_graph_btn.clicked.connect(self.printGraphs)
@@ -30,9 +36,14 @@ class BurninTab(QWidget):
         #layout for user interaction area
         selections_layout = QGridLayout()
         selections_layout.addWidget(self.select_burnin_file_btn, 0, 0, 1, 2)
+        
         selections_layout.addWidget(self.print_statistics_lbl, 1, 0)
         selections_layout.addWidget(self.print_statistics_box, 1, 1)
-        selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
+        
+        selections_layout.addWidget(self.moving_avg_lbl, 2, 0)
+        selections_layout.addWidget(self.moving_avg_box, 2, 1)
+
+        selections_layout.addWidget(self.print_graph_btn, 3, 0, 1, 2)
         selections_group.setLayout(selections_layout)
 
         self.text_display = QTextBrowser()
@@ -108,6 +119,10 @@ class BurninTab(QWidget):
         # check if print statistics is checked and call printStats() if it is
         if self.print_statistics_box.isChecked():
             self.stats.printStats()
+
+        # check if moving average is checked and call movingAvg() if it is
+        # if self.moving_avg_box.isChecked():
+        #     self.burnin.movingAvg()
 
         burn_graph = self.burnin.getGraph()
         seperate_graph = self.burnin.getGraphs_separated()
