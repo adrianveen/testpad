@@ -44,7 +44,7 @@ class BurninGraph():
         self.fig, self.ax = plt.subplots(1, 1)
         self.canvas = FigureCanvas(self.fig)
 
-        self.ax.plot(self.time, self.error)
+        self.ax.plot(self.time, self.error, color='#73A89E')
 
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Error (counts)")
@@ -91,59 +91,92 @@ class BurninGraph():
     
     # calculate moving average of error values and produce graph for positive and negative error separately
     def movingAvg(self):
+        """
+        Takes the already separated negative and positive error, and produces two graphs via a for loop.
+        Each graph will have it's own canvas and will be returned as a list of canvases.
+        The graphs will display the error values and their respective moving averages. 
+        """
+        errors_list = [self.positive_errors, self.negative_errors]
+        canvases = []
         
-        error_df_pos = pd.DataFrame({
-            'time': self.time,
-            'pos_error':self.positive_errors
-        })
+        for i in range(len(errors_list)):
+            error_df = pd.DataFrame({
+                'time': self.time,
+                'error': errors_list[i]
+            })
+
+            error_df['moving_avg'] = error_df['error'].rolling(window=10000, min_periods=1).mean()
+
+            self.fig, self.ax = plt.subplots(1, 1)
+
+            self.ax.plot(error_df['time'], error_df['error'], label='Error Data', color='#73A89E')
+            self.ax.plot(error_df['time'], error_df['moving_avg'], label='Moving Average', color='#A8737E')
+
+            if i == 0:
+                self.ax.set_title("Error in Positive Direction")
+            else:
+                self.ax.set_title("Error in Negative Direction")
+
+            self.ax.set_xlabel("Time (ms)")
+            self.ax.set_ylabel("Error (counts)")
+            self.ax.legend()
+
+            #append canvas to list
+            canvases.append(FigureCanvas(self.fig))
         
-        # apply moving average with a window of ratio 1:17 (len(x)/10000)
-        error_df_pos['pos_moving_avg'] = error_df_pos[
-            'pos_error'].rolling(window=17/int(len(error_df_pos.iloc[:,1])),
-                                          min_periods=1).mean()
         
-        error_df_neg = pd.DataFrame({
-            'time': self.time,
-            'neg_error':self.negative_errors
-        })
-
-        # apply moving average with a window of ratio 1:17 (len(x)/10000) - Negative error
-        error_df_neg['neg_moving_avg'] = error_df_neg[
-            'neg_moving_avg_raw'].rolling(window=17/int(len(error_df_neg.iloc[:,1])),
-                                          min_periods=1).mean()
+        # error_df_pos = pd.DataFrame({
+        #     'time': self.time,
+        #     'error_pos':self.positive_errors
+        # })
         
-        # generate figure for positive error values
-        self.fig_pos, self.ax_pos = plt.subplots(1, 1)
-
-        # plotting positive values
-        self.ax_pos.plot(error_df_pos['time'], error_df_pos['pos_error'],
-                         label='Positive Error Data', color='#73A89E')
-        self.ax_pos.plot(error_df_pos['time'], error_df_pos['pos_moving_avg'],
-                         label='Positive Moving Average', color='#B84548')
+        # # apply moving average with a window of ratio 1:17 (len(x)/10000)
+        # error_df_pos['pos_moving_avg'] = error_df_pos[
+        #     'error_pos'].rolling(window=10000,
+        #                                   min_periods=1).mean()
         
-        # Labels and title
-        self.ax_pos.set_xlabel("Time (ms)")
-        self.ax_pos.set_ylabel("Error (counts)")
-        self.ax_pos.set_title("Error in Positive Direction")
-        self.ax_pos.legend()
+        # error_df_neg = pd.DataFrame({
+        #     'time': self.time,
+        #     'error_neg':self.negative_errors
+        # })
 
-        self.pos_canvas = FigureCanvas(self.fig_pos) # assign positive error figure to canvas var
-
-        # generate figure for negative error values
-        self.fig_neg, self.ax_neg = plt.subplots(1, 1)
-
-        # plotting negative values
-        self.ax_neg.plot(error_df_neg['time'], error_df_neg['neg_error'],
-                         label='Negative Error Data', color='#73A89E')
-        self.ax_neg.plot(error_df_neg['time'], error_df_neg['neg_moving_avg'],
-                            label='Negative Moving Average', color='#B84548')
+        # # apply moving average with a window of ratio 1:17 (len(x)/10000) - Negative error
+        # error_df_neg['neg_moving_avg'] = error_df_neg[
+        #     'error_neg'].rolling(window=10000,
+        #                                   min_periods=1).mean()
         
-        # Labels and title
-        self.ax_neg.set_xlabel("Time (ms)")
-        self.ax_neg.set_ylabel("Error (counts)")
-        self.ax_neg.set_title("Error in Negative Direction")
-        self.ax_neg.legend()
+        # # generate figure for positive error values
+        # self.fig_pos, self.ax_pos = plt.subplots(1, 1)
 
-        self.neg_canvas = FigureCanvas(self.fig_neg) # assign negative error figure to canvas var
+        # # plotting positive values
+        # self.ax_pos.plot(error_df_pos['time'], error_df_pos['error_pos'],
+        #                  label='Positive Error Data', color='#73A89E')
+        # self.ax_pos.plot(error_df_pos['time'], error_df_pos['pos_moving_avg'],
+        #                  label='Positive Moving Average', color='#A8737E')
+        
+        # # Labels and title
+        # self.ax_pos.set_xlabel("Time (ms)")
+        # self.ax_pos.set_ylabel("Error (counts)")
+        # self.ax_pos.set_title("Error in Positive Direction")
+        # self.ax_pos.legend()
 
-        return self.neg_canvas, self.pos_canvas
+        # self.pos_canvas = FigureCanvas(self.fig_pos) # assign positive error figure to canvas var
+
+        # # generate figure for negative error values
+        # self.fig_neg, self.ax_neg = plt.subplots(1, 1)
+
+        # # plotting negative values
+        # self.ax_neg.plot(error_df_neg['time'], error_df_neg['error_neg'],
+        #                  label='Negative Error Data', color='#73A89E')
+        # self.ax_neg.plot(error_df_neg['time'], error_df_neg['neg_moving_avg'],
+        #                     label='Negative Moving Average', color='#A8737E')
+        
+        # # Labels and title
+        # self.ax_neg.set_xlabel("Time (ms)")
+        # self.ax_neg.set_ylabel("Error (counts)")
+        # self.ax_neg.set_title("Error in Negative Direction")
+        # self.ax_neg.legend()
+
+        # self.neg_canvas = FigureCanvas(self.fig_neg) # assign negative error figure to canvas var
+
+        return canvases #self.pos_canvas, self.neg_canvas

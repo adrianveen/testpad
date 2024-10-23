@@ -30,7 +30,7 @@ class BurninTab(QWidget):
         self.moving_avg_box.setChecked(False)      # default for adding moving avg is unchecked
 
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
-        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_btn.setStyleSheet("background-color: #73A89E")
         self.print_graph_btn.clicked.connect(self.printGraphs)
 
         #layout for user interaction area
@@ -96,7 +96,7 @@ class BurninTab(QWidget):
     def printGraphs(self):
         self.graph_display.clear()
 
-        self.burnin = BurninGraph(self.burnin_file)
+        self.burnin = BurninGraph(self.burnin_file, [self.moving_avg_box.isChecked()])
         self.stats = BurninStats(self.burnin_file, self.text_display)
 
         # Determine the axis name based on the filename
@@ -114,20 +114,16 @@ class BurninTab(QWidget):
             test_number = "Unknown"
 
         # Update text display with axis-specific and test number message
-        self.text_display.append(f"Summary Statistics for: {axis_name}; test no. {test_number}:\n")
+        if self.print_statistics_box.isChecked():
+            self.text_display.append(f"Summary Statistics for: {axis_name}; test no. {test_number}:\n")
 
         # check if print statistics is checked and call printStats() if it is
         if self.print_statistics_box.isChecked():
             self.stats.printStats()
 
-        # check if moving average is checked and call movingAvg() if it is
-        # if self.moving_avg_box.isChecked():
-        #     self.burnin.movingAvg()
-
         burn_graph = self.burnin.getGraph()
         seperate_graph = self.burnin.getGraphs_separated()
         nav_tool = NavigationToolbar(burn_graph)
-        # nav_tool_A = NavigationToolbar(burn_graph_A)
         nav_tool_2 = NavigationToolbar(seperate_graph)
 
         burn_widget = QWidget()
@@ -150,14 +146,32 @@ class BurninTab(QWidget):
         # add tab for positive error and negative error if moving average is checked
         if self.moving_avg_box.isChecked():
             # call movingAvg() function from BurninGraph class
-            
+            pos_avg, neg_avg = self.burnin.movingAvg()
 
             # create tab for positive error values
-            nav_tool_pos = NavigationToolbar()
+            nav_tool_pos = NavigationToolbar(pos_avg)
             
             pos_error_widget = QWidget()
             pos_error_layout = QVBoxLayout()
             pos_error_layout.addWidget(nav_tool_pos)
+            pos_error_layout.addWidget(pos_avg)
+            pos_error_widget.setLayout(pos_error_layout)
+
+            self.graph_display.addTab(pos_error_widget, "Positive Error w/ Moving Avg")
+
+            # create tab for negative error values
+            nav_tool_neg = NavigationToolbar(neg_avg)
+
+            neg_error_widget = QWidget()
+            neg_error_layout = QVBoxLayout()
+            neg_error_layout.addWidget(nav_tool_neg)
+            neg_error_layout.addWidget(neg_avg)
+            neg_error_widget.setLayout(neg_error_layout)
+
+            self.graph_display.addTab(neg_error_widget, "Negative Error w/ Moving Avg")
+        else:
+            pass
+
         # # Create Motor B Tab
         # motor_b_widget = QWidget()
         # motor_b_layout = QVBoxLayout()
