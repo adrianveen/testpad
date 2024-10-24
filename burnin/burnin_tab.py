@@ -151,8 +151,10 @@ class BurninTab(QWidget):
         if self.separate_errors_box.isChecked():
             seperate_graph = self.burnin.getGraphs_separated()
             nav_tool_sep = NavigationToolbar(seperate_graph)
-            separated_widget = QWidget()
+            separated_widget = myQwidget(burnin_graph=self.burnin)
+            separated_widget.setContentsMargins(5, 5, 5, 5)
             separated_layout = QVBoxLayout()
+            separated_layout.setContentsMargins(5, 5, 5, 5)
             separated_layout.addWidget(nav_tool_sep)
             separated_layout.addWidget(seperate_graph)
             separated_widget.setLayout(separated_layout)
@@ -169,8 +171,10 @@ class BurninTab(QWidget):
             # create tab for positive error values
             nav_tool_pos = NavigationToolbar(pos_avg)
             
-            pos_error_widget = QWidget()
+            pos_error_widget = myQwidget(burnin_graph=self.burnin)
+            pos_error_widget.setContentsMargins(5, 5, 5, 5)
             pos_error_layout = QVBoxLayout()
+            pos_error_layout.setContentsMargins(5, 5, 5, 5)
             pos_error_layout.addWidget(nav_tool_pos)
             pos_error_layout.addWidget(pos_avg)
             pos_error_widget.setLayout(pos_error_layout)
@@ -180,8 +184,10 @@ class BurninTab(QWidget):
             # create tab for negative error values
             nav_tool_neg = NavigationToolbar(neg_avg)
 
-            neg_error_widget = QWidget()
+            neg_error_widget = myQwidget(burnin_graph=self.burnin)
+            neg_error_widget.setContentsMargins(5, 5, 5, 5)
             neg_error_layout = QVBoxLayout()
+            neg_error_layout.setContentsMargins(5, 5, 5, 5)
             neg_error_layout.addWidget(nav_tool_neg)
             neg_error_layout.addWidget(neg_avg)
             neg_error_widget.setLayout(neg_error_layout)
@@ -190,10 +196,3 @@ class BurninTab(QWidget):
         else:
             pass
 
-        # # Create Motor B Tab
-        # motor_b_widget = QWidget()
-        # motor_b_layout = QVBoxLayout()
-        # #motor_b_layout.addWidget(nav_tool)
-        # motor_b_widget.setLayout(motor_b_layout)
-
-        # self.graph_display.addTab(motor_b_widget, "Motor B")

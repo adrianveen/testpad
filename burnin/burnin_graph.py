@@ -50,13 +50,15 @@ class BurninGraph():
 
         # Determine title based on filename
         if "_axis_A_" in self.burnin_file:
-            self.ax.set_title("Axis A Error")
+            title = "Axis A Error"
         elif "_axis_B_" in self.burnin_file:
-            self.ax.set_title("Axis B Error")
+            title = "Axis B Error"
         else:
-            self.ax.set_title("Unknown Axis")  # Fallback title in case of unexpected filename
+            title = "Unknown Axis"  # Fallback title in case of unexpected filename
+        
+        self.ax.set_title(title)
 
-        self.fig.tight_layout(pad=0.1)
+        self.fig.tight_layout(pad=0.5)
 
         self.fig.set_canvas(self.canvas)
 
@@ -68,7 +70,8 @@ class BurninGraph():
     def getGraphs_separated(self):
 
         # generate the figure and axis
-        self.fig, self.ax = plt.subplots(1, 1)
+        self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
+        self.canvas = FigureCanvas(self.fig)
 
         # Plotting
         self.ax.plot(self.time, self.positive_errors, label='Positive Error (counts)', color='#5A8FAE')
@@ -85,18 +88,19 @@ class BurninGraph():
             title = "Axis B Error"
         else:
             title = "Unknown Axis"  # Fallback title in case of unexpected filename
+        
         self.ax.set_title(title)
         # add the legend in the best location around the center of the graph
         self.ax.legend(loc='best')
 
         #reduce white space
-        self.fig.tight_layout(pad=.1)
+        self.fig.tight_layout(pad=0.5)
 
-        self.canvas = FigureCanvas(self.fig)
+        self.fig.set_canvas(self.canvas)
 
         plt.close('all')  # close all figures to prevent memory leak
 
-        return self.canvas
+        return (self.canvas)
     
     # calculate moving average of error values and produce graph for positive and negative error separately
     def movingAvg(self):
@@ -117,7 +121,7 @@ class BurninGraph():
 
             error_df['moving_avg'] = error_df['error'].rolling(window=10000, min_periods=1).mean()
 
-            self.fig, self.ax = plt.subplots(1, 1)
+            self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
 
             if i == 0:
                 self.ax.plot(error_df['time'], error_df['error'], label='Error Data', color='#5A8FAE')
@@ -135,67 +139,14 @@ class BurninGraph():
             self.ax.set_ylabel("Error (counts)")
             self.ax.legend()
 
+            self.fig.tight_layout(pad=0.5)
+
             #append canvas to list
             canvases.append(FigureCanvas(self.fig))
-        
-        ## OLD CODE NOT USING FOR LOOT TO PLOT GRAPHS ##
-        # error_df_pos = pd.DataFrame({
-        #     'time': self.time,
-        #     'error_pos':self.positive_errors
-        # })
-        
-        # # apply moving average with a window of ratio 1:17 (len(x)/10000)
-        # error_df_pos['pos_moving_avg'] = error_df_pos[
-        #     'error_pos'].rolling(window=10000,
-        #                                   min_periods=1).mean()
-        
-        # error_df_neg = pd.DataFrame({
-        #     'time': self.time,
-        #     'error_neg':self.negative_errors
-        # })
 
-        # # apply moving average with a window of ratio 1:17 (len(x)/10000) - Negative error
-        # error_df_neg['neg_moving_avg'] = error_df_neg[
-        #     'error_neg'].rolling(window=10000,
-        #                                   min_periods=1).mean()
-        
-        # # generate figure for positive error values
-        # self.fig_pos, self.ax_pos = plt.subplots(1, 1)
+            plt.close('all')  # close all figures to prevent memory leak
 
-        # # plotting positive values
-        # self.ax_pos.plot(error_df_pos['time'], error_df_pos['error_pos'],
-        #                  label='Positive Error Data', color='#73A89E')
-        # self.ax_pos.plot(error_df_pos['time'], error_df_pos['pos_moving_avg'],
-        #                  label='Positive Moving Average', color='#A8737E')
-        
-        # # Labels and title
-        # self.ax_pos.set_xlabel("Time (ms)")
-        # self.ax_pos.set_ylabel("Error (counts)")
-        # self.ax_pos.set_title("Error in Positive Direction")
-        # self.ax_pos.legend()
-
-        # self.pos_canvas = FigureCanvas(self.fig_pos) # assign positive error figure to canvas var
-
-        # # generate figure for negative error values
-        # self.fig_neg, self.ax_neg = plt.subplots(1, 1)
-
-        # # plotting negative values
-        # self.ax_neg.plot(error_df_neg['time'], error_df_neg['error_neg'],
-        #                  label='Negative Error Data', color='#73A89E')
-        # self.ax_neg.plot(error_df_neg['time'], error_df_neg['neg_moving_avg'],
-        #                     label='Negative Moving Average', color='#A8737E')
-        
-        # # Labels and title
-        # self.ax_neg.set_xlabel("Time (ms)")
-        # self.ax_neg.set_ylabel("Error (counts)")
-        # self.ax_neg.set_title("Error in Negative Direction")
-        # self.ax_neg.legend()
-
-        # self.neg_canvas = FigureCanvas(self.fig_neg) # assign negative error figure to canvas var
-
-        plt.close('all')  # close all figures to prevent memory leak
-
-        return canvases #self.pos_canvas, self.neg_canvas - RETURN VALUE OF OLD CODE
+        return canvases # return list of canvases
 
     def got_resize_event(self):
-        self.fig.tight_layout(pad=.1)
+        self.fig.tight_layout(pad=.5)
