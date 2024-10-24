@@ -56,7 +56,7 @@ class BurninGraph():
         else:
             self.ax.set_title("Unknown Axis")  # Fallback title in case of unexpected filename
 
-        self.fig.tight_layout(pad=0.5)
+        self.fig.tight_layout(pad=0.1)
 
         self.fig.set_canvas(self.canvas)
 
@@ -90,7 +90,7 @@ class BurninGraph():
         self.ax.legend(loc='best')
 
         #reduce white space
-        self.fig.tight_layout()
+        self.fig.tight_layout(pad=.1)
 
         self.canvas = FigureCanvas(self.fig)
 
@@ -196,3 +196,6 @@ class BurninGraph():
         plt.close('all')  # close all figures to prevent memory leak
 
         return canvases #self.pos_canvas, self.neg_canvas - RETURN VALUE OF OLD CODE
+
+    def got_resize_event(self):
+        self.fig.tight_layout(pad=.1)

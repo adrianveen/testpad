@@ -130,7 +130,9 @@ class BurninTab(QWidget):
         nav_tool = NavigationToolbar(burn_graph)
 
         burn_widget = QWidget()
+        burn_widget.setContentsMargins(5, 5, 5, 5)
         burn_layout = QVBoxLayout()
+        burn_layout.setContentsMargins(5, 5, 5, 5)
         burn_layout.addWidget(nav_tool)
         burn_layout.addWidget(burn_graph)
         burn_widget.setLayout(burn_layout)
@@ -187,5 +189,11 @@ class BurninTab(QWidget):
         # motor_b_widget.setLayout(motor_b_layout)
 
         # self.graph_display.addTab(motor_b_widget, "Motor B")
-        
+
+    def resizeEvent(self, event):
+        try:
+            self.burnin.got_resize_event()
+        except AttributeError:  # In case self.burnin is not defined
+            pass
+
 
