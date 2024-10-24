@@ -12,6 +12,14 @@ import decimal
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 import os
 
+class myQwidget(QWidget):
+    def __init__(self, burnin_graph: BurninGraph):
+        super().__init__()
+        self.graph = burnin_graph
+
+    def resizeEvent(self, event):
+        self.graph.got_resize_event()
+
 class BurninTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -129,7 +137,7 @@ class BurninTab(QWidget):
         burn_graph = self.burnin.getGraph()
         nav_tool = NavigationToolbar(burn_graph)
 
-        burn_widget = QWidget()
+        burn_widget = myQwidget(burnin_graph=self.burnin)
         burn_widget.setContentsMargins(5, 5, 5, 5)
         burn_layout = QVBoxLayout()
         burn_layout.setContentsMargins(5, 5, 5, 5)
@@ -189,11 +197,3 @@ class BurninTab(QWidget):
         # motor_b_widget.setLayout(motor_b_layout)
 
         # self.graph_display.addTab(motor_b_widget, "Motor B")
-
-    def resizeEvent(self, event):
-        try:
-            self.burnin.got_resize_event()
-        except AttributeError:  # In case self.burnin is not defined
-            pass
-
-
