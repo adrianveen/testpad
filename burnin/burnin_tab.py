@@ -121,14 +121,11 @@ class BurninTab(QWidget):
         except IndexError:
             test_number = "Unknown"
 
-        # Update text display with axis-specific and test number message
+        # Update text display with axis-specific and test number message. Call printStats() as well
         if self.print_statistics_box.isChecked():
             self.text_display.append(f"Summary Statistics for: {axis_name}; test no. {test_number}:\n")
-
-        # check if print statistics is checked and call printStats() if it is
-        if self.print_statistics_box.isChecked():
             self.stats.printStats()
-
+            
         burn_graph = self.burnin.getGraph()
         nav_tool = NavigationToolbar(burn_graph)
 
@@ -137,7 +134,7 @@ class BurninTab(QWidget):
         burn_layout.addWidget(nav_tool)
         burn_layout.addWidget(burn_graph)
         burn_widget.setLayout(burn_layout)
-
+        
         self.graph_display.addTab(burn_widget, "Burn-in Graph")
 
         # Create Tab for separated error values

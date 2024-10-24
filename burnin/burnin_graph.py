@@ -41,11 +41,10 @@ class BurninGraph():
 
     # graphs error vs time 
     def getGraph(self):
-        self.fig, self.ax = plt.subplots(1, 1)
+        self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
         self.canvas = FigureCanvas(self.fig)
 
         self.ax.plot(self.time, self.error, color='#73A89E')
-
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Error (counts)")
 
@@ -56,6 +55,8 @@ class BurninGraph():
             self.ax.set_title("Axis B Error")
         else:
             self.ax.set_title("Unknown Axis")  # Fallback title in case of unexpected filename
+
+        self.fig.tight_layout(pad=0.5)
 
         self.fig.set_canvas(self.canvas)
 
@@ -74,7 +75,7 @@ class BurninGraph():
         self.ax.plot(self.time, self.negative_errors, label='Negative Error (counts)', color='#73A89E')
 
         # Labels and title
-        self.ax.set_xlabel("Time (ms)")
+        self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Error (counts)")
         
         # Determine title based on filename
@@ -87,6 +88,9 @@ class BurninGraph():
         self.ax.set_title(title)
         # add the legend in the best location around the center of the graph
         self.ax.legend(loc='best')
+
+        #reduce white space
+        self.fig.tight_layout()
 
         self.canvas = FigureCanvas(self.fig)
 
@@ -127,7 +131,7 @@ class BurninGraph():
             else:
                 self.ax.set_title("Error in Negative Direction")
 
-            self.ax.set_xlabel("Time (ms)")
+            self.ax.set_xlabel("Time (s)")
             self.ax.set_ylabel("Error (counts)")
             self.ax.legend()
 
