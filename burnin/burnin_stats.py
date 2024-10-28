@@ -36,8 +36,8 @@ class BurninStats():
             min_error = np.nanmin(abs_errors)
             
             #additional summary statistics
-            q25_error = np.nanpercentile(errors, 25)
-            q75_error = np.nanpercentile(errors, 75)
+            q25_error = np.nanpercentile(abs(errors), 25)
+            q75_error = np.nanpercentile(abs(errors), 75)
             skew_error = pd.Series(errors).skew()
             kurtosis_error = pd.Series(errors).kurtosis()
             
@@ -75,8 +75,8 @@ class BurninStats():
                     ["Max", int(max_val)],
                     ["Standard Deviation", f"{std:.2f}"],
                     ["Variance", f"{var:.2f}"],
-                    ["25th Percentile (Q1)", int(q25)],
-                    ["75th Percentile (Q3)", int(q75)],
+                    ["25th Percentile (Q1)", f"-{int(q25)}"],
+                    ["75th Percentile (Q3)", f"-{int(q75)}"],
                     ["Skewness", f"{skew:.2f}"],
                     ["Kurtosis", f"{kurtosis:.2f}"],
                     ["Percentage above threshold", f"{pct_abv:.2%}"],
