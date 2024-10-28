@@ -21,7 +21,9 @@ class BurninStats():
 
     def printStats(self):
         def calculate_stats(errors):
-            """Calculate statistics for the given error array."""
+            """
+            Calculate statistics for the given error array.
+            """
             #setup usful variables
             threshold = 40
             valid_count = np.sum(~np.isnan(errors))
@@ -53,22 +55,10 @@ class BurninStats():
         def display_stats(title, stats):
             """Display the calculated statistics in the textbox."""
             mean, median, std, var, max_val, min_val, q25, q75, skew, kurtosis, pct_abv, pct_blw, peaks, drops = stats
+            
+            # titles the table based on the iput (negative or positive error)
             self.textbox.append(f"<b><u>{title}</u></b>")
-            # self.textbox.append(f"Mean: {int(mean)}")
-            # self.textbox.append(f"Median: {int(median)}")
-            # self.textbox.append(f"Min: {int(min_val)}")
-            # self.textbox.append(f"Max: {int(max_val)}")
-            # self.textbox.append("Standard Deviation: {:.2f}".format(std))
-            # self.textbox.append("Variance: {:.2f}".format(var))
-            # self.textbox.append(f"25th Percentile (Q1): {int(q25)}")
-            # self.textbox.append(f"75th Percentile (Q3): {int(q75)}")
-            # self.textbox.append("Skewness: {:.2f}".format(skew))
-            # self.textbox.append("Kurtosis: {:.2f}".format(kurtosis))
-            # self.textbox.append("Percentage above threshold: {:.2%}".format(pct_abv))
-            # self.textbox.append("Percentage below threshold: {:.2%}".format(pct_blw))
-            # self.textbox.append("Number of peaks above threshold: {}".format(peaks))
-            # self.textbox.append("Number of drops below threshold: {}".format(drops))
-            # self.textbox.append("RMS error: {:.2f}\n".format(rms))
+
             stats_list = [["Mean", int(mean)],
                     ["Median", int(median)],
                     ["Min", int(min_val)],
@@ -85,7 +75,7 @@ class BurninStats():
                     ["Number of drops below threshold", drops],
                 ]
             
-            return stats_list
+            return stats_list #returns a list of lists [[statistic, value],[stat, value2],[stat, value3]]
         
         def display_table(data, add_gap=True):
             # if add_gap:

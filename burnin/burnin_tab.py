@@ -195,22 +195,3 @@ class BurninTab(QWidget):
             self.graph_display.addTab(neg_error_widget, "Negative Error w/ Moving Avg")
         else:
             pass
-
-        # method to format an HTML tabl ein QTextBrowser
-        # def format_table(data):
-        #     #create basic HTML table structure
-        #     table_html = "<table border='1'> cellpadding='4' cellspacing='0' width='100%'>"
-        #     #create table header
-        #     table_html += "<tr><th> Statistic </th><th> Value </th></tr>"
-
-        #     #add rows to the table based on the data
-        #     for stat, value in data.items():
-        #         table_html += f"<tr><td> {stat} </td><td> {value} </td></tr>"
-
-        #     table_html += "</table>"
-
-        #     self.text_display.append(table_html)
-        
-        # call display stats and add to the table
-        # stats = self.stats.display_stats()
-        # format_table(stats)
