@@ -42,20 +42,21 @@ class BurninGraph():
     # graphs error vs time 
     def getGraph(self):
         self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
-        self.canvas = FigureCanvas(self.fig)
-
-        self.ax.plot(self.time, self.error, color='#73A89E')
-        self.ax.set_xlabel("Time (s)")
-        self.ax.set_ylabel("Error (counts)")
+        self.canvas = FigureCanvas(self.fig)   
 
         # Determine title based on filename
         if "_axis_A_" in self.burnin_file:
             title = "Axis A Error"
+            self.ax.plot(self.time, self.error, color='#73A89E')
         elif "_axis_B_" in self.burnin_file:
             title = "Axis B Error"
+            self.ax.plot(self.time, self.error, color='#5A8FAE')
         else:
             title = "Unknown Axis"  # Fallback title in case of unexpected filename
         
+        self.ax.set_xlabel("Time (s)")
+        self.ax.set_ylabel("Error (counts)")
+
         self.ax.set_title(title)
 
         self.fig.tight_layout(pad=0.5)

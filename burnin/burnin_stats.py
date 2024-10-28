@@ -36,7 +36,6 @@ class BurninStats():
             min_error = np.nanmin(abs_errors)
             
             #additional summary statistics
-            rms_error = np.sqrt(np.nanmean(errors**2))
             q25_error = np.nanpercentile(errors, 25)
             q75_error = np.nanpercentile(errors, 75)
             skew_error = pd.Series(errors).skew()
@@ -49,36 +48,71 @@ class BurninStats():
             drops, _ = find_peaks(-errors, height=threshold)
             num_peaks = len(peaks)
             num_drops = len(drops)
-            return mean_error, median_error, std_error, var_error, max_error, min_error, rms_error, q25_error, q75_error, skew_error, kurtosis_error, pct_above_thresh, pct_below_thresh, num_peaks, num_drops
+            return mean_error, median_error, std_error, var_error, max_error, min_error, q25_error, q75_error, skew_error, kurtosis_error, pct_above_thresh, pct_below_thresh, num_peaks, num_drops
 
         def display_stats(title, stats):
             """Display the calculated statistics in the textbox."""
-            mean, median, std, var, max_val, min_val, rms, q25, q75, skew, kurtosis, pct_abv, pct_blw, peaks, drops = stats
-            self.textbox.append(f"{title}")
-            self.textbox.append(f"Mean: {int(mean)}")
-            self.textbox.append(f"Median: {int(median)}")
-            self.textbox.append(f"Min: {int(min_val)}")
-            self.textbox.append(f"Max: {int(max_val)}")
-            self.textbox.append("Standard Deviation: {:.2f}".format(std))
-            self.textbox.append("Variance: {:.2f}".format(var))
-            self.textbox.append("25th Percentile (Q1): {:.2f}".format(q25))
-            self.textbox.append("75th Percentile (Q3): {:.2f}".format(q75))
-            self.textbox.append("Skewness: {:.2f}".format(skew))
-            self.textbox.append("Kurtosis: {:.2f}".format(kurtosis))
-            self.textbox.append("Percentage above threshold: {:.2%}".format(pct_abv))
-            self.textbox.append("Percentage below threshold: {:.2%}".format(pct_blw))
-            self.textbox.append("Number of peaks above threshold: {}".format(peaks))
-            self.textbox.append("Number of drops below threshold: {}".format(drops))
-            self.textbox.append("RMS error: {:.2f}\n".format(rms))
+            mean, median, std, var, max_val, min_val, q25, q75, skew, kurtosis, pct_abv, pct_blw, peaks, drops = stats
+            self.textbox.append(f"<b><u>{title}</u></b>")
+            # self.textbox.append(f"Mean: {int(mean)}")
+            # self.textbox.append(f"Median: {int(median)}")
+            # self.textbox.append(f"Min: {int(min_val)}")
+            # self.textbox.append(f"Max: {int(max_val)}")
+            # self.textbox.append("Standard Deviation: {:.2f}".format(std))
+            # self.textbox.append("Variance: {:.2f}".format(var))
+            # self.textbox.append(f"25th Percentile (Q1): {int(q25)}")
+            # self.textbox.append(f"75th Percentile (Q3): {int(q75)}")
+            # self.textbox.append("Skewness: {:.2f}".format(skew))
+            # self.textbox.append("Kurtosis: {:.2f}".format(kurtosis))
+            # self.textbox.append("Percentage above threshold: {:.2%}".format(pct_abv))
+            # self.textbox.append("Percentage below threshold: {:.2%}".format(pct_blw))
+            # self.textbox.append("Number of peaks above threshold: {}".format(peaks))
+            # self.textbox.append("Number of drops below threshold: {}".format(drops))
+            # self.textbox.append("RMS error: {:.2f}\n".format(rms))
+            stats_list = [["Mean", int(mean)],
+                    ["Median", int(median)],
+                    ["Min", int(min_val)],
+                    ["Max", int(max_val)],
+                    ["Standard Deviation", f"{std:.2f}"],
+                    ["Variance", f"{var:.2f}"],
+                    ["25th Percentile (Q1)", int(q25)],
+                    ["75th Percentile (Q3)", int(q75)],
+                    ["Skewness", f"{skew:.2f}"],
+                    ["Kurtosis", f"{kurtosis:.2f}"],
+                    ["Percentage above threshold", f"{pct_abv:.2%}"],
+                    ["Percentage below threshold", f"{pct_blw:.2%}"],
+                    ["Number of peaks above threshold", peaks],
+                    ["Number of drops below threshold", drops],
+                ]
+            
+            return stats_list
+        
+        def display_table(data, add_gap=True):
+            # if add_gap:
+            #     self.textbox.append("<br><br>")
+            
+            #create basic HTML table structure
+            table_html = "<table border='1'> cellpadding='4' cellspacing='0' width='100%'>"
+            #create table header
+            table_html += "<tr><th> Statistic </th><th> Value </th></tr>"
 
+            #add rows to the table based on the data
+            for stat, value in data:
+                table_html += f"<tr><td> {stat} </td><td> {value} </td></tr>"
+
+            table_html += "</table>"
+
+            self.textbox.append(table_html)
+            self.textbox.append("<div style='line-height:0.5;'><br></div>")
         # Separate positive and negative errors
         positive_errors = np.array([e if e > 0 else np.nan for e in self.error])
         negative_errors = np.array([e if e < 0 else np.nan for e in self.error])
 
         # Calculate and display positive error statistics
         positive_stats = calculate_stats(positive_errors)
-        display_stats("Positive Error Statistics:", positive_stats)
-
+        pos_listof_stats = display_stats("Positive Error Statistics:", positive_stats)
+        display_table(pos_listof_stats)
         # Calculate and display negative error statistics
         negative_stats = calculate_stats(negative_errors)
-        display_stats("Negative Error Statistics:", negative_stats)
+        neg_listof_stats = display_stats("\nNegative Error Statistics:\n", negative_stats)
+        display_table(neg_listof_stats)
