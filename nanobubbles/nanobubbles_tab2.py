@@ -11,11 +11,19 @@ import yaml
 import decimal
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 
+class myQwidget(QWidget):
+    def __init__(self, nanobubbles_graph: NanobubblesGraph):
+        super().__init__()
+        self.graph = nanobubbles_graph
+
+    def resizeEvent(self, event):
+        self.graph.got_resize_event()
+
 class NanobubblesTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.nanobubbles_files = None
+        self.nanobubbles_file = None
 
         # USER INTERACTION AREA
         # select file button 
@@ -59,17 +67,6 @@ class NanobubblesTab(QWidget):
         compare_layout.addWidget(self.compare_box, 0, 1, Qt.AlignCenter)
         compare_widget.setLayout(compare_layout)
 
-        #option to normalize graphs
-        normal_widget = QWidget()
-        normal_widget.setContentsMargins(0, 0, 0, 0)
-        normal_label = QLabel("Normalize Graphs:")
-        self.normal_box = QCheckBox()
-        normal_layout = QGridLayout()
-        normal_layout.setContentsMargins(0, 0, 0, 0)
-        normal_layout.addWidget(normal_label, 0, 0)
-        normal_layout.addWidget(self.normal_box, 0, 1, Qt.AlignCenter)
-        normal_widget.setLayout(normal_layout)
-
         # save fields 
         save_widget = QWidget()
         save_widget.setContentsMargins(0, 0, 0, 0)
@@ -93,8 +90,7 @@ class NanobubblesTab(QWidget):
         buttons_layout.addWidget(select_file_btn)
         buttons_layout.addWidget(bin_widget)
         buttons_layout.addWidget(log_widget)
-        buttons_layout.addWidget(compare_widget)
-        buttons_layout.addWidget(normal_widget)
+        # buttons_layout.addWidget(compare_widget)
         buttons_layout.addWidget(save_widget)
         buttons_layout.addWidget(print_graph_btn)
         buttons_groupbox.setLayout(buttons_layout)
@@ -119,27 +115,30 @@ class NanobubblesTab(QWidget):
     def openFileDialog(self, d_type):
         if d_type == "txt": # open nanobubble txt 
             self.dialog1 = QFileDialog(self)
-            self.dialog1.setWindowTitle("Nanobubble TXT File(s)")
-            
-            if self.compare_box.isChecked():
-                self.dialog1.setFileMode(QFileDialog.ExistingFiles)
-            else:
-                self.dialog1.setFileMode(QFileDialog.ExistingFile)
+            self.dialog1.setWindowTitle("Nanobubble TXT File")
+
+            # check if the compare checkbox is checked
+            # if self.compare_box.isChecked():
+            #     self.dialog1.setFileMode(QFileDialog.ExistingFiles)
+            # else:
+            #     self.dialog1.setFileMode(QFileDialog.ExistingFile)
             
             self.dialog1.setNameFilter("*.txt")
             self.dialog1.setDefaultSuffix("txt") # default suffix of yaml
-            
+
             if self.dialog1.exec(): 
                 self.text_display.append("Nanobubble File(s): ")
                 self.nanobubbles_files = self.dialog1.selectedFiles()
+
                 for file in self.nanobubbles_files:
-                    self.text_display.append(file +"\n")
+                    self.text_display.append(file + "\n")
         
         elif d_type == "save": # save graph SVG location 
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
             # self.dialog.setDefaultSuffix("*.txt")
             self.dialog.setFileMode(QFileDialog.Directory)
+
             if self.dialog.exec():
                 self.text_display.append("Save Location: ")
                 self.file_save_location = self.dialog.selectedFiles()[0]
@@ -148,32 +147,76 @@ class NanobubblesTab(QWidget):
     # add graph + navtoolbar to graph display 
     @Slot()
     def create_graph(self):
-        if self.nanobubbles_files is not None:
+        if (self.nanobubbles_files and len(self.nanobubbles_files) > 0) or self.nanobubbles_file is not None:
             self.graph_tab.clear()
 
+            # if self.compare_box.isChecked():
+                # call overload histograms with 3 datasets
+                # if not self.log_box.isChecked():
+                #     nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
+                #     #data_batches = [self._process_(file) for file in self.nanobubbles_files]
+                #     graph = nanobubbles_object.overlaid_histograms(float(self.bin_width_field.text()), False)
+                #     nav_tool = NavigationToolbar(graph)
+
+                #     graph_widget = QWidget()
+                #     graph_widget.setContentsMargins(0.5, 0.5, 5, 0.5)
+                #     nano_layout = QVBoxLayout()
+                #     nano_layout.setContentsMargins(0.5, 0.5, 0.5, 5)
+                #     nano_layout.addWidget(nav_tool)
+                #     nano_layout.addWidget(graph)
+
+                #     graph_widget.setLayout(nano_layout)
+                #     self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
+                # else: #log scale
+                #     nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
+                #     #data_batches = [self.read_data(file) for file in self.nanobubbles_files]
+                #     graph = nanobubbles_object.overlaid_histograms(float(self.bin_width_field.text()), "log")
+                #     nav_tool = NavigationToolbar(graph)
+
+                #     graph_widget = QWidget()
+                #     graph_widget.setContentsMargins(5, 5, 5, 5)
+                #     nano_layout = QVBoxLayout()
+                #     nano_layout.setContentsMargins(5, 5, 5, 5)
+                #     nano_layout.addWidget(nav_tool)
+                #     nano_layout.addWidget(graph)
+
+                #     graph_widget.setLayout(nano_layout)
+                #     self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
+            # else:    
             if not self.log_box.isChecked():
-                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
-                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), False, self.normal_box.isChecked(), self.compare_box.isChecked())
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_file)
+                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), False)
+                nav_tool = NavigationToolbar(graph)
+
+                graph_widget = QWidget()
+                graph_widget.setContentsMargins(0.5, 0.5, 5, 0.5)
+                nano_layout = QVBoxLayout()
+                nano_layout.setContentsMargins(0.5, 0.5, 0.5, 5)
+                nano_layout.addWidget(nav_tool)
+                nano_layout.addWidget(graph)
+                graph_widget.setLayout(nano_layout)
+
+                self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
             else: #log scale
-                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
-                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), "log", self.normal_box.isChecked(), self.compare_box.isChecked())
-                
-            nav_tool = NavigationToolbar(graph)
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_file)
+                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), "log")
+                nav_tool = NavigationToolbar(graph)
 
-            graph_widget = QWidget()
-            burn_layout = QVBoxLayout()
-            burn_layout.addWidget(nav_tool)
-            burn_layout.addWidget(graph)
-            graph_widget.setLayout(burn_layout)
+                graph_widget = QWidget()
+                graph_widget.setContentsMargins(5, 5, 5, 5)
+                nano_layout = QVBoxLayout()
+                nano_layout.setContentsMargins(5, 5, 5, 5)
+                nano_layout.addWidget(nav_tool)
+                nano_layout.addWidget(graph)
+                graph_widget.setLayout(nano_layout)
 
-            self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
-
-            # Debugging statements
-            print(f"save_box is checked: {self.save_box.isChecked()}")
-            print(f"file_save_location: {self.file_save_location}")
+                self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
 
             if self.save_box.isChecked():
-                save_loc = nanobubbles_object.save_graph(self.file_save_location, self.compare_box.isChecked())
+                save_loc = nanobubbles_object.save_graph(self.file_save_location)
                 self.text_display.append(f"Saved to {save_loc}")
-        else:
+        elif self.nanobubbles_file is None and self.nanobubbles_files is None:
             self.text_display.append("No nanobubble txt found!\n")
+
+    
+    
