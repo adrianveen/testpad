@@ -61,6 +61,9 @@ class NanobubblesGraph():
         self.fig, self.ax = plt.subplots(1, 1)
         self.canvas = FigureCanvas(self.fig)
         
+        # Generate a color palette based on the base color (FUS Green)
+        colors = self.generate_color_palette('#73A89E', len(self.raw_data))
+
         # if scale = log, set x-axis to log scale from 1-1000
         if scale:
             self.ax.set_xscale('log')
@@ -76,18 +79,19 @@ class NanobubblesGraph():
             self.ax.hist(sizes, bins=bins, color='#73A89E', edgecolor='black')   
         
         elif overlaid == True:
-            # Generate a color palette based on the base color (FUS Green)
-            colors = self.generate_color_palette('#73A89E', len(self.raw_data))
 
             # Plot multiple histograms
             for i, data in enumerate(self.raw_data):
                 sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
                 self.ax.hist(sizes, bins=bins, alpha=0.5, density=normalize, label=f'Batch {i+1}')
             self.ax.legend(fontsize=14)
-        # self.ax.hist(self.raw_data[0], bins=bins, color='#73A89E', rwidth=0.95) # single histogram
         
+        # single histogram
+        # self.ax.hist(self.raw_data[0], bins=bins, color='#73A89E', rwidth=0.95) 
+        
+        # graph labels
         self.ax.set_xlabel("Diameter [nm]", fontsize=16)
-        # self.ax.set_ylabel("Number Absolute", fontsize=16) # optoin y axis label
+        # self.ax.set_ylabel("Number Absolute", fontsize=16) # optional y axis label
         self.ax.set_title("Nanobubble Size Distribution", fontsize=18)
 
         # font size of tick labels

@@ -29,15 +29,15 @@ class BurninTab(QWidget):
         self.select_burnin_file_btn = QPushButton("SELECT BURN-IN FILE")        # checkbox for selecting burn-in file
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))
         # check box for summary statistics
-        self.print_statistics_lbl = QLabel("Print Summary Statistics?")       # checkbox for printing statistics
+        self.print_statistics_lbl = QLabel("Print Summary Statistics:")       # checkbox for printing statistics
         self.print_statistics_box = QCheckBox()
         self.print_statistics_box.setChecked(False)      # default for printing statistics is unchecked
         # check box to show separated error values by direction
-        self.separate_errors_lbl = QLabel("Show error values separated by direction?")       # checkbox for separated error values
+        self.separate_errors_lbl = QLabel("Show error values separated by direction:")       # checkbox for separated error values
         self.separate_errors_box = QCheckBox()
         self.separate_errors_box.setChecked(False)      # default for separated error values is unchecked
         # check box to show moving avg with separate graphs
-        self.moving_avg_lbl = QLabel("Add moving average?")       # checkbox for adding a moving average
+        self.moving_avg_lbl = QLabel("Add moving average:")       # checkbox for adding a moving average
         self.moving_avg_box = QCheckBox()
         self.moving_avg_box.setChecked(False)      # default for adding moving avg is unchecked
         # button to print graphs (this prints all selected graphs)

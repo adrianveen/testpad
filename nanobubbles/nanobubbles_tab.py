@@ -18,86 +18,64 @@ class NanobubblesTab(QWidget):
         self.nanobubbles_files = None
 
         # USER INTERACTION AREA
-        # select file button 
         buttons_groupbox = QGroupBox()
-        select_file_btn = QPushButton("SELECT FILE")
-        select_file_btn.clicked.connect(lambda: self.openFileDialog("txt"))
-        # bin width 
-        bin_widget = QWidget()
-        bin_widget.setContentsMargins(0, 0, 0, 0)
-        bin_width_label = QLabel("Bin Width/Bin Count (log scale)")
+        # select file button 
+        self.select_file_btn = QPushButton("SELECT FILE")
+        self.select_file_btn.clicked.connect(lambda: self.openFileDialog("txt"))
+        # bin width
+        self.bin_width_label = QLabel("Bin Width/Bin Count (log scale):")
         self.bin_width_field = QLineEdit()
         self.bin_width_field.setText("30")
-        bin_layout = QGridLayout()
-        bin_layout.setColumnStretch(0, 1)
-        bin_layout.setColumnStretch(1, 1)
-        bin_layout.setContentsMargins(0, 0, 0, 0)
-        bin_layout.addWidget(bin_width_label, 0, 0)
-        bin_layout.addWidget(self.bin_width_field, 0, 1)
-        bin_widget.setLayout(bin_layout)
         
         # log fields 
-        log_widget = QWidget()
-        log_widget.setContentsMargins(0, 0, 0, 0)
-        log_label = QLabel("Logarithmic Scale?")
+        self.log_label = QLabel("Logarithmic Scale:")
         self.log_box = QCheckBox()
-        log_layout = QGridLayout()
-        log_layout.setContentsMargins(0, 0, 0, 0)
-        log_layout.addWidget(log_label, 0, 0)
-        log_layout.addWidget(self.log_box, 0, 1, Qt.AlignCenter)
-        # save_layout.addWidget(save_folder_btn, 1, 0, 1, 2)
-        log_widget.setLayout(log_layout)
+        self.log_box.setChecked(False)
 
         # option to compare multiple datasets. 
-        compare_widget = QWidget()
-        compare_widget.setContentsMargins(0, 0, 0, 0)
-        compare_label = QLabel("Compare multiple datasets:")
+        self.compare_label = QLabel("Compare multiple datasets:")
         self.compare_box = QCheckBox()
-        compare_layout = QGridLayout()
-        compare_layout.setContentsMargins(0, 0, 0, 0)
-        compare_layout.addWidget(compare_label, 0, 0)
-        compare_layout.addWidget(self.compare_box, 0, 1, Qt.AlignCenter)
-        compare_widget.setLayout(compare_layout)
+        self.compare_box.setChecked(False)
 
         #option to normalize graphs
-        normal_widget = QWidget()
-        normal_widget.setContentsMargins(0, 0, 0, 0)
-        normal_label = QLabel("Normalize Graphs:")
+        self.normal_label = QLabel("Normalize Graphs:")
         self.normal_box = QCheckBox()
-        normal_layout = QGridLayout()
-        normal_layout.setContentsMargins(0, 0, 0, 0)
-        normal_layout.addWidget(normal_label, 0, 0)
-        normal_layout.addWidget(self.normal_box, 0, 1, Qt.AlignCenter)
-        normal_widget.setLayout(normal_layout)
+        self.normal_box.setChecked(False)
 
         # save fields 
-        save_widget = QWidget()
-        save_widget.setContentsMargins(0, 0, 0, 0)
-        save_label = QLabel("Save file?")
+        self.save_label = QLabel("Save file?")
         self.save_box = QCheckBox()
-        save_folder_btn = QPushButton("SAVE LOCATION")
-        save_folder_btn.clicked.connect(lambda: self.openFileDialog("save"))
-        save_layout = QGridLayout()
-        save_layout.setContentsMargins(0, 0, 0, 0)
-        save_layout.addWidget(save_label, 0, 0)
-        save_layout.addWidget(self.save_box, 0, 1, Qt.AlignCenter)
-        save_layout.addWidget(save_folder_btn, 1, 0, 1, 2)
-        save_widget.setLayout(save_layout)
+        self.save_box.setChecked(False)
+        self.save_folder_btn = QPushButton("SAVE LOCATION")
+        self.save_folder_btn.clicked.connect(lambda: self.openFileDialog("save"))
         
         # print graph button 
-        print_graph_btn = QPushButton("PRINT GRAPH")
-        print_graph_btn.setStyleSheet("background-color: #74BEA3")
-        print_graph_btn.clicked.connect(lambda: self.create_graph())
+        self.print_graph_btn = QPushButton("PRINT GRAPH")
+        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_btn.clicked.connect(lambda: self.create_graph())
         
-        buttons_layout = QVBoxLayout()
-        buttons_layout.addWidget(select_file_btn)
-        buttons_layout.addWidget(bin_widget)
-        buttons_layout.addWidget(log_widget)
-        buttons_layout.addWidget(compare_widget)
-        buttons_layout.addWidget(normal_widget)
-        buttons_layout.addWidget(save_widget)
-        buttons_layout.addWidget(print_graph_btn)
-        buttons_groupbox.setLayout(buttons_layout)
+        # Layout for user interaction area
+        selections_layout = QGridLayout()
+        selections_layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
+        # add bin width label and field
+        selections_layout.addWidget(self.bin_width_label, 1, 0)
+        selections_layout.addWidget(self.bin_width_field, 1, 1)
+        # add log scale label and checkbox
+        selections_layout.addWidget(self.log_label, 2, 0)
+        selections_layout.addWidget(self.log_box, 2, 1, Qt.AlignCenter)
+        # add compare label and checkbox
+        selections_layout.addWidget(self.compare_label, 3, 0)
+        selections_layout.addWidget(self.compare_box, 3, 1, Qt.AlignCenter)
+        # add normalize label and checkbox
+        selections_layout.addWidget(self.normal_label, 4, 0)
+        selections_layout.addWidget(self.normal_box, 4, 1, Qt.AlignCenter)
+        # add save label and checkbox
+        selections_layout.addWidget(self.save_label, 5, 0)
+        selections_layout.addWidget(self.save_box, 5, 1, Qt.AlignCenter)
+        selections_layout.addWidget(self.save_folder_btn, 6, 0, 1, 2)
+        # add print graph button
+        selections_layout.addWidget(self.print_graph_btn, 7, 0, 1, 2)
+        buttons_groupbox.setLayout(selections_layout)
 
         # TEXT CONSOLE
         self.text_display = QTextBrowser()
@@ -107,11 +85,9 @@ class NanobubblesTab(QWidget):
 
         # MAIN LAYOUT
         main_layout = QGridLayout()
-        # main_layout.addWidget(select_file_btn, 0, 0)
-        # main_layout.addWidget(print_graph_btn, 1, 0)
         main_layout.addWidget(buttons_groupbox, 0, 0)
         main_layout.addWidget(self.text_display, 1, 0)
-        main_layout.addWidget(self.graph_tab, 0, 1, 3, 1)
+        main_layout.addWidget(self.graph_tab, 0, 1, 2, 1)
         self.setLayout(main_layout)
 
     # opens txt file for reading
