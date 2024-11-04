@@ -22,14 +22,14 @@ class NanobubblesTab(QWidget):
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox()
         # select file button 
-        self.select_file_btn = QPushButton("SELECT FILE")
+        self.select_file_btn = QPushButton("SELECT NANOBUBBLE .TXT FILE")
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("txt"))
-        # bin width
+        # bin width label and field  
         self.bin_width_label = QLabel("Bin Width/Bin Count (log scale):")
         self.bin_width_field = QLineEdit()
         self.bin_width_field.setText("30")
         
-        # log fields 
+        # log checkbox and label 
         self.log_label = QLabel("Logarithmic Scale:")
         self.log_box = QCheckBox()
         self.log_box.setChecked(False)
@@ -39,12 +39,12 @@ class NanobubblesTab(QWidget):
         self.compare_box = QCheckBox()
         self.compare_box.setChecked(False)
 
-        #option to normalize graphs
+        # option to normalize graphs
         self.normal_label = QLabel("Normalize Graphs:")
         self.normal_box = QCheckBox()
         self.normal_box.setChecked(False)
 
-        # save fields 
+        # save file checkbox and save location button 
         self.save_label = QLabel("Save file?")
         self.save_box = QCheckBox()
         self.save_box.setChecked(False)
@@ -156,9 +156,9 @@ class NanobubblesTab(QWidget):
             self.graph_tab.addTab(graph_widget, "Nanobubbles Graph")
 
             # Debugging statements
-            print(f"save_box is checked: {self.save_box.isChecked()}")
-            if self.file_save_location is not None:
-              print(f"file_save_location: {self.file_save_location}")
+            # print(f"save_box is checked: {self.save_box.isChecked()}")
+            # if self.file_save_location is not None:
+            #   print(f"file_save_location: {self.file_save_location}")
 
             if self.save_box.isChecked():
                 if self.file_save_location is None or not os.path.exists(self.file_save_location):
