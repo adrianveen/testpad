@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout,
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 import numpy as np
+import os
 import yaml
 import decimal
 import matplotlib.pyplot as plt 

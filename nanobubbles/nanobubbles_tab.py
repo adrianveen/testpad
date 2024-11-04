@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
                                 QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 import numpy as np
+import os
 import yaml
 import decimal
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -16,6 +17,7 @@ class NanobubblesTab(QWidget):
         super().__init__(parent)
 
         self.nanobubbles_files = None
+        self.file_save_location = None
 
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox()
@@ -127,6 +129,15 @@ class NanobubblesTab(QWidget):
         if self.nanobubbles_files is not None:
             self.graph_tab.clear()
 
+            # check that bin width is a number
+            try:
+                bin_width = float(self.bin_width_field.text())
+            except ValueError:
+                error_message = "Error: Bin width must be a valid number."
+                print(error_message)
+                self.text_display.append(error_message)
+                return
+            
             if not self.log_box.isChecked():
                 nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
                 graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), False, self.normal_box.isChecked(), self.compare_box.isChecked())
@@ -146,10 +157,16 @@ class NanobubblesTab(QWidget):
 
             # Debugging statements
             print(f"save_box is checked: {self.save_box.isChecked()}")
-            print(f"file_save_location: {self.file_save_location}")
+            if self.file_save_location is not None:
+              print(f"file_save_location: {self.file_save_location}")
 
             if self.save_box.isChecked():
+                if self.file_save_location is None or not os.path.exists(self.file_save_location):
+                    error_message = "Error: Save location was not specified or does not exist."
+                    self.text_display.append(error_message)
+                    return
+                
                 save_loc = nanobubbles_object.save_graph(self.file_save_location, self.compare_box.isChecked())
                 self.text_display.append(f"Saved to {save_loc}")
         else:
-            self.text_display.append("No nanobubble txt found!\n")
+            self.text_display.append("Error: No nanobubble .txt file found.\n")
