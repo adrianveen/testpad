@@ -42,7 +42,7 @@ class NanobubblesGraph():
         # ex. if there are 80 120nm nanobubbles, add 120nm to this array 80 times 
         
         # removes negative value from dataset -> TODO can remove all negative values instead of -1
-        data = data[data[:, 0] != -1]
+        data = data[data[:, 0] >= 0]
         
         # adds processed data to the raw_data list
         self.raw_data.append(data)
@@ -68,8 +68,8 @@ class NanobubblesGraph():
         # if scale = log, set x-axis to log scale from 1-1000
         if scale:
             self.ax.set_xscale('log')
-            self.ax.set_xlim(1, 1000)
-            bins = np.logspace(np.log10(1), np.log10(1000), num=int(bin_width))
+            self.ax.set_xlim(1, 10000)
+            bins = np.logspace(np.log10(1), np.log10(10000), num=int(bin_width))
         else:
             # Linear scale: use linear bins
             bins = np.arange(0, 1000 + bin_width, bin_width)
@@ -104,7 +104,7 @@ class NanobubblesGraph():
         self.ax.ticklabel_format(style='plain', axis='x')
 
         # Adjust padding to reduce white space
-        self.fig.subplots_adjust(left=0.11, right=0.97, top=0.95, bottom=0.08)
+        self.fig.subplots_adjust(left=0.11, right=0.95, top=0.95, bottom=0.08)
 
         self.fig.set_canvas(self.canvas)
         return(self.canvas)

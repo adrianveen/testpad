@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
 import numpy as np
 import os
 import yaml
-import decimal
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 
 class NanobubblesTab(QWidget):
@@ -140,10 +139,12 @@ class NanobubblesTab(QWidget):
             
             if not self.log_box.isChecked():
                 nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
-                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), False, self.normal_box.isChecked(), self.compare_box.isChecked())
+                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), \
+                                                      False, self.normal_box.isChecked(), self.compare_box.isChecked())
             else: #log scale
                 nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
-                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), "log", self.normal_box.isChecked(), self.compare_box.isChecked())
+                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), "log", \
+                                                      self.normal_box.isChecked(), self.compare_box.isChecked())
                 
             nav_tool = NavigationToolbar(graph)
 
