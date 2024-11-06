@@ -125,9 +125,14 @@ class NanobubblesGraph():
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
 
-        # Define the position and size parameters
-        image_xaxis = 0.835
-        image_yaxis = 0.82
+        if overlaid == False:
+            # Define the position and size parameters
+            image_xaxis = 0.835
+            image_yaxis = 0.82
+        else: 
+            image_xaxis = 0.1
+            image_yaxis = 0.82
+            
         image_width = 0.12
         image_height = 0.12  # Same as width since our logo is a square
 
