@@ -7,12 +7,18 @@ import numpy as np
 import os
 import yaml
 import decimal
+from pathlib import Path
+
+from definitions import SRC_DIR
+import requests
+from PIL import Image
+from io import BytesIO
+
 import matplotlib.pyplot as plt 
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
-from pathlib import Path
-import os
+
 
 class NanobubblesGraph():
     def __init__(self, nanobubble_txt) -> None:
@@ -31,6 +37,12 @@ class NanobubblesGraph():
         else:
             self._process_file(nanobubble_txt)
     
+    # function to load fus_icon_transparent.ico file
+    def load_icon(self, path):
+        image = Image.open(path)
+        image_array = np.array(image)
+        return image_array
+
     def _process_file(self, file):
         if file is None:
             raise ValueError("No file selected") # file cannot be none
@@ -57,13 +69,25 @@ class NanobubblesGraph():
     
     # returns canvas of mpl graph to UI
 
-    # bin_width determines width of histogram bars or number of bins if log scale
     def get_graphs(self, bin_width, scale, normalize=False, overlaid=False):
+        """
+        Generate and return a histogram plot of nanobubble size distributions.
+        Parameters:
+        bin_width (int): The width of each bin in the histogram. If log scale is selected, this will determine the number of bins.
+        scale (bool): If True, the x-axis will be in log scale; otherwise, it will be in linear scale.
+        normalize (bool, optional): If True, the histogram will be normalized. Default is False.
+        overlaid (bool, optional): If True, multiple histograms will be overlaid. Default is False.
+        Returns:
+        FigureCanvas: The canvas containing the generated plot.
+        """
         self.fig, self.ax = plt.subplots(1, 1)
         self.canvas = FigureCanvas(self.fig)
         
         # Generate a color palette based on the base color (FUS Green)
         colors = self.generate_color_palette('#73A89E', len(self.raw_data))
+        # load fus_icon png and conver to np array
+        image_path = os.path.join(SRC_DIR, "images", "fus_icon_transparent.png")
+        image = self.load_icon(image_path)
 
         # if scale = log, set x-axis to log scale from 1-1000
         if scale:
@@ -92,16 +116,31 @@ class NanobubblesGraph():
         
         # graph labels
         self.ax.set_xlabel("Diameter [nm]", fontsize=16)
-        # self.ax.set_ylabel("Number Absolute", fontsize=16) # optional y axis label
+        self.ax.set_ylabel("Count", fontsize=16) # optional y axis label
         self.ax.set_title("Nanobubble Size Distribution", fontsize=18)
-
-        # font size of tick labels
         self.ax.tick_params(axis='both', which='major', labelsize=14)
         # self.ax.tick_params(axis='both', which='minor', labelsize=12)
 
         # formatting x-axis to not be in scientific notation
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
+
+        # Define the position and size parameters
+        image_xaxis = 0.835
+        image_yaxis = 0.82
+        image_width = 0.12
+        image_height = 0.12  # Same as width since our logo is a square
+
+        # Define the position for the image axes
+        ax_image = self.fig.add_axes([image_xaxis,
+                                image_yaxis,
+                                image_width,
+                                image_height]
+                            )
+
+        # Display the image
+        ax_image.imshow(image)
+        ax_image.axis('off')  # Remove axis of the image
 
         # Adjust padding to reduce white space
         self.fig.subplots_adjust(left=0.11, right=0.95, top=0.95, bottom=0.08)
