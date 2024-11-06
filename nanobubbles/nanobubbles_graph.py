@@ -105,7 +105,7 @@ class NanobubblesGraph():
         
         elif overlaid == True:
 
-            # Plot multiple histograms
+            # Plot multiple overlaid and translucent histograms
             for i, data in enumerate(self.raw_data):
                 sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
                 self.ax.hist(sizes, bins=bins, alpha=0.5, density=normalize, label=f'Batch {i+1}')
