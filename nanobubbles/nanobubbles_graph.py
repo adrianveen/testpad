@@ -53,7 +53,7 @@ class NanobubblesGraph():
         # create a giant array where every size is represented count number of times 
         # ex. if there are 80 120nm nanobubbles, add 120nm to this array 80 times 
         
-        # removes negative value from dataset -> TODO can remove all negative values instead of -1
+        # removes negative values from dataset
         data = data[data[:, 0] >= 0]
         
         # adds processed data to the raw_data list
@@ -132,7 +132,7 @@ class NanobubblesGraph():
         else: 
             image_xaxis = 0.1
             image_yaxis = 0.82
-            
+
         image_width = 0.12
         image_height = 0.12  # Same as width since our logo is a square
 
