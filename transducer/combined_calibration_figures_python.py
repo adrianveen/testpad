@@ -26,8 +26,6 @@ A script to write voltage sweep txts and to generate axial and lateral field/lin
 # main class, runs all the relevant methods from calibration_resources and prints to the terminal
 class combined_calibration:
     def __init__(self, variables_dict: list, textbox: QTextBrowser):
-        self.offsets = [0, 0, 0]
-
         plt.close("all")  # closes previous graphs
 
         # display graphs as they are created 
@@ -75,7 +73,7 @@ class combined_calibration:
         # files_list = [f for f in os.listdir(folder) if f.endswith('.hdf5')] # include only hdf5 files
         # files_list = sorted(files_list, key=lambda x: int((x.split('.')[0]).split('_')[-1])) # sort so that the latest scan is used 
         files_list = sorted(files, key=lambda x: int((x[x.rfind('.') - 1])))  # sort so that the latest scan is used
-
+        offsets = [0, 0, 0]
         sweep_list = []
 
         self.graph_list = [None] * 9  # supposed to be a list of graphs to return to the GUI for display
@@ -221,6 +219,7 @@ class combined_calibration:
             self.graph_list[5] = y_pressure_line_graph
             y_pressure_fwhmx, y_pressure_offset = fwhmx(y_data, pressure, axial_left_line_length,
                                                         axial_right_line_length, 'Y', 'Axial ', 'Pressure', textbox)
+            offsets[1] = y_pressure_offset
             # Intensity line
             y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length,
                                                 transducer + "_" + freq + "_intensity_axial_", 'Axial ', 'Intensity',
@@ -247,6 +246,8 @@ class combined_calibration:
             self.graph_list[7] = x_pressure_line_graph
             x_pressure_fwhmx, x_pressure_offset = fwhmx(x_data, pressure, lateral_field_length,
                                                         lateral_field_length, 'X', 'Lateral ', 'Pressure', textbox)
+
+            offsets[0] = -1 * x_pressure_offset
             # Intensity line plot 
             x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length,
                                                 transducer + "_" + freq + "_intensity_lateral_", 'Lateral ',
@@ -259,6 +260,7 @@ class combined_calibration:
             x_data, y_data, z_data, pressure, intensity = fetch_data(z_line_scan, "lateral")
             z_pressure_fwhmx, z_pressure_offset = fwhmx(z_data, np.transpose(pressure), lateral_field_length,
                                                         lateral_field_length, 'Z', 'Lateral ', 'Pressure', textbox)
+            offsets[2] = -1 * z_pressure_offset
             z_intensity_fwhmx, _ = fwhmx(z_data, np.transpose(intensity), lateral_field_length,
                                          lateral_field_length, 'Z', 'Lateral ', 'Intensity', textbox)
 
@@ -273,8 +275,8 @@ class combined_calibration:
             else:
                 textbox.append("Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty.")
 
-    def getOffsets(self):
-        return self.offsets
+            offsets_str = [f"{i:0.2f}" for i in offsets]
+            textbox.append(f"Offsets: [{','.join(offsets_str)}]")
 
     def getGraphs(self):
         # plt.show()
