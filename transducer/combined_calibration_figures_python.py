@@ -1,7 +1,7 @@
 import numpy as np
 # import tkinter as tk
 # import tkinter.ttk as ttk
-import sys 
+import sys
 import matplotlib.pyplot as plt
 # from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames
 from transducer.calibration_resources import create_sweep_file, fetch_data, field_graph, line_graph, fwhmx
@@ -15,7 +15,6 @@ import os
 
 from PySide6.QtWidgets import QTextBrowser
 
-
 # QML_IMPORT_NAME = "calibration_reports"
 # QML_IMPORT_MAJOR_VERSION = 1
 
@@ -23,22 +22,26 @@ from PySide6.QtWidgets import QTextBrowser
 A script to write voltage sweep txts and to generate axial and lateral field/line plots as svgs. 
 """
 
-# main class, runs all the relevant methods from calibration_resources and prints to the terminal 
+
+# main class, runs all the relevant methods from calibration_resources and prints to the terminal
 class combined_calibration:
     def __init__(self, variables_dict: list, textbox: QTextBrowser):
-        plt.close("all") # closes previous graphs 
+        self.offsets = [0, 0, 0]
+
+        plt.close("all")  # closes previous graphs
 
         # display graphs as they are created 
         # plt.ion()
         # print(variables_dict)
-        
-        textbox.append("\n*******************GENERATING GRAPHS***********************\n") # divider 
+
+        textbox.append("\n*******************GENERATING GRAPHS***********************\n")  # divider
 
         # assigns dictionary values to variables (probably wildly inefficient, might need reworking)
         # files, save_folder, eb50_file, sweep_data, axial_field, axial_line, lateral_field, lateral_line, axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step, save = map(variables_dict.get, ('Data Files*', 'Save Folder', 'EB-50 File', 'Write sweep file and graph?', 'Print axial field graphs?', 'Print axial line graphs?', 'Print lateral field graphs?', 'Print lateral line graphs?', 'Axial Left Field Length', 'Axial Right Field Length', 'Axial Field Height', 'Axial Left Line Plot Length', 'Axial Right Line Plot Length','Lateral Field Length', 'Interpolation Step', 'Save file?'))
         files, save_folder, eb50_file = [i for i in variables_dict[:3]]
         sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [bool(i) for i in variables_dict[3:9]]
-        axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step = [float(i) if i != '' else 0 for i in variables_dict[9:]]
+        axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step = [
+            float(i) if i != '' else 0 for i in variables_dict[9:]]
         # assign tabs 
         # sweep_tab, ax_field_tab, lat_field_tab, ax_line_tab, lat_line_tab = [i for i in graph_tabs_list]
 
@@ -71,11 +74,11 @@ class combined_calibration:
         """
         # files_list = [f for f in os.listdir(folder) if f.endswith('.hdf5')] # include only hdf5 files
         # files_list = sorted(files_list, key=lambda x: int((x.split('.')[0]).split('_')[-1])) # sort so that the latest scan is used 
-        files_list = sorted(files, key=lambda x: int((x[x.rfind('.')-1]))) # sort so that the latest scan is used 
-        
+        files_list = sorted(files, key=lambda x: int((x[x.rfind('.') - 1])))  # sort so that the latest scan is used
+
         sweep_list = []
 
-        self.graph_list = [None]*9 # supposed to be a list of graphs to return to the GUI for display 
+        self.graph_list = [None] * 9  # supposed to be a list of graphs to return to the GUI for display
 
         """
         AUTOMATIC FILE DETECTION FOR LOOP 
@@ -93,7 +96,7 @@ class combined_calibration:
                 x_line_scan = f
             elif "_y_" in f:
                 y_line_scan = f
-            elif "_z_" in f: 
+            elif "_z_" in f:
                 z_line_scan = f
 
         """
@@ -103,7 +106,8 @@ class combined_calibration:
         # axial_filename = r"532_T500H750_yz_500kHz_2000mVpp_08.hdf5" # yz field & line plot 
         # lateral_filename = r"526_T1570H750_xz_1570kHz_1000mVpp_04.hdf5" # xz field & line plot 
         # x_line_scan = r"317_T1150H550_x_3450kHz_1500mVpp_01.hdf5" # x linear scan 
-        # y_line_scan = r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\scan_data\532_T500H750_y_500kHz_2000mVpp_02.hdf5" # y linear scan 
+        # y_line_scan = (r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\s"
+        #                r"can_data\532_T500H750_y_500kHz_2000mVpp_02.hdf5") # y linear scan
         # z_line_scan = r"317_T1150H550_z_3450kHz_1500mVpp_01.hdf5" # z linear scan 
         # save_folder = r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\report_PYTHON"
 
@@ -111,10 +115,11 @@ class combined_calibration:
         try:
             if sweep_data or axial_field or axial_line or lateral_field or lateral_line:
                 if sweep_data:
-                    textbox.append("Sweeps: "+ str(sweep_list))
-                    trans_freq_filename = sweep_filename # trans_freq_filename is only so the name of the transducer can be grabbed
+                    textbox.append("Sweeps: " + str(sweep_list))
+                    # trans_freq_filename is only so the name of the transducer can be grabbed
+                    trans_freq_filename = sweep_filename
                 if axial_field:
-                    textbox.append("Axial: "+ axial_filename)
+                    textbox.append("Axial: " + axial_filename)
                     trans_freq_filename = axial_filename
                 if axial_line:
                     textbox.append("y linear: " + y_line_scan)
@@ -124,12 +129,12 @@ class combined_calibration:
                     trans_freq_filename = lateral_filename
                 if lateral_line:
                     textbox.append("x linear: " + x_line_scan)
-                    textbox.append("z linear: " + z_line_scan) 
+                    textbox.append("z linear: " + z_line_scan)
                     trans_freq_filename = x_line_scan
-            else: 
+            else:
                 raise NameError
         except NameError as e:
-            textbox.append("\nNameError: "+str(e)+"\nOops! One or more of the scan files does not exist. \
+            textbox.append("\nNameError: " + str(e) + "\nOops! One or more of the scan files does not exist. \
                   \nDid you input the right folder?\nAre there scans missing?\nDid you select the correct checkboxes?\n")
             return
 
@@ -139,15 +144,14 @@ class combined_calibration:
 
             while True:
                 try:
-                    full_filename1 = os.path.join(save_folder, "files_used_" + str(counter) +".txt") 
+                    full_filename1 = os.path.join(save_folder, "files_used_" + str(counter) + ".txt")
                     with open(full_filename1, "x") as f:
                         textbox.append(f"\nSaving files used to {full_filename1}...")
                         for file in files_list:
-                            f.write(file+"\n")
+                            f.write(file + "\n")
                     break
                 except FileExistsError:
                     counter += 1
-
 
         """
         TRANSDUCER AND FREQUENCY DETAILS 
@@ -155,18 +159,18 @@ class combined_calibration:
         details = (trans_freq_filename.split("/")[-1]).split("_")
         for word in details:
             if "Hz" in word:
-                freq = word # frequency 
+                freq = word  # frequency
             elif "T" in word and "H" in word:
                 transducer = word
-        if details[0] != transducer: # for dealing with files like '320_T1500H750' instead of '320-T1500H750'
-            transducer = details[0]+"-"+transducer
-        textbox.append("\nTransducer: "+ transducer)
-        textbox.append("Frequency: "+ freq+"\n")
+        if details[0] != transducer:  # for dealing with files like '320_T1500H750' instead of '320-T1500H750'
+            transducer = details[0] + "-" + transducer
+        textbox.append("\nTransducer: " + transducer)
+        textbox.append("Frequency: " + freq + "\n")
 
         """
         VOLTAGE SWEEP 
         """
-        if sweep_data: 
+        if sweep_data:
             sweep_graph = create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file, textbox)
             self.graph_list[0] = sweep_graph
 
@@ -174,22 +178,32 @@ class combined_calibration:
         FIELD GRAPHS
         """
         if axial_field:
-
             x_data, y_data, z_data, pressure, intensity = fetch_data(axial_filename, "axial")
             # Pressure field 
-            ax_pressure_field_graph = field_graph(y_data, z_data, pressure, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', interp_step, save, save_folder, textbox)
+            ax_pressure_field_graph = field_graph(y_data, z_data, pressure, axial_left_field_length,
+                                                  axial_right_field_length, axial_field_height,
+                                                  transducer + "_" + freq + "_pressure_axial_", 'Axial ', 'Pressure',
+                                                  interp_step, save, save_folder, textbox)
             self.graph_list[1] = ax_pressure_field_graph
             # Intensity field 
-            ax_intensity_field_graph = field_graph(y_data, z_data, intensity, axial_left_field_length, axial_right_field_length, axial_field_height, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', interp_step, save, save_folder, textbox)
+            ax_intensity_field_graph = field_graph(y_data, z_data, intensity, axial_left_field_length,
+                                                   axial_right_field_length, axial_field_height,
+                                                   transducer + "_" + freq + "_intensity_axial_", 'Axial ', 'Intensity',
+                                                   interp_step, save, save_folder, textbox)
             self.graph_list[2] = ax_intensity_field_graph
 
         if lateral_field:
             x_data, y_data, z_data, pressure, intensity = fetch_data(lateral_filename, "lateral")
             # Pressure field 
-            lat_pressure_field_graph = field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', interp_step, save, save_folder, textbox)
+            lat_pressure_field_graph = field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length,
+                                                   lateral_field_length, transducer + "_" + freq + "_pressure_lateral_",
+                                                   'Lateral ', 'Pressure', interp_step, save, save_folder, textbox)
             self.graph_list[3] = lat_pressure_field_graph
             # Intensity field 
-            lat_intensity_field_graph = field_graph(x_data, z_data, intensity, lateral_field_length, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', interp_step, save, save_folder, textbox)
+            lat_intensity_field_graph = field_graph(x_data, z_data, intensity, lateral_field_length,
+                                                    lateral_field_length, lateral_field_length,
+                                                    transducer + "_" + freq + "_intensity_lateral_", 'Lateral ',
+                                                    'Intensity', interp_step, save, save_folder, textbox)
             self.graph_list[4] = lat_intensity_field_graph
 
         """
@@ -201,13 +215,19 @@ class combined_calibration:
 
             x_data, y_data, z_data, pressure, intensity = fetch_data(y_line_scan, "axial")
             # Pressure line
-            y_pressure_line_graph = line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_pressure_axial_", 'Axial ', 'Pressure', save, save_folder, textbox)
+            y_pressure_line_graph = line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length,
+                                               transducer + "_" + freq + "_pressure_axial_", 'Axial ', 'Pressure', save,
+                                               save_folder, textbox)
             self.graph_list[5] = y_pressure_line_graph
-            y_pressure_fwhmx = fwhmx(y_data, pressure, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Pressure', textbox)
+            y_pressure_fwhmx, y_pressure_offset = fwhmx(y_data, pressure, axial_left_line_length,
+                                                        axial_right_line_length, 'Y', 'Axial ', 'Pressure', textbox)
             # Intensity line
-            y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length, transducer+"_"+freq+"_intensity_axial_", 'Axial ', 'Intensity', save, save_folder, textbox)
+            y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length,
+                                                transducer + "_" + freq + "_intensity_axial_", 'Axial ', 'Intensity',
+                                                save, save_folder, textbox)
             self.graph_list[6] = y_intensity_line_graph
-            y_intensity_fwhmx = fwhmx(y_data, intensity, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ', 'Intensity', textbox)
+            y_intensity_fwhmx, _ = fwhmx(y_data, intensity, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ',
+                                      'Intensity', textbox)
 
             # PRINT AXIAL FWHMX
             if type(y_pressure_fwhmx) is not str and type(y_intensity_fwhmx) is not str:
@@ -221,32 +241,44 @@ class combined_calibration:
             # X LINE SCAN 
             x_data, y_data, z_data, pressure, intensity = fetch_data(x_line_scan, "lateral")
             # Pressure line plot 
-            x_pressure_line_graph = line_graph(x_data, pressure, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_pressure_lateral_", 'Lateral ', 'Pressure', save, save_folder, textbox)
+            x_pressure_line_graph = line_graph(x_data, pressure, lateral_field_length, lateral_field_length,
+                                               transducer + "_" + freq + "_pressure_lateral_", 'Lateral ', 'Pressure',
+                                               save, save_folder, textbox)
             self.graph_list[7] = x_pressure_line_graph
-            x_pressure_fwhmx = fwhmx(x_data, pressure, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Pressure', textbox)
+            x_pressure_fwhmx, x_pressure_offset = fwhmx(x_data, pressure, lateral_field_length,
+                                                        lateral_field_length, 'X', 'Lateral ', 'Pressure', textbox)
             # Intensity line plot 
-            x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length, transducer+"_"+freq+"_intensity_lateral_", 'Lateral ', 'Intensity', save, save_folder, textbox)
+            x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length,
+                                                transducer + "_" + freq + "_intensity_lateral_", 'Lateral ',
+                                                'Intensity', save, save_folder, textbox)
             self.graph_list[8] = x_intensity_line_graph
-            x_intensity_fwhmx = fwhmx(x_data, intensity, lateral_field_length, lateral_field_length, 'X', 'Lateral ', 'Intensity', textbox)
+            x_intensity_fwhmx, _ = fwhmx(x_data, intensity, lateral_field_length, lateral_field_length, 'X', 'Lateral ',
+                                      'Intensity', textbox)
 
             # # Z LINE SCAN 
             x_data, y_data, z_data, pressure, intensity = fetch_data(z_line_scan, "lateral")
-            z_pressure_fwhmx = fwhmx(z_data, np.transpose(pressure), lateral_field_length, lateral_field_length, 'Z', 'Lateral ', 'Pressure', textbox)
-            z_intensity_fwhmx = fwhmx(z_data, np.transpose(intensity), lateral_field_length, lateral_field_length, 'Z', 'Lateral ', 'Intensity', textbox)
+            z_pressure_fwhmx, z_pressure_offset = fwhmx(z_data, np.transpose(pressure), lateral_field_length,
+                                                        lateral_field_length, 'Z', 'Lateral ', 'Pressure', textbox)
+            z_intensity_fwhmx, _ = fwhmx(z_data, np.transpose(intensity), lateral_field_length,
+                                         lateral_field_length, 'Z', 'Lateral ', 'Intensity', textbox)
 
             # LATERAL FWHMX (AVERAGE OF X AND Z)
-            if type(x_pressure_fwhmx) is not str and type(x_intensity_fwhmx) is not str and type(z_pressure_fwhmx) is not str and type(z_intensity_fwhmx) is not str:
-                averaged_pressure_fwhmx = (x_pressure_fwhmx+z_pressure_fwhmx)/2.0
-                averaged_intensity_fwhmx = (x_intensity_fwhmx+z_intensity_fwhmx)/2.0
+            if type(x_pressure_fwhmx) is not str and type(x_intensity_fwhmx) is not str and type(
+                    z_pressure_fwhmx) is not str and type(z_intensity_fwhmx) is not str:
+                averaged_pressure_fwhmx = (x_pressure_fwhmx + z_pressure_fwhmx) / 2.0
+                averaged_intensity_fwhmx = (x_intensity_fwhmx + z_intensity_fwhmx) / 2.0
                 textbox.append(f"\nLateral FWHMX (averaged):")
                 textbox.append(f"Pressure Lateral Diameter: {averaged_pressure_fwhmx:0.1f} mm")
                 textbox.append(f"Intensity Lateral Diameter: {averaged_intensity_fwhmx:0.1f} mm")
             else:
                 textbox.append("Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty.")
 
+    def getOffsets(self):
+        return self.offsets
+
     def getGraphs(self):
         # plt.show()
-        return(self.graph_list)
+        return (self.graph_list)
 
 # """
 # QML Connection Section 
@@ -293,5 +325,3 @@ class combined_calibration:
 #         sys.exit(-1)
 
 #     sys.exit(app.exec())
-
-
