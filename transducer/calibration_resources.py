@@ -170,7 +170,13 @@ def fetch_data(filename, axial_or_lateral):
         pressure = np.abs(pressure)
         intensity = pressure ** 2
 
-    return (x_data, y_data, z_data, pressure, intensity)
+    with h5py.File(filename, 'r') as f:
+        try:
+            is_absolute_coords = bool(f['Scan'].attrs['absolute_coordinates'])
+        except KeyError:
+            is_absolute_coords = False
+
+    return (x_data, y_data, z_data, pressure, intensity, is_absolute_coords)
 
 
 def fwhmx(horizontal, pressure_or_intensity, left_field_length, right_field_length,

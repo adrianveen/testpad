@@ -121,7 +121,7 @@ class linear_scan():
         if x_line:
             # X LINE SCAN 
             textbox.append("Outputting x line scan linear graph...")
-            x_data, y_data, z_data, pressure, intensity = fetch_data(x_line_scan, "lateral")
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(x_line_scan, "lateral")
             
             # Pressure line plot 
             x_graph = line_graph(horizontal=x_data, pressure_or_intensity=pressure, left_field_length="linear", right_field_length="linear", name=transducer+"_"+freq+"_x_linear_", type_of_scan='Lateral ', type_of_data='Pressure', save=save, save_folder=save_folder, textbox=textbox)
@@ -129,7 +129,7 @@ class linear_scan():
 
         if y_line:
             textbox.append("Outputting y line scan linear graph...")
-            x_data, y_data, z_data, pressure, intensity = fetch_data(y_line_scan, "axial")
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(y_line_scan, "axial")
 
             y_graph = line_graph(horizontal=y_data, pressure_or_intensity=pressure, left_field_length="linear", right_field_length="linear", name=transducer+"_"+freq+"_y_linear_", type_of_scan='Axial ', type_of_data='Pressure', save=save, save_folder=save_folder, textbox=textbox)
             self.graphs_list[1] = y_graph
@@ -137,7 +137,7 @@ class linear_scan():
         if z_line:
             # # Z LINE SCAN 
             textbox.append("Outputting z line scan linear graph...")
-            x_data, y_data, z_data, pressure, intensity = fetch_data(z_line_scan, "lateral")
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(z_line_scan, "lateral")
             z_graph = line_graph(horizontal=z_data, pressure_or_intensity=np.transpose(pressure), left_field_length="linear", right_field_length="linear", name=transducer+"_"+freq+"_z_linear_", type_of_scan='Lateral ', type_of_data='Pressure', save=save, save_folder=save_folder, textbox=textbox)
             self.graphs_list[2] = z_graph
 

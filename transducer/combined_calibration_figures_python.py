@@ -1,3 +1,4 @@
+import h5py
 import numpy as np
 # import tkinter as tk
 # import tkinter.ttk as ttk
@@ -176,7 +177,7 @@ class combined_calibration:
         FIELD GRAPHS
         """
         if axial_field:
-            x_data, y_data, z_data, pressure, intensity = fetch_data(axial_filename, "axial")
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(axial_filename, "axial")
             # Pressure field 
             ax_pressure_field_graph = field_graph(y_data, z_data, pressure, axial_left_field_length,
                                                   axial_right_field_length, axial_field_height,
@@ -191,7 +192,7 @@ class combined_calibration:
             self.graph_list[2] = ax_intensity_field_graph
 
         if lateral_field:
-            x_data, y_data, z_data, pressure, intensity = fetch_data(lateral_filename, "lateral")
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(lateral_filename, "lateral")
             # Pressure field 
             lat_pressure_field_graph = field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length,
                                                    lateral_field_length, transducer + "_" + freq + "_pressure_lateral_",
@@ -211,7 +212,7 @@ class combined_calibration:
         # Y LINE SCAN LINE GRAPH
         if axial_line:
 
-            x_data, y_data, z_data, pressure, intensity = fetch_data(y_line_scan, "axial")
+            x_data, y_data, z_data, pressure, intensity, is_absolute_coords = fetch_data(y_line_scan, "axial")
             # Pressure line
             y_pressure_line_graph = line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length,
                                                transducer + "_" + freq + "_pressure_axial_", 'Axial ', 'Pressure', save,
@@ -219,7 +220,8 @@ class combined_calibration:
             self.graph_list[5] = y_pressure_line_graph
             y_pressure_fwhmx, y_pressure_offset = fwhmx(y_data, pressure, axial_left_line_length,
                                                         axial_right_line_length, 'Y', 'Axial ', 'Pressure', textbox)
-            offsets[1] = y_pressure_offset
+            if is_absolute_coords:
+                offsets[1] = y_pressure_offset
             # Intensity line
             y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length,
                                                 transducer + "_" + freq + "_intensity_axial_", 'Axial ', 'Intensity',
@@ -238,7 +240,7 @@ class combined_calibration:
 
         if lateral_line:
             # X LINE SCAN 
-            x_data, y_data, z_data, pressure, intensity = fetch_data(x_line_scan, "lateral")
+            x_data, y_data, z_data, pressure, intensity, is_absolute_coords = fetch_data(x_line_scan, "lateral")
             # Pressure line plot 
             x_pressure_line_graph = line_graph(x_data, pressure, lateral_field_length, lateral_field_length,
                                                transducer + "_" + freq + "_pressure_lateral_", 'Lateral ', 'Pressure',
@@ -246,8 +248,8 @@ class combined_calibration:
             self.graph_list[7] = x_pressure_line_graph
             x_pressure_fwhmx, x_pressure_offset = fwhmx(x_data, pressure, lateral_field_length,
                                                         lateral_field_length, 'X', 'Lateral ', 'Pressure', textbox)
-
-            offsets[0] = -1 * x_pressure_offset
+            if is_absolute_coords:
+                offsets[0] = -1 * x_pressure_offset
             # Intensity line plot 
             x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length,
                                                 transducer + "_" + freq + "_intensity_lateral_", 'Lateral ',
@@ -257,10 +259,11 @@ class combined_calibration:
                                       'Intensity', textbox)
 
             # # Z LINE SCAN 
-            x_data, y_data, z_data, pressure, intensity = fetch_data(z_line_scan, "lateral")
+            x_data, y_data, z_data, pressure, intensity, is_absolute_coords = fetch_data(z_line_scan, "lateral")
             z_pressure_fwhmx, z_pressure_offset = fwhmx(z_data, np.transpose(pressure), lateral_field_length,
                                                         lateral_field_length, 'Z', 'Lateral ', 'Pressure', textbox)
-            offsets[2] = -1 * z_pressure_offset
+            if is_absolute_coords:
+                offsets[2] = -1 * z_pressure_offset
             z_intensity_fwhmx, _ = fwhmx(z_data, np.transpose(intensity), lateral_field_length,
                                          lateral_field_length, 'Z', 'Lateral ', 'Intensity', textbox)
 
