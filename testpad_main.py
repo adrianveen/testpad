@@ -1,6 +1,10 @@
 import sys
+import os
+from definitions import SRC_DIR
 # from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtGui import QIcon
+
 from matching_box.matching_box_tab import MatchingBoxTab
 from rfb.rfb_tab import RFBTab
 from transducer.transducer_calibration_tab import TransducerCalibrationTab
@@ -55,6 +59,7 @@ if __name__ == "__main__":
 
     tab_dialog = ApplicationWindow()
     tab_dialog.setWindowTitle("FUS Testpad")
+    tab_dialog.setWindowIcon(QIcon(os.path.join(SRC_DIR, "images", "fus_icon_transparent.ico")))
     # tab_dialog.setFixedSize(False)
     # tab_dialog.setMaximumSize()
     # tab_dialog.setFixedSize(700, 500)
