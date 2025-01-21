@@ -13,7 +13,7 @@ from eb50.eb50_tab import EboxTab
 from vol2press.vol2press_tab import Vol2PressTab
 from burnin.burnin_tab import BurninTab
 from nanobubbles.nanobubbles_tab import NanobubblesTab
-from temp_analysis.ui_temp_analysis_tab import TempAnalysisTab
+from temp_analysis.temp_analysis_tab import TempAnalysisTab
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
