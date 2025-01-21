@@ -31,12 +31,11 @@ class TemperatureGraph():
         if temperature_csv is None:
             raise ValueError("No file selected") # temperature_csv cannot be none
         
-        # Process each file if temperature_csv is a list
-        if isinstance(temperature_csv, list):
-            for file in temperature_csv:
-                self._process_file(file)
-        else:
-            self._process_file(temperature_csv)
+        self.temperature_csv = temperature_csv
+        self.raw_data = []
+
+        # Process the file(s) and store the data
+        self.raw_data = self._process_files(temperature_csv)
     
     # function to load fus_icon_transparent.ico file
     def load_icon(self, path):
@@ -44,18 +43,38 @@ class TemperatureGraph():
         image_array = np.array(image)
         return image_array
 
-    def _process_file(self, file):
-        if file is None:
-            raise ValueError("No file selected") # file cannot be none
-         
-        with open(file, "r") as f:
-            data = np.array(np.loadtxt(f, skiprows=89, delimiter="\t")) # SKIPS 89 ROWS (assumed to be metadata)
+    def _process_files(self, file_paths):
+        """
+        Process one or more CSV files and extract relevant data.
         
-        # removes negative values from dataset
-        data = data[data[:, 0] >= 0]
+        Args:
+            file_paths (str or list of str): Single file path or a list of file paths.
+            
+        Returns:
+            list: A list of tuples, where each tuple contains (elapsed time, temperature).
+        """
+        # Ensure file_paths is always a list
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+
+        self.raw_data = []
+        for file_path in file_paths:
+            try:
+                # Read and process the file
+                data = pd.read_csv(file_path)
+                data = data.drop(data.columns[[4, 5]], axis=1)  # Remove unused columns
+                
+                # Append processed data to raw_data
+                elapsed = data["Elapsed (s)"]
+                temperature = data["244B Temp"]
+                # print(f"Elapsed: {elapsed}")
+                # print(f"Temperature: {temperature}")
+                self.raw_data.append((elapsed, temperature))
+                print(f"Raw data: {self.raw_data}")
+            except Exception as e:
+                print(f"Error processing file {file_path}: {e}")
         
-        # adds processed data to the raw_data list
-        self.raw_data.append(data)
+        return self.raw_data
 
     # Generate a color palette based on the base color provided
     def generate_color_palette(self, base_color, num_colors):
@@ -67,76 +86,73 @@ class TemperatureGraph():
     
     # returns canvas of mpl graph to UI
 
-    def get_graphs(self, bin_width, scale, normalize=False, overlaid=False):
+    def get_graphs(self, overlaid=False):
         """
-        Generate and return a line plot of the temperature over time. 
-        overlaid (bool, optional): If True, multiple line plots will be overlaid. Default is False.
+        Generate and return a line plot of the temperature over time.
+
+        Args:
+            overlaid (bool, optional): If True, multiple line plots will be overlaid. Default is False.
         Returns:
-        FigureCanvas: The canvas containing the generated plot.
+            FigureCanvas: The canvas containing the generated plot.
         """
-        self.fig, self.ax = plt.subplots(1, 1)
+
+        # Initialize the figure and canvas
+        self.fig, self.ax = plt.subplots(figsize=(10, 6))
         self.canvas = FigureCanvas(self.fig)
-        
-        # Generate a color palette based on the base color (FUS Green)
+
+        # Generate a color palette based on the number of datasets
         colors = self.generate_color_palette('#73A89E', len(self.raw_data))
-        # load fus_icon png and conver to np array
+
+        # Load the FUS icon
         image_path = os.path.join(SRC_DIR, "images", "fus_icon_transparent.png")
         image = self.load_icon(image_path)
 
         if overlaid == False or len(self.raw_data) == 1:
-            data = self.raw_data[0]
-            sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-            self.ax.plot(sizes, bins=bins, color='#73A89E', edgecolor='black')   
-        
-        elif overlaid == True:
-
-            # Plot multiple overlaid and translucent histograms
+            # Single dataset
+            data = self.raw_data
+            elapsed = data[0][0]
+            temperature = data[0][1]
+            # print(f"Elapsed: {elapsed}")
+            # print(f"Temperature: {temperature}")
+            self.ax.plot(elapsed, temperature, color='#73A89E', label="Dataset 1", linewidth=2)
+        else:
+            # Overlaid datasets
             for i, data in enumerate(self.raw_data):
-                sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-                self.ax.hist(sizes, bins=bins, alpha=0.5, density=normalize, label=f'Batch {i+1}')
-            self.ax.legend(fontsize=14)
-        
-        # single histogram
-        # self.ax.hist(self.raw_data[0], bins=bins, color='#73A89E', rwidth=0.95) 
-        
-        # graph labels
-        self.ax.set_xlabel("Diameter [nm]", fontsize=16)
-        self.ax.set_ylabel("Count", fontsize=16) # optional y axis label
-        self.ax.set_title("Nanobubble Size Distribution", fontsize=18)
-        self.ax.tick_params(axis='both', which='major', labelsize=14)
-        # self.ax.tick_params(axis='both', which='minor', labelsize=12)
+                elapsed = data[:, 0]
+                temperature = data[:, 1]
+                self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}', color=colors[i], linewidth=2)
+            self.ax.legend(fontsize=12)
 
-        # formatting x-axis to not be in scientific notation
+        # Graph labels
+        self.ax.set_xlabel("Elapsed Time (s)", fontsize=14)
+        self.ax.set_ylabel("Temperature (°C)", fontsize=14)
+        self.ax.set_title("Temperature vs. Elapsed Time", fontsize=16)
+        self.ax.tick_params(axis='both', which='major', labelsize=12)
+
+        # Format x-axis to not use scientific notation
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
 
+        # Position for the FUS logo
         if overlaid == False:
-            # Define the position and size parameters
-            image_xaxis = 0.835
-            image_yaxis = 0.82
-        else: 
-            image_xaxis = 0.1
-            image_yaxis = 0.82
+            image_xaxis, image_yaxis = 0.835, 0.77
+        else:
+            image_xaxis, image_yaxis = 0.1, 0.77
 
-        image_width = 0.12
-        image_height = 0.12  # Same as width since our logo is a square
+        image_width, image_height = 0.12, 0.12
 
-        # Define the position for the image axes
-        ax_image = self.fig.add_axes([image_xaxis,
-                                image_yaxis,
-                                image_width,
-                                image_height]
-                            )
-
-        # Display the image
+        # Add the image to the figure
+        ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
         ax_image.imshow(image)
-        ax_image.axis('off')  # Remove axis of the image
+        ax_image.axis('off')
 
         # Adjust padding to reduce white space
-        self.fig.subplots_adjust(left=0.11, right=0.95, top=0.95, bottom=0.08)
+        self.fig.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.1)
 
+        # Set the canvas to the figure
         self.fig.set_canvas(self.canvas)
-        return(self.canvas)
+        return self.canvas
+
     
     # save the canvas graph as a SVG 
     def save_graph(self, folder, overlaid=False):

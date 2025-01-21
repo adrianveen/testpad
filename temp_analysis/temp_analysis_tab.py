@@ -94,7 +94,7 @@ class TempAnalysisTab(QWidget):
             self.graph_tab.clear()
 
             temperature_object = TemperatureGraph(self.temperature_data_files)
-            graph = temperature_object.get_graphs(False, self.compare_box.isChecked())
+            graph = temperature_object.get_graphs(self.compare_box.isChecked())
             
             nav_tool = NavigationToolbar(graph)
 
