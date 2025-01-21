@@ -70,7 +70,7 @@ class TemperatureGraph():
                 # print(f"Elapsed: {elapsed}")
                 # print(f"Temperature: {temperature}")
                 self.raw_data.append((elapsed, temperature))
-                print(f"Raw data: {self.raw_data}")
+                # print(f"Raw data: {self.raw_data}")
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
         
@@ -117,9 +117,7 @@ class TemperatureGraph():
             self.ax.plot(elapsed, temperature, color='#73A89E', label="Dataset 1", linewidth=2)
         else:
             # Overlaid datasets
-            for i, data in enumerate(self.raw_data):
-                elapsed = data[:, 0]
-                temperature = data[:, 1]
+            for i, (elapsed, temperature) in enumerate(self.raw_data):
                 self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}', color=colors[i], linewidth=2)
             self.ax.legend(fontsize=12)
 
@@ -154,13 +152,13 @@ class TemperatureGraph():
         return self.canvas
 
     
-    # save the canvas graph as a SVG 
+    # NOT YET IMPLEMENTED
     def save_graph(self, folder, overlaid=False):
         # Check if temperature_csv is a list and get the first file path
         if overlaid == True:
-            nanobubble_svg_filename = "multi_batch_histogram"#(Path(self.temperature_csv[0]).name).split(".")[0]
+            temperature_svg_filename = "multi_batch_histogram"#(Path(self.temperature_csv[0]).name).split(".")[0]
         else:
-            nanobubble_svg_filename = (Path(self.temperature_csv[0]).name).split(".")[0]
+            temperature_svg_filename = (Path(self.temperature_csv[0]).name).split(".")[0]
         
         full_save_name = os.path.join(folder, str(nanobubble_svg_filename) + ".svg")
 
