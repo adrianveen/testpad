@@ -1,8 +1,6 @@
-# from vol2press.vol2press_calcs import Vol2Press
 from temp_analysis.temperature_graph import TemperatureGraph
 
 from PySide6.QtCore import Slot, Qt
-# from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)

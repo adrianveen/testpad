@@ -1,8 +1,3 @@
-from PySide6.QtCore import Slot, Qt
-# from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
 import numpy as np
 import os
 import sys
@@ -11,7 +6,6 @@ import decimal
 from pathlib import Path
 
 from definitions import SRC_DIR
-#import requests
 from PIL import Image
 from io import BytesIO
 

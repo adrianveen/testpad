@@ -1,10 +1,6 @@
-from PySide6.QtCore import Slot, Qt
-# from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
 import numpy as np
 import os
+import sys
 import yaml
 import decimal
 from pathlib import Path
@@ -22,7 +18,6 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 
 class NanobubblesGraph():
     def __init__(self, nanobubble_txt) -> None:
-        # self.aggregate_representation = np.array([])
         self.nanobubble_txt = nanobubble_txt
         self.raw_data = []
         
@@ -36,7 +31,11 @@ class NanobubblesGraph():
                 self._process_file(file)
         else:
             self._process_file(nanobubble_txt)
-    
+
+    def resource_path(self, relative_path):
+        """Get the absolute path to a resource"""
+        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+        return os.path.join(base_path, relative_path)    
     # function to load fus_icon_transparent.ico file
     def load_icon(self, path):
         image = Image.open(path)
@@ -86,7 +85,7 @@ class NanobubblesGraph():
         # Generate a color palette based on the base color (FUS Green)
         colors = self.generate_color_palette('#73A89E', len(self.raw_data))
         # load fus_icon png and conver to np array
-        image_path = os.path.join(SRC_DIR, "images", "fus_icon_transparent.png")
+        image_path = self.resource_path("images\\fus_icon_transparent.png")
         image = self.load_icon(image_path)
 
         # if scale = log, set x-axis to log scale from 1-1000
