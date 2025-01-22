@@ -10,6 +10,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/testpad_main.py",
             "console": "externalTerminal"
+        },
+        {
+            "name": "testpad_main.py - ext Console",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/testpad_main.py",
+            "console": "externalTerminal"
         }
     ]
 }
