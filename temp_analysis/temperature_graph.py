@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout,
                                QVBoxLayout, QWidget)
 import numpy as np
 import os
+import sys
 import yaml
 import decimal
 from pathlib import Path
@@ -37,6 +38,10 @@ class TemperatureGraph():
         # Process the file(s) and store the data
         self.raw_data = self._process_files(temperature_csv)
     
+    def resource_path(self, relative_path):
+        """Get the absolute path to a resource"""
+        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+        return os.path.join(base_path, relative_path)
     # function to load fus_icon_transparent.ico file
     def load_icon(self, path):
         image = Image.open(path)
@@ -104,7 +109,7 @@ class TemperatureGraph():
         colors = self.generate_color_palette('#73A89E', len(self.raw_data))
 
         # Load the FUS icon
-        image_path = os.path.join(SRC_DIR, "images", "fus_icon_transparent.png")
+        image_path = self.resource_path('images\\fus_icon_transparent.png')
         image = self.load_icon(image_path)
 
         if overlaid == False or len(self.raw_data) == 1:

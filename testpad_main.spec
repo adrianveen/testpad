@@ -1,20 +1,24 @@
-# -*- mode: python ; coding: utf-8 -*-
+import os
 
+# Get the current working directory (where PyInstaller is run)
+base_dir = os.getcwd()
 
 a = Analysis(
     ['testpad_main.py'],
     pathex=[],
     binaries=[],
-    datas=[(r"matching_box\cap_across_load.jpg", "matching_box"), \
-    (r"matching_box\cap_across_source.jpg", "matching_box")],
+    datas=[
+        (os.path.join(base_dir, "matching_box", "cap_across_load.jpg"), "matching_box"),
+        (os.path.join(base_dir, "matching_box", "cap_across_source.jpg"), "matching_box"),
+        (os.path.join(base_dir, "images"), "images"),  # Add the entire images directory
+    ],
     hiddenimports=[],
     hookspath=[],
-    hooksconfig={"matplotlib": {
-            # "backends": "auto",  # auto-detect; the default behavior
+    hooksconfig={
+        "matplotlib": {
             "backends": "all",  # collect all backends
-            # "backends": "TkAgg",  # collect a specific backend
-            # "backends": ["TkAgg", "Qt5Agg"],  # collect multiple backends
-        },},
+        },
+    },
     runtime_hooks=[],
     excludes=['PyQt5'],
     noarchive=False,
