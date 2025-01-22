@@ -118,7 +118,7 @@ class TemperatureGraph():
         else:
             # Overlaid datasets
             for i, (elapsed, temperature) in enumerate(self.raw_data):
-                self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}', color=colors[i], linewidth=2)
+                self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}', color=colors[i], linewidth=1)
             self.ax.legend(fontsize=12)
 
         # Graph labels
@@ -160,7 +160,7 @@ class TemperatureGraph():
         else:
             temperature_svg_filename = (Path(self.temperature_csv[0]).name).split(".")[0]
         
-        full_save_name = os.path.join(folder, str(nanobubble_svg_filename) + ".svg")
+        full_save_name = os.path.join(folder, str(temperature_svg_filename) + ".svg")
 
         # Debugging statement
         print(f"Saving graph to: {full_save_name}")

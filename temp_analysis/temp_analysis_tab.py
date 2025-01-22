@@ -19,28 +19,25 @@ class TempAnalysisTab(QWidget):
         self.file_save_location = None
 
         # USER INTERACTION AREA
-        buttons_groupbox = QGroupBox()
-        
-        # select file button
-        self.select_file_btn = QPushButton("SELECT TEMPERATURE .CSV FILE")
-        self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
-        # current path label
-        self.current_path_label = QLabel("Current path:")
-        # print graph button
-        self.print_graph_btn = QPushButton("PRINT GRAPH")
-        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
-        self.print_graph_btn.clicked.connect(lambda: self.create_graph())
+        buttons_groupbox = QGroupBox("File Selection")
         # compare checkbox
         self.compare_label = QLabel("Compare multiple datasets:")
         self.compare_box = QCheckBox()
         self.compare_box.setChecked(False)
+        # select file button
+        self.select_file_btn = QPushButton("SELECT TEMPERATURE .CSV FILE")
+        self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
+        # print graph button
+        self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
+        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_btn.clicked.connect(lambda: self.create_graph())
+
         # Layout for user interaction area
         selections_layout = QGridLayout()
-        selections_layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
-        selections_layout.addWidget(self.current_path_label, 1, 0, 1, 1)
-        selections_layout.addWidget(self.compare_label, 2, 0)
-        selections_layout.addWidget(self.compare_box, 2, 1)
-        selections_layout.addWidget(self.print_graph_btn, 3, 0, 1, 2)
+        selections_layout.addWidget(self.compare_label, 0, 0)
+        selections_layout.addWidget(self.compare_box, 0, 1)
+        selections_layout.addWidget(self.select_file_btn, 1, 0, 1, 2)
+        selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
         buttons_groupbox.setLayout(selections_layout)
 
         # TEXT CONSOLE
