@@ -1,13 +1,10 @@
-# from matplotlib.backends.backend_qtagg import FigureCanvas
-# from matplotlib.figure import Figure
-# from mpl_toolkits.mplot3d import axes3d
 from PySide6.QtCore import Slot, Qt
 from PySide6.QtGui import QPixmap, QResizeEvent, QDoubleValidator
-# from PySide6.QtGui import QAction, QKeySequence
+
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout,
                                QWidget)
-# from calibration_reports.combined_calibration_figures_python import combined_calibration
+
 from matching_box.lc_circuit_matching import Calculations
 from matching_box.csv_graphs_hioki import csv_graph
 

@@ -1,9 +1,4 @@
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtGui import QPixmap
-# from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QGridLayout, QGroupBox, QLabel, QWidget)
 
 # CURRENTLY A PLACEHOLDER
 
