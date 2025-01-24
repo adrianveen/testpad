@@ -1,7 +1,7 @@
 import sys
 import os
 from definitions import SRC_DIR
-
+# from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtGui import QIcon
 
