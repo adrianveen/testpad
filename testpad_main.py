@@ -22,7 +22,12 @@ class ApplicationWindow(QMainWindow):
         # QMainWindow.__init__(self, parent)
 
         super().__init__(parent)
-
+        base_path = getattr(sys, '_MEIPASS', os.getcwd())
+        icon_path = os.path.join(base_path, 'images', 'fus_icon_transparent.ico')
+        self.setWindowIcon(QIcon(icon_path))
+        self.setWindowTitle("FUS Data Viewer v1.7.2")
+        self.resize(800, 600)        
+        
         tab_widget = QTabWidget()
         # tab_pal = tab_widget.palette()
         # tab_widget.setAutoFillBackground(True)
@@ -50,18 +55,16 @@ class ApplicationWindow(QMainWindow):
         main_layout.addWidget(tab_widget)
         self.setLayout(main_layout)
         self.setCentralWidget(tab_widget)
-    
+
     # def resizeEvent(self, event: QResizeEvent) -> None:
     #     # super().resizeEvent(event)
     #     self.matching_tab.resizeImage()
-
+    
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyleSheet("QLabel{font-size: 11pt;}") # increase font size slightly of QLabels
 
     tab_dialog = ApplicationWindow()
-    tab_dialog.setWindowTitle("FUS Testpad")
-    tab_dialog.setWindowIcon(QIcon(os.path.join(SRC_DIR, "images", "fus_icon_transparent.ico")))
     # tab_dialog.setFixedSize(False)
     # tab_dialog.setMaximumSize()
     # tab_dialog.setFixedSize(700, 500)

@@ -1,0 +1,14 @@
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtGui import QIcon
+import sys
+
+app = QApplication(sys.argv)
+app.setWindowIcon(QIcon('images/fus_icon_transparent.ico'))  # Set the application-wide icon
+
+window = QMainWindow()
+window.setWindowIcon(QIcon('images/fus_icon_transparent.ico'))  # Set the window-specific icon
+window.setWindowTitle("Test Window")  # Optional: Set the window title
+window.resize(800, 600)  # Optional: Set the initial window size
+window.show()
+
+sys.exit(app.exec())
