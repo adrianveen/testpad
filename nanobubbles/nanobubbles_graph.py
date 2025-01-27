@@ -4,9 +4,9 @@ import sys
 import yaml
 import decimal
 from pathlib import Path
+import pandas as pd
 
 from definitions import SRC_DIR
-#import requests
 from PIL import Image
 from io import BytesIO
 
@@ -35,7 +35,8 @@ class NanobubblesGraph():
     def resource_path(self, relative_path):
         """Get the absolute path to a resource"""
         base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
-        return os.path.join(base_path, relative_path)    
+        return os.path.join(base_path, relative_path)
+    
     # function to load fus_icon_transparent.ico file
     def load_icon(self, path):
         image = Image.open(path)
@@ -44,19 +45,35 @@ class NanobubblesGraph():
 
     def _process_file(self, file):
         if file is None:
-            raise ValueError("No file selected") # file cannot be none
-         
-        with open(file, "r") as f:
-            data = np.array(np.loadtxt(f, skiprows=89, delimiter="\t")) # SKIPS 89 ROWS (assumed to be metadata)
+            raise ValueError("No file selected")  # File cannot be None
 
-        # create a giant array where every size is represented count number of times 
-        # ex. if there are 80 120nm nanobubbles, add 120nm to this array 80 times 
-        
-        # removes negative values from dataset
-        data = data[data[:, 0] >= 0]
-        
-        # adds processed data to the raw_data list
-        self.raw_data.append(data)
+        try:
+            # Read the file and include line 89 for column headers
+            data = pd.read_csv(file, skiprows=88, delimiter="\t", encoding="utf-8")  # Skip metadata before headers
+        except UnicodeDecodeError:
+            # Fallback to latin1 encoding if utf-8 fails
+            data = pd.read_csv(file, skiprows=88, delimiter="\t", encoding="latin1")
+
+        # Ensure we have the required columns
+        required_columns = ["Size / nm", "Number"]
+        if not all(col in data.columns for col in required_columns):
+            raise ValueError(f"Missing required columns: {required_columns}")
+
+        # Select only the relevant columns
+        data = data[required_columns]
+
+        # Remove rows with any negative values
+        data = data[(data["Size / nm"] >= 0) & (data["Number"] >= 0)]
+
+        # Convert to a 2D NumPy array
+        data_array = data.to_numpy()
+
+        # Check if the array is empty after filtering
+        if data_array.size == 0:
+            raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
+
+        # Append the 2D array to the raw_data list
+        self.raw_data.append(data_array)
 
     # Generate a color palette based on the base color provided
     def generate_color_palette(self, base_color, num_colors):
@@ -97,10 +114,19 @@ class NanobubblesGraph():
             # Linear scale: use linear bins
             bins = np.arange(0, 1000 + bin_width, bin_width)
 
-        if overlaid == False or len(self.raw_data) == 1:
+        if not overlaid or len(self.raw_data) == 1:
+            # Retrieve the first dataset
             data = self.raw_data[0]
+
+            # Validate that `data` is a 2D array with two columns
+            if data.ndim != 2 or data.shape[1] != 2:
+                raise ValueError(f"`self.raw_data[0]` is not a valid 2D array. Current shape: {data.shape}")
+
+            # Create a giant array where each size is repeated 'count' times
             sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-            self.ax.hist(sizes, bins=bins, color='#73A89E', edgecolor='black')   
+
+            # Plot the histogram
+            self.ax.hist(sizes, bins=bins, color='#73A89E', edgecolor='black')
         
         elif overlaid == True:
 
