@@ -53,8 +53,7 @@ class NanobubblesGraph():
                 file,
                 delimiter="\t",
                 encoding="utf-8",
-                header=88,  # Row 89 is the header
-                skiprows=lambda x: 90 <= x <= 290  # Skip rows 90 to 290 (inclusive)
+                header=88  # Row 89 is the header; 0-indexed
             )
         except UnicodeDecodeError:
             # Fallback to latin1 encoding if utf-8 fails
@@ -62,10 +61,20 @@ class NanobubblesGraph():
                 file,
                 delimiter="\t",
                 encoding="latin1",
-                header=88,
-                skiprows=lambda x: 90 <= x <= 290
+                header=88
             )
 
+        # Identify the first row index where "Size / nm" is negative
+        negative_index = data[data["Size / nm"] < 0].index.min()
+
+        # If a negative value exists, drop all rows up to and including that row
+        if not np.isnan(negative_index):  # Check if a negative value was found
+            data = data.iloc[negative_index + 1:]  # Remove rows up to and including the negative value row
+
+        # print statements to confirm array matches data
+        # print(f"First row of data: {data.iloc[0]}")
+        # print(f"Last row of data: {data.iloc[-1]}")
+        
         # Ensure we have the required columns
         required_columns = ["Size / nm", "Number"]
         if not all(col in data.columns for col in required_columns):
@@ -77,7 +86,7 @@ class NanobubblesGraph():
 
         if data_array.size == 0:
             raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
-
+        
         self.raw_data.append(data_array)
 
     # Generate a color palette based on the base color provided
@@ -131,7 +140,7 @@ class NanobubblesGraph():
             sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
 
             # Plot the histogram
-            self.ax.hist(sizes, bins=bins, color='#73A89E', edgecolor='black')
+            self.ax.hist(sizes, bins=bins, color='#73A89E')
         
         elif overlaid == True:
 
