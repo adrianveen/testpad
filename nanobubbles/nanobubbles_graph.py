@@ -48,31 +48,36 @@ class NanobubblesGraph():
             raise ValueError("No file selected")  # File cannot be None
 
         try:
-            # Read the file and include line 89 for column headers
-            data = pd.read_csv(file, skiprows=88, delimiter="\t", encoding="utf-8")  # Skip metadata before headers
+            # Read the file, setting row 89 as the header and skipping rows 90 to 290
+            data = pd.read_csv(
+                file,
+                delimiter="\t",
+                encoding="utf-8",
+                header=88,  # Row 89 is the header
+                skiprows=lambda x: 90 <= x <= 290  # Skip rows 90 to 290 (inclusive)
+            )
         except UnicodeDecodeError:
             # Fallback to latin1 encoding if utf-8 fails
-            data = pd.read_csv(file, skiprows=88, delimiter="\t", encoding="latin1")
+            data = pd.read_csv(
+                file,
+                delimiter="\t",
+                encoding="latin1",
+                header=88,
+                skiprows=lambda x: 90 <= x <= 290
+            )
 
         # Ensure we have the required columns
         required_columns = ["Size / nm", "Number"]
         if not all(col in data.columns for col in required_columns):
             raise ValueError(f"Missing required columns: {required_columns}")
-
-        # Select only the relevant columns
         data = data[required_columns]
 
-        # Remove rows with any negative values
         data = data[(data["Size / nm"] >= 0) & (data["Number"] >= 0)]
-
-        # Convert to a 2D NumPy array
         data_array = data.to_numpy()
 
-        # Check if the array is empty after filtering
         if data_array.size == 0:
             raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
 
-        # Append the 2D array to the raw_data list
         self.raw_data.append(data_array)
 
     # Generate a color palette based on the base color provided
