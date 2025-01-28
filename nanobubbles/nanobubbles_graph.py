@@ -99,7 +99,7 @@ class NanobubblesGraph():
     
     # returns canvas of mpl graph to UI
 
-    def get_graphs(self, bin_width, scale, normalize=False, overlaid=False):
+    def get_graphs(self, bins, scale, normalize=False, overlaid=False):
         """
         Generate and return a histogram plot of nanobubble size distributions.
         Parameters:
@@ -123,10 +123,10 @@ class NanobubblesGraph():
         if scale:
             self.ax.set_xscale('log')
             self.ax.set_xlim(1, 10000)
-            bins = np.logspace(np.log10(1), np.log10(10000), num=int(bin_width))
+            bins = np.logspace(np.log10(1), np.log10(10000), num=int(bins))
         else:
             # Linear scale: use linear bins
-            bins = np.arange(0, 1000 + bin_width, bin_width)
+            bins = np.arange(0, 1000 + bins, bins)
 
         if not overlaid or len(self.raw_data) == 1:
             # Retrieve the first dataset

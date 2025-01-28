@@ -169,7 +169,7 @@ class NanobubblesTab(QWidget):
                                                       False, self.normal_box.isChecked(), self.compare_box.isChecked())
             else: #log scale
                 nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
-                graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), "log", \
+                graph = nanobubbles_object.get_graphs(float(self.bin_count_spinbox.value()), "log", \
                                                       self.normal_box.isChecked(), self.compare_box.isChecked())
                 
             nav_tool = NavigationToolbar(graph)
