@@ -37,7 +37,7 @@ class NanobubblesTab(QWidget):
         # set increments to 10
         self.bin_count_spinbox.setSingleStep(10)
         # set spinbox default value
-        self.bin_count_spinbox.setValue(200)
+        self.bin_count_spinbox.setValue(150)
 
         # bin width label and field  
         self.bin_width_label = QLabel("Bin Width (linear scale):")
@@ -147,6 +147,10 @@ class NanobubblesTab(QWidget):
                 self.text_display.append("Save Location: ")
                 self.file_save_location = self.dialog.selectedFiles()[0]
                 self.text_display.append(self.file_save_location+"\n")
+        
+        nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
+        # set spinbox value to length of data
+        self.bin_count_spinbox.setValue(len(nanobubbles_object.data_length))
 
     # add graph + navtoolbar to graph display 
     @Slot()
@@ -157,8 +161,9 @@ class NanobubblesTab(QWidget):
             # check that bin width is a number
             try:
                 bin_width = float(self.bin_width_field.text())
+                bin_count = float(self.bin_count_spinbox.value())
             except ValueError:
-                error_message = "Error: Bin width must be a valid number."
+                error_message = "Error: Bin count or width is an invalid number."
                 print(error_message)
                 self.text_display.append(error_message)
                 return
