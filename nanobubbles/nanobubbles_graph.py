@@ -88,7 +88,6 @@ class NanobubblesGraph():
             raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
         
         self.raw_data.append(data_array)
-        self.data_length = len(self.raw_data)
 
     # Generate a color palette based on the base color provided
     def generate_color_palette(self, base_color, num_colors):
