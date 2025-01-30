@@ -131,23 +131,29 @@ class NanobubblesGraph():
         if not overlaid or len(self.raw_data) == 1:
             # Retrieve the first dataset
             data = self.raw_data[0]
-
+            x = data[:, 0]
+            y = data[:, 1]
             # Validate that `data` is a 2D array with two columns
             if data.ndim != 2 or data.shape[1] != 2:
                 raise ValueError(f"`self.raw_data[0]` is not a valid 2D array. Current shape: {data.shape}")
 
             # Create a giant array where each size is repeated 'count' times
-            sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-
+            #sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
+            bar_widths = np.diff(data[:, 0])
+            bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
             # Plot the histogram
-            self.ax.hist(sizes, bins=bins, color='#73A89E')
+            self.ax.bar(x, y, width=bar_widths, align='edge', color='#73A89E')
         
         elif overlaid == True:
 
             # Plot multiple overlaid and translucent histograms
             for i, data in enumerate(self.raw_data):
-                sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-                self.ax.hist(sizes, bins=bins, alpha=0.5, density=normalize, label=f'Batch {i+1}')
+                # sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
+                x = data[:, 0]
+                y = data[:, 1]
+                bar_widths = np.diff(data[:, 0])
+                bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
+                self.ax.bar(x, y, width=bar_widths, align='edge', alpha=0.5, label=f'Batch {i+1}')
             self.ax.legend(fontsize=14)
         
         # single histogram

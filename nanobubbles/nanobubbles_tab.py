@@ -31,6 +31,8 @@ class NanobubblesTab(QWidget):
         # bin count spin box
         self.bin_count_label = QLabel("Bin Count (log scale):")
         self.bin_count_spinbox = QSpinBox()
+        self.bin_count_label.setEnabled(False)
+        self.bin_count_spinbox.setEnabled(False)
         # set spinbox min/max value
         self.bin_count_spinbox.setMaximum(10000)
         self.bin_count_spinbox.setMinimum(10)
@@ -43,6 +45,7 @@ class NanobubblesTab(QWidget):
         self.bin_width_label = QLabel("Bin Width (linear scale):")
         self.bin_width_field = QLineEdit()
         self.bin_width_field.setEnabled(False)
+        self.bin_width_label.setEnabled(False)
         self.bin_width_field.setText("30")
 
         # option to compare multiple datasets. 
@@ -51,9 +54,11 @@ class NanobubblesTab(QWidget):
         self.compare_box.setChecked(False)
 
         # option to normalize graphs
-        self.normal_label = QLabel("Normalize Graphs:")
-        self.normal_box = QCheckBox()
-        self.normal_box.setChecked(False)
+        # self.normal_label = QLabel("Normalize Graphs:")
+        # self.normal_label.setEnabled(False)
+        # self.normal_box = QCheckBox()
+        # self.normal_box.setChecked(False)
+        # self.normal_box.setEnabled(False)
 
         # save file checkbox and save location button 
         self.save_label = QLabel("Save file:")
@@ -83,8 +88,8 @@ class NanobubblesTab(QWidget):
         selections_layout.addWidget(self.compare_label, 4, 0)
         selections_layout.addWidget(self.compare_box, 4, 1, Qt.AlignCenter)
         # add normalize label and checkbox
-        selections_layout.addWidget(self.normal_label, 5, 0)
-        selections_layout.addWidget(self.normal_box, 5, 1, Qt.AlignCenter)
+        # selections_layout.addWidget(self.normal_label, 5, 0)
+        # selections_layout.addWidget(self.normal_box, 5, 1, Qt.AlignCenter)
         # add save label and checkbox
         selections_layout.addWidget(self.save_label, 6, 0)
         selections_layout.addWidget(self.save_box, 6, 1, Qt.AlignCenter)
@@ -203,7 +208,11 @@ class NanobubblesTab(QWidget):
     def toggle_log_scale(self):
         if self.log_box.isChecked():
             self.bin_width_field.setEnabled(False)
-            self.bin_count_spinbox.setEnabled(True)
+            self.bin_width_label.setEnabled(False)
+            # self.bin_count_spinbox.setEnabled(True)
+            pass
         else:
             self.bin_width_field.setEnabled(True)
+            self.bin_width_label.setEnabled(True)
             self.bin_count_spinbox.setEnabled(False)
+            self.bin_count_label.setEnabled(False)
