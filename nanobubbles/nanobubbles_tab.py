@@ -27,7 +27,7 @@ class NanobubblesTab(QWidget):
         self.log_label = QLabel("Logarithmic Scale:")
         self.log_box = QCheckBox()
         self.log_box.setChecked(True)
-        self.log_box.stateChanged.connect(self.toggle_log_scale)
+        # self.log_box.stateChanged.connect(self.toggle_log_scale)
         # bin count spin box
         self.bin_count_label = QLabel("Bin Count (log scale):")
         self.bin_count_spinbox = QSpinBox()
@@ -194,16 +194,16 @@ class NanobubblesTab(QWidget):
             # if self.file_save_location is not None:
             #   print(f"file_save_location: {self.file_save_location}")
             if self.compare_box.isChecked() and len(nanobubbles_object.raw_data) == 1:
-                self.text_display.append("Only one dataset selected for comparison. Please select multiple datasets.\n")
+                self.text_display.append("Warning: Only one dataset selected for comparison. Please select multiple datasets.\n")
                 
             if self.save_box.isChecked():
                 if self.file_save_location is None or not os.path.exists(self.file_save_location):
-                    error_message = "Error: Save location was not specified or does not exist."
+                    error_message = "Error: Save location was not specified or does not exist.\n"
                     self.text_display.append(error_message)
                     return
                 
                 save_loc = nanobubbles_object.save_graph(self.file_save_location, self.compare_box.isChecked())
-                self.text_display.append(f"Saved to {save_loc}")
+                self.text_display.append(f"Saved to {save_loc}\n")
         else:
             self.text_display.append("Error: No nanobubble .txt file found.\n")
 

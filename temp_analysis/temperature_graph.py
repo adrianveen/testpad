@@ -152,25 +152,25 @@ class TemperatureGraph():
 
     
     # NOT YET IMPLEMENTED
-    def save_graph(self, folder, overlaid=False):
-        # Check if temperature_csv is a list and get the first file path
-        if overlaid == True:
-            temperature_svg_filename = "multi_batch_histogram"#(Path(self.temperature_csv[0]).name).split(".")[0]
-        else:
-            temperature_svg_filename = (Path(self.temperature_csv[0]).name).split(".")[0]
+    # def save_graph(self, folder, overlaid=False):
+    #     # Check if temperature_csv is a list and get the first file path
+    #     if overlaid == True:
+    #         temperature_svg_filename = "multi_batch_histogram"#(Path(self.temperature_csv[0]).name).split(".")[0]
+    #     else:
+    #         temperature_svg_filename = (Path(self.temperature_csv[0]).name).split(".")[0]
         
-        full_save_name = os.path.join(folder, str(temperature_svg_filename) + ".svg")
+    #     full_save_name = os.path.join(folder, str(temperature_svg_filename) + ".svg")
 
-        # Debugging statement
-        print(f"Saving graph to: {full_save_name}")
+    #     # Debugging statement
+    #     print(f"Saving graph to: {full_save_name}")
         
-        self.fig.savefig(full_save_name, format='svg', bbox_inches='tight', pad_inches=0, transparent=True)
-        return full_save_name
+    #     self.fig.savefig(full_save_name, format='svg', bbox_inches='tight', pad_inches=0, transparent=True)
+    #     return full_save_name
 
 if __name__ == "__main__":
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt")
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt")
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt")
-    n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS.txt")
+    n = TemperatureGraph(r"G:\Shared drives\FUS_Team\Bed Temperature Data\RK50_MRIg_temp_test_01_phantom_bed_2025-01-16_T08-55-44.802 (1).csv")
     n.get_graphs()
     plt.show()
