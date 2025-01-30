@@ -53,8 +53,7 @@ class NanobubblesGraph():
                 file,
                 delimiter="\t",
                 encoding="utf-8",
-                header=88,  # Row 89 is the header
-                skiprows=lambda x: 90 <= x <= 290  # Skip rows 90 to 290 (inclusive)
+                header=88  # Row 89 is the header; 0-indexed
             )
         except UnicodeDecodeError:
             # Fallback to latin1 encoding if utf-8 fails
@@ -62,10 +61,20 @@ class NanobubblesGraph():
                 file,
                 delimiter="\t",
                 encoding="latin1",
-                header=88,
-                skiprows=lambda x: 90 <= x <= 290
+                header=88
             )
 
+        # Identify the first row index where "Size / nm" is negative
+        negative_index = data[data["Size / nm"] < 0].index.min()
+
+        # If a negative value exists, drop all rows up to and including that row
+        if not np.isnan(negative_index):  # Check if a negative value was found
+            data = data.iloc[negative_index + 1:]  # Remove rows up to and including the negative value row
+
+        # print statements to confirm array matches data
+        # print(f"First row of data: {data.iloc[0]}")
+        # print(f"Last row of data: {data.iloc[-1]}")
+        
         # Ensure we have the required columns
         required_columns = ["Size / nm", "Number"]
         if not all(col in data.columns for col in required_columns):
@@ -77,7 +86,7 @@ class NanobubblesGraph():
 
         if data_array.size == 0:
             raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
-
+        
         self.raw_data.append(data_array)
 
     # Generate a color palette based on the base color provided
@@ -90,7 +99,7 @@ class NanobubblesGraph():
     
     # returns canvas of mpl graph to UI
 
-    def get_graphs(self, bin_width, scale, normalize=False, overlaid=False):
+    def get_graphs(self, bins, scale, normalize=False, overlaid=False):
         """
         Generate and return a histogram plot of nanobubble size distributions.
         Parameters:
@@ -114,31 +123,38 @@ class NanobubblesGraph():
         if scale:
             self.ax.set_xscale('log')
             self.ax.set_xlim(1, 10000)
-            bins = np.logspace(np.log10(1), np.log10(10000), num=int(bin_width))
+            bins = np.logspace(np.log10(1), np.log10(10000), num=int(bins))
         else:
             # Linear scale: use linear bins
-            bins = np.arange(0, 1000 + bin_width, bin_width)
+            bins = np.arange(0, 1000 + bins, bins)
 
         if not overlaid or len(self.raw_data) == 1:
             # Retrieve the first dataset
             data = self.raw_data[0]
-
+            x = data[:, 0]
+            y = data[:, 1]
             # Validate that `data` is a 2D array with two columns
             if data.ndim != 2 or data.shape[1] != 2:
                 raise ValueError(f"`self.raw_data[0]` is not a valid 2D array. Current shape: {data.shape}")
 
             # Create a giant array where each size is repeated 'count' times
-            sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
+            #sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
 
+            bar_widths = np.diff(data[:, 0])
+            bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
             # Plot the histogram
-            self.ax.hist(sizes, bins=bins, color='#73A89E', edgecolor='black')
+            self.ax.bar(x, y, width=bar_widths, align='edge', color='#73A89E')
         
-        elif overlaid == True:
+        elif overlaid == True :
 
             # Plot multiple overlaid and translucent histograms
             for i, data in enumerate(self.raw_data):
-                sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-                self.ax.hist(sizes, bins=bins, alpha=0.5, density=normalize, label=f'Batch {i+1}')
+                # sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
+                x = data[:, 0]
+                y = data[:, 1]
+                bar_widths = np.diff(data[:, 0])
+                bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
+                self.ax.bar(x, y, width=bar_widths, align='edge', alpha=0.5, label=f'Batch {i+1}')
             self.ax.legend(fontsize=14)
         
         # single histogram
@@ -155,10 +171,10 @@ class NanobubblesGraph():
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
 
-        if overlaid == False:
+        if overlaid == False or len(self.raw_data) == 1:
             # Define the position and size parameters
             image_xaxis = 0.835
-            image_yaxis = 0.82
+            image_yaxis = 0.82                
         else: 
             image_xaxis = 0.1
             image_yaxis = 0.82
