@@ -61,7 +61,7 @@ class NanobubblesTab(QWidget):
         # self.normal_box.setEnabled(False)
 
         # save file checkbox and save location button 
-        self.save_label = QLabel("Save file:")
+        self.save_label = QLabel("Save graph as svg file:")
         self.save_box = QCheckBox()
         self.save_box.setChecked(False)
         self.save_folder_btn = QPushButton("SAVE LOCATION")

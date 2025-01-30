@@ -139,6 +139,7 @@ class NanobubblesGraph():
 
             # Create a giant array where each size is repeated 'count' times
             #sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
+
             bar_widths = np.diff(data[:, 0])
             bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
             # Plot the histogram
