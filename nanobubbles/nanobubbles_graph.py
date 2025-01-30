@@ -144,7 +144,7 @@ class NanobubblesGraph():
             # Plot the histogram
             self.ax.bar(x, y, width=bar_widths, align='edge', color='#73A89E')
         
-        elif overlaid == True:
+        elif overlaid == True :
 
             # Plot multiple overlaid and translucent histograms
             for i, data in enumerate(self.raw_data):
@@ -170,10 +170,10 @@ class NanobubblesGraph():
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
 
-        if overlaid == False:
+        if overlaid == False or len(self.raw_data) == 1:
             # Define the position and size parameters
             image_xaxis = 0.835
-            image_yaxis = 0.82
+            image_yaxis = 0.82                
         else: 
             image_xaxis = 0.1
             image_yaxis = 0.82

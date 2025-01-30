@@ -171,11 +171,13 @@ class NanobubblesTab(QWidget):
             if not self.log_box.isChecked():
                 nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
                 graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), \
-                                                      False, self.normal_box.isChecked(), self.compare_box.isChecked())
+                                                      False, False, self.compare_box.isChecked())
+                                                      # False, self.normal_box.isChecked(), self.compare_box.isChecked())
             else: #log scale
                 nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
                 graph = nanobubbles_object.get_graphs(float(self.bin_count_spinbox.value()), "log", \
-                                                      self.normal_box.isChecked(), self.compare_box.isChecked())
+                                                      False, self.compare_box.isChecked())
+                                                      # self.normal_box.isChecked(), self.compare_box.isChecked())
                 
             nav_tool = NavigationToolbar(graph)
 
@@ -191,7 +193,9 @@ class NanobubblesTab(QWidget):
             # print(f"save_box is checked: {self.save_box.isChecked()}")
             # if self.file_save_location is not None:
             #   print(f"file_save_location: {self.file_save_location}")
-
+            if self.compare_box.isChecked() and len(nanobubbles_object.raw_data) == 1:
+                self.text_display.append("Only one dataset selected for comparison. Please select multiple datasets.\n")
+                
             if self.save_box.isChecked():
                 if self.file_save_location is None or not os.path.exists(self.file_save_location):
                     error_message = "Error: Save location was not specified or does not exist."
