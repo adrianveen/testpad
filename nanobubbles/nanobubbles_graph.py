@@ -17,10 +17,10 @@ from matplotlib.backends.backend_qtagg import FigureCanvas
 
 
 class NanobubblesGraph():
-    def __init__(self, nanobubble_txt) -> None:
+    def __init__(self, nanobubble_txt, data_type) -> None:
         self.nanobubble_txt = nanobubble_txt
         self.raw_data = []
-        
+        self.data_type = data_type
         # Check if nanobubble_txt is None
         if nanobubble_txt is None:
             raise ValueError("No file selected") # nanobubble_txt cannot be none
@@ -28,7 +28,7 @@ class NanobubblesGraph():
         # Process each file if nanobubble_txt is a list
         if isinstance(nanobubble_txt, list):
             for file in nanobubble_txt:
-                self._process_file(file)
+                self._process_file(file, data_type)
         else:
             self._process_file(nanobubble_txt)
 
@@ -43,7 +43,7 @@ class NanobubblesGraph():
         image_array = np.array(image)
         return image_array
 
-    def _process_file(self, file):
+    def _process_file(self, file, data_type):
         if file is None:
             raise ValueError("No file selected")  # File cannot be None
 
@@ -99,7 +99,7 @@ class NanobubblesGraph():
     
     # returns canvas of mpl graph to UI
 
-    def get_graphs(self, bins, scale, normalize=False, overlaid=False):
+    def get_graphs(self, bins, scale, normalize=False, overlaid=False, data_type=None):
         """
         Generate and return a histogram plot of nanobubble size distributions.
         Parameters:
@@ -122,7 +122,7 @@ class NanobubblesGraph():
         # if scale = log, set x-axis to log scale from 1-1000
         if scale:
             self.ax.set_xscale('log')
-            self.ax.set_xlim(1, 10000)
+            self.ax.set_xlim(10, 10000)
             bins = np.logspace(np.log10(1), np.log10(10000), num=int(bins))
         else:
             # Linear scale: use linear bins

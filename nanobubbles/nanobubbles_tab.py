@@ -17,8 +17,7 @@ class NanobubblesTab(QWidget):
 
         self.nanobubbles_files = None
         self.file_save_location = None
-        self.concentration_per_ml = None
-        self.size_distribution = None
+        self.selected_data_type = None
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox()
         # select file button 
@@ -168,10 +167,7 @@ class NanobubblesTab(QWidget):
     def create_graph(self):
         if self.nanobubbles_files is not None:
             self.graph_tab.clear()
-            if self.data_selection.currentText() == "Concentration Per mL":
-                self.concentration_per_ml = True
-            elif self.data_selection.currentText() == "Size Distribution":
-                self.size_distribution = True
+            self.selected_data_type = self.data_selection.currentText()
             # check that bin width is a number
             try:
                 bin_width = float(self.bin_width_field.text())
@@ -182,14 +178,14 @@ class NanobubblesTab(QWidget):
                 return
             
             if not self.log_box.isChecked():
-                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files, self.selected_data_type)
                 graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), \
-                                                      False, False, self.compare_box.isChecked())
+                                                      False, False, self.compare_box.isChecked(), self.selected_data_type)
                                                       # False, self.normal_box.isChecked(), self.compare_box.isChecked())
             else: #log scale
-                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files, self.selected_data_type)
                 graph = nanobubbles_object.get_graphs(float(self.bin_count_spinbox.value()), "log", \
-                                                      False, self.compare_box.isChecked())
+                                                      False, self.compare_box.isChecked(), self.selected_data_type)
                                                       # self.normal_box.isChecked(), self.compare_box.isChecked())
                 
             nav_tool = NavigationToolbar(graph)
