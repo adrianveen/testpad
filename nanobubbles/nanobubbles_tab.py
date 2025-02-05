@@ -17,7 +17,8 @@ class NanobubblesTab(QWidget):
 
         self.nanobubbles_files = None
         self.file_save_location = None
-
+        self.concentration_per_ml = None
+        self.size_distribution = None
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox()
         # select file button 
@@ -47,7 +48,12 @@ class NanobubblesTab(QWidget):
         self.bin_width_field.setEnabled(False)
         self.bin_width_label.setEnabled(False)
         self.bin_width_field.setText("30")
-
+        
+        # dropdown for data selection
+        self.data_selection_label = QLabel("Select Data to Plot:")
+        self.data_selection = QComboBox()
+        self.data_selection.addItems(["Concentration Per mL","Size Distribution"])
+        
         # option to compare multiple datasets. 
         self.compare_label = QLabel("Compare multiple datasets:")
         self.compare_box = QCheckBox()
@@ -71,7 +77,7 @@ class NanobubblesTab(QWidget):
         self.print_graph_btn = QPushButton("PRINT GRAPH")
         self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
         self.print_graph_btn.clicked.connect(lambda: self.create_graph())
-        
+
         # Layout for user interaction area
         selections_layout = QGridLayout()
         selections_layout.addWidget(self.select_file_btn, 0, 0, 1, 2)
@@ -84,12 +90,16 @@ class NanobubblesTab(QWidget):
         # add bin width label and field
         selections_layout.addWidget(self.bin_width_label, 3, 0)
         selections_layout.addWidget(self.bin_width_field, 3, 1)
+        # add data selection label and dropdown
+        selections_layout.addWidget(self.data_selection_label, 4, 0)
+        selections_layout.addWidget(self.data_selection, 4, 1)
         # add compare label and checkbox
-        selections_layout.addWidget(self.compare_label, 4, 0)
-        selections_layout.addWidget(self.compare_box, 4, 1, Qt.AlignCenter)
+        selections_layout.addWidget(self.compare_label, 5, 0)
+        selections_layout.addWidget(self.compare_box, 5, 1, Qt.AlignCenter)
         # add normalize label and checkbox
         # selections_layout.addWidget(self.normal_label, 5, 0)
         # selections_layout.addWidget(self.normal_box, 5, 1, Qt.AlignCenter)
+
         # add save label and checkbox
         selections_layout.addWidget(self.save_label, 6, 0)
         selections_layout.addWidget(self.save_box, 6, 1, Qt.AlignCenter)
@@ -158,7 +168,10 @@ class NanobubblesTab(QWidget):
     def create_graph(self):
         if self.nanobubbles_files is not None:
             self.graph_tab.clear()
-
+            if self.data_selection.currentText() == "Concentration Per mL":
+                self.concentration_per_ml = True
+            elif self.data_selection.currentText() == "Size Distribution":
+                self.size_distribution = True
             # check that bin width is a number
             try:
                 bin_width = float(self.bin_width_field.text())
