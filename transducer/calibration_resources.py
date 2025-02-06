@@ -172,11 +172,11 @@ def fetch_data(filename, axial_or_lateral):
 
     with h5py.File(filename, 'r') as f:
         try:
-            is_absolute_coords = bool(f['Scan'].attrs['absolute_coordinates'])
+            pointer_location = f['Scan']['Pointer location']
         except KeyError:
-            is_absolute_coords = False
+            pointer_location = None
 
-    return (x_data, y_data, z_data, pressure, intensity, is_absolute_coords)
+    return x_data, y_data, z_data, pressure, intensity, pointer_location
 
 
 def fwhmx(horizontal, pressure_or_intensity, left_field_length, right_field_length,
