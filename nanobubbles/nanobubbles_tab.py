@@ -168,6 +168,7 @@ class NanobubblesTab(QWidget):
         if self.nanobubbles_files is not None:
             self.graph_tab.clear()
             self.selected_data_type = self.data_selection.currentText()
+            print(f"Selected data type: {self.selected_data_type}")
             # check that bin width is a number
             try:
                 bin_width = float(self.bin_width_field.text())
