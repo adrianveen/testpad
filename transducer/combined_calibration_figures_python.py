@@ -211,7 +211,6 @@ class combined_calibration:
 
         # Y LINE SCAN LINE GRAPH
         if axial_line:
-
             x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(y_line_scan, "axial")
             # Pressure line
             y_pressure_line_graph = line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length,
@@ -221,7 +220,7 @@ class combined_calibration:
             y_pressure_fwhmx, y_pressure_offset = fwhmx(y_data, pressure, axial_left_line_length,
                                                         axial_right_line_length, 'Y', 'Axial ', 'Pressure', textbox)
             if pointer_location is not None:
-                offsets[1] = -1 * pointer_location[1]
+                offsets[1] = -1 * (pointer_location[1] - y_pressure_offset)
             # Intensity line
             y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length,
                                                 transducer + "_" + freq + "_intensity_axial_", 'Axial ', 'Intensity',
@@ -249,7 +248,7 @@ class combined_calibration:
             x_pressure_fwhmx, x_pressure_offset = fwhmx(x_data, pressure, lateral_field_length,
                                                         lateral_field_length, 'X', 'Lateral ', 'Pressure', textbox)
             if pointer_location is not None:
-                offsets[0] = pointer_location[0]
+                offsets[0] = pointer_location[0] - x_pressure_offset
             # Intensity line plot 
             x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length,
                                                 transducer + "_" + freq + "_intensity_lateral_", 'Lateral ',
@@ -263,8 +262,8 @@ class combined_calibration:
             z_pressure_fwhmx, z_pressure_offset = fwhmx(z_data, np.transpose(pressure), lateral_field_length,
                                                         lateral_field_length, 'Z', 'Lateral ', 'Pressure', textbox)
             if pointer_location is not None:
-                offsets[2] = pointer_location[2]
-                
+                offsets[2] = pointer_location[2] - z_pressure_offset
+
             z_intensity_fwhmx, _ = fwhmx(z_data, np.transpose(intensity), lateral_field_length,
                                          lateral_field_length, 'Z', 'Lateral ', 'Intensity', textbox)
 

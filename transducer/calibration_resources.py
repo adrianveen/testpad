@@ -172,7 +172,7 @@ def fetch_data(filename, axial_or_lateral):
 
     with h5py.File(filename, 'r') as f:
         try:
-            pointer_location = f['Scan']['Pointer location']
+            pointer_location = list(f['Scan']['Pointer location'])
         except KeyError:
             pointer_location = None
 
