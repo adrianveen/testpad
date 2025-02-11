@@ -104,7 +104,6 @@ class NanobubblesGraph():
         data_io = StringIO(data_str)
 
         self.data = pd.read_csv(data_io, sep="\t", header=None, names=col_names)
-        print(self.data.head())
         #self.set_data_selection(data_selection, self.data)
         # self.raw_data.append(self.data)
 
@@ -168,8 +167,8 @@ class NanobubblesGraph():
         else:
             # Linear scale: use linear bins
             bins = np.arange(0, 1000 + bins, bins)
-
-        if not overlaid or len(self.raw_data) == 1:
+        
+        if not overlaid or len(self.data) == 1:
             
             # Retrieve the first dataset
             data = self.data# self.raw_data[0]
@@ -183,11 +182,11 @@ class NanobubblesGraph():
                 y = np_data[:, 2]  # third column
 
             # print middle rows of y
-            print(y[100:110])
+            #print(y[100:110])
+
             # Validate that `data` is a 2D array with two columns
             # if data.ndim != 2 or data.shape[1] != 2:
             #     raise ValueError(f"`self.raw_data[0]` is not a valid 2D array. Current shape: {data.shape}")
-
             # Create a giant array where each size is repeated 'count' times
             #sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
 
@@ -201,14 +200,24 @@ class NanobubblesGraph():
         elif overlaid == True :
 
             # Plot multiple overlaid and translucent histograms
-            for i, data in enumerate(self.raw_data):
-                # sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-                x = data[:, 0]
-                y = data[:, 1]
-                bar_widths = np.diff(data[:, 0])
+            for i, data in enumerate(self.data):
+                
+                data = self.data
+                np_data = data.to_numpy()
+
+                if data_selection == "Size Distribution":
+                    # sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
+                    x = np_data[:, 0]
+                    y = np_data[:, 1]
+                    print(y[100:110])
+                elif data_selection == "Concentration Per mL":
+                    x = np_data[:, 0]
+                    y = np_data[:, 2]
+                    print(y[100:110])
+                bar_widths = np.diff(np_data[:, 0])
                 bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
                 self.ax.bar(x, y, width=bar_widths, align='edge', alpha=0.5, label=f'Batch {i+1}')
-            self.ax.legend(fontsize=14)
+            #self.ax.legend(fontsize=14)
         
         # single histogram
         # self.ax.hist(self.raw_data[0], bins=bins, color='#73A89E', rwidth=0.95) 
