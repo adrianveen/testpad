@@ -5,7 +5,6 @@ import yaml
 import decimal
 from pathlib import Path
 import pandas as pd
-
 from definitions import SRC_DIR
 from PIL import Image
 from io import BytesIO, StringIO
@@ -15,6 +14,12 @@ from matplotlib.ticker import ScalarFormatter
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
 
+def gaussian_kernel(size, sigma=1.0):
+    """
+    Generates a gaussian kernal for convolution filtering
+    """
+    kernel = np.exp(-np.linspace(-sigma, sigma, size) ** 2)
+    return kernel / kernel.sum()  # Normalize the kernel so the sum is 1
 
 class NanobubblesGraph():
     def __init__(self, nanobubble_txt, data_selection) -> None:
@@ -135,9 +140,10 @@ class NanobubblesGraph():
                            base_rgb[2] * (1 - i / num_colors))) for i in range(num_colors)]
         return palette
     
-    # returns canvas of mpl graph to UI
+    # returns canvas of mpl graph to UIapply_convolution_filter
 
-    def get_graphs(self, bins, scale, normalize=False, overlaid=False, data_selection=None):
+    def get_graphs(self, bins, scale, normalize=False, overlaid=False, data_selection=None,
+                   apply_convolution_filter=False, convolution_size=3):
         """
         Generate and return a histogram plot of nanobubble size distributions.
         Parameters:
@@ -180,6 +186,9 @@ class NanobubblesGraph():
             elif data_selection == "Concentration Per mL":
                 x = np_data[:, 0]  # first column
                 y = np_data[:, 2]  # third column
+
+            if apply_convolution_filter:
+                y = np.convolve(y, gaussian_kernel(convolution_size, sigma=1.0), mode='same')
 
             # print middle rows of y
             #print(y[100:110])
