@@ -226,7 +226,8 @@ class NanobubblesGraph():
                 bar_widths = np.diff(np_data[:, 0])
                 bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
                 self.ax.bar(x, y, width=bar_widths, align='edge', alpha=0.5, label=f'Batch {i+1}')
-            #self.ax.legend(fontsize=14)
+            self.ax.legend(fontsize=14)
+            
         
         # single histogram
         # self.ax.hist(self.raw_data[0], bins=bins, color='#73A89E', rwidth=0.95) 
