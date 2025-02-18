@@ -74,11 +74,11 @@ class TemperatureGraph():
                 # Append processed data to raw_data
                 #divide elapsed time by 60 to convert to minutes
                 elapsed = data.iloc[:, 2] / 60
-                temp1 = data.iloc[:, 3]
+                temps = data.iloc[:, 3:]
                 # print(f"Elapsed: {elapsed}")
                 # print(f"Temperature: {temp1}")
                 
-                self.raw_data.append((elapsed, temp1))
+                self.raw_data.append((elapsed, temps))
                 # print(f"Raw data: {self.raw_data}")
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
@@ -161,6 +161,8 @@ class TemperatureGraph():
             # generate 6 evenly spaced tick locations over the x-range.
             ticks = np.linspace(x_min, x_max, 6)
             self.ax.set_xticks(ticks)
+        elif elapsed.max() - elapsed.min() > 60:
+            self.ax.xaxis.set_major_locator(MaxNLocator(12))
         else:
             # Otherwise, set ticks every 5 minutes.
             self.ax.xaxis.set_major_locator(MultipleLocator(5))
