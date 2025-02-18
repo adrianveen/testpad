@@ -128,8 +128,10 @@ class TemperatureGraph():
         else:
             # Overlaid datasets
             for i, (elapsed, temperature) in enumerate(self.raw_data):
-                self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}', color=colors[i], linewidth=1)
-            self.ax.legend(fontsize=12)
+                self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}',linewidth=1) #  color=colors[i], 
+            legend = self.ax.legend(fontsize=12)
+            for line in legend.get_lines():
+                line.set_linewidth(6)
 
         # Graph labels
         self.ax.set_xlabel("Elapsed Time (min)", fontsize=14)
@@ -166,11 +168,11 @@ class TemperatureGraph():
 
         # Position for the FUS logo
         if overlaid == False:
-            image_xaxis, image_yaxis = 0.835, 0.77
+            image_xaxis, image_yaxis = 0.835, 0.78
         else:
-            image_xaxis, image_yaxis = 0.1, 0.77
+            image_xaxis, image_yaxis = 0.11, 0.78
 
-        image_width, image_height = 0.12, 0.12
+        image_width, image_height = 0.10, 0.10
 
         # Add the image to the figure
         ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])

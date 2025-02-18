@@ -23,7 +23,7 @@ class TempAnalysisTab(QWidget):
         self.compare_box = QCheckBox()
         self.compare_box.setChecked(False)
         # select file button
-        self.select_file_btn = QPushButton("SELECT TEMPERATURE .CSV FILE(S)")
+        self.select_file_btn = QPushButton("SELECT TEMPERATURE CSV FILE(S)")
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
         # print graph button
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
