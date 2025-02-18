@@ -72,39 +72,38 @@ class TemperatureGraph():
                 #     lambda s: f"{s // 3600:02}:{(s % 3600) // 60:02}:{s % 60:02}"
                 # )
                 # Append processed data to raw_data
-                #divide elapsed time by 60 to convert to minutes
-                # helper function that tests if a value can be converted to float
-                def is_numeric(val):
+                                    # Define a helper function to check if a value can be converted to float.
+                def can_convert_to_float(x):
                     try:
-                        float(val)
+                        float(x)
                         return True
-                    except Exception:
+                    except:
                         return False
 
-                # Check numeric validity for the elapsed column
-                elapsed_valid = data.iloc[:, 2].apply(is_numeric)
+                # We'll check the elapsed column (index 2) and temperature columns (index 3 onward).
+                # Combine the relevant columns into one DataFrame for the check.
+                relevant_columns = data.columns[2:]
+                # Apply the helper function to each cell; this returns a DataFrame of booleans.
+                numeric_mask = data[relevant_columns].applymap(can_convert_to_float).all(axis=1)
                 
-                # Check numeric validity for temperature columns (assumed to be index 3 onward)
-                temp_valid = data.iloc[:, 3:].applymap(is_numeric)
-                # For each row, if any temp column is invalid, mark the row as invalid
-                temp_rows_valid = temp_valid.all(axis=1)
+                # If there's any row that isn't fully numeric, drop that row and all rows that follow.
+                if not numeric_mask.all():
+                    # Find the first row (by index) that is invalid.
+                    first_invalid_index = numeric_mask.idxmin()  # idxmin returns the index of the first False.
+                    # Keep only rows before the first invalid row.
+                    data = data.loc[:first_invalid_index - 1]
                 
-                # Combine the validity masks for elapsed and temperature columns.
-                valid_rows = elapsed_valid & temp_rows_valid
+                # Convert the elapsed column (index 2) to numeric and convert seconds to minutes.
+                elapsed = pd.to_numeric(data.iloc[:, 2], errors='coerce') / 60
+                # Convert temperature columns (index 3 onward) to numeric.
+                temps = data.iloc[:, 3:].apply(pd.to_numeric, errors='coerce')
                 
-                if not valid_rows.all():
-                    # Find the first row that is invalid
-                    first_invalid_idx = valid_rows.idxmin()  # idxmin returns the first index with False
-                    # Drop this row and all rows that follow.
-                    data = data.loc[:first_invalid_idx - 1]
-
-                
-                elapsed = data.iloc[:, 2] / 60
-                # print header for elapsed as f string
-                print(f"Elapsed header: {elapsed.head()}")
-                temps = data.iloc[:, 3:]
-                # print(f"Elapsed: {elapsed}")
-                # print(f"Temperature: {temp1}")
+                # elapsed = data.iloc[:, 2] / 60
+                # # print header for elapsed as f string
+                # print(f"Elapsed header: {elapsed.head()}")
+                # temps = data.iloc[:, 3:]
+                # # print(f"Elapsed: {elapsed}")
+                # # print(f"Temperature: {temp1}")
                 
                 self.raw_data.append((elapsed, temps))
                 # print(f"Raw data: {self.raw_data}")
@@ -227,12 +226,14 @@ class TemperatureGraph():
         else:
             image_xaxis, image_yaxis = 0.10, 0.82
             # set the legend to be below the image
-            self.ax.legend(loc='upper right', fontsize=12)
-            # Add the image to the figure
+            # self.ax.legend(loc='upper right', fontsize=12)
+            legend_bbox = (0.22, 0, 0, 1)
             ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
             ax_image.imshow(image)
             ax_image.axis('off')
-            legend = self.ax.legend(fontsize=12)
+            legend = self.ax.legend(loc='best', fontsize=12, 
+                        bbox_to_anchor=legend_bbox, 
+                        bbox_transform=self.ax.transAxes)
             for line in legend.get_lines():
                 line.set_linewidth(6)
 
