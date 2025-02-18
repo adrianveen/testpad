@@ -61,18 +61,23 @@ class TemperatureGraph():
             try:
                 # Read and process the file
                 data = pd.read_csv(file_path)
-                data = data.drop(data.columns[[4, 5]], axis=1)  # Remove unused columns
+                # Identify columns to drop: those after index 3 whose header doesn't include "Temp"
+                cols_to_drop = [col for col in data.columns[4:] if "Temp" not in str(col)]
+
+                # Drop the selected columns
+                data = data.drop(columns=cols_to_drop)
                 
                 # Append processed data to raw_data
-                elapsed = data["Elapsed (s)"]
-                temperature = data["244B Temp"]
-                # print(f"Elapsed: {elapsed}")
-                # print(f"Temperature: {temperature}")
-                self.raw_data.append((elapsed, temperature))
+                elapsed = data.iloc[:, 2]
+                temp1 = data.iloc[:, 3]
+                print(f"Elapsed: {elapsed}")
+                print(f"Temperature: {temp1}")
+                self.raw_data.append((elapsed, temp1))
                 # print(f"Raw data: {self.raw_data}")
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
         
+        print(f"raw data Header: {self.raw_data[0][0].head()}")
         return self.raw_data
 
     # Generate a color palette based on the base color provided
