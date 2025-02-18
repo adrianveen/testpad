@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+import math
 import yaml
 import decimal
 from pathlib import Path
@@ -10,7 +11,7 @@ from PIL import Image
 from io import BytesIO
 
 import matplotlib.pyplot as plt 
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
 import pandas as pd
@@ -66,18 +67,23 @@ class TemperatureGraph():
 
                 # Drop the selected columns
                 data = data.drop(columns=cols_to_drop)
-                
+                # convert to hh:mm:ss format
+                # data['time_str'] = data.iloc[:, 2].apply(
+                #     lambda s: f"{s // 3600:02}:{(s % 3600) // 60:02}:{s % 60:02}"
+                # )
                 # Append processed data to raw_data
-                elapsed = data.iloc[:, 2]
+                #divide elapsed time by 60 to convert to minutes
+                elapsed = data.iloc[:, 2] / 60
                 temp1 = data.iloc[:, 3]
-                print(f"Elapsed: {elapsed}")
-                print(f"Temperature: {temp1}")
+                # print(f"Elapsed: {elapsed}")
+                # print(f"Temperature: {temp1}")
+                
                 self.raw_data.append((elapsed, temp1))
                 # print(f"Raw data: {self.raw_data}")
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
         
-        print(f"raw data Header: {self.raw_data[0][0].head()}")
+        # print(f"raw data Header: {self.raw_data[0][0].head()}")
         return self.raw_data
 
     # Generate a color palette based on the base color provided
@@ -126,14 +132,37 @@ class TemperatureGraph():
             self.ax.legend(fontsize=12)
 
         # Graph labels
-        self.ax.set_xlabel("Elapsed Time (s)", fontsize=14)
+        self.ax.set_xlabel("Elapsed Time (min)", fontsize=14)
         self.ax.set_ylabel("Temperature (°C)", fontsize=14)
         self.ax.set_title("Temperature vs. Elapsed Time", fontsize=16)
         self.ax.tick_params(axis='both', which='major', labelsize=12)
 
         # Format x-axis to not use scientific notation
-        self.ax.xaxis.set_major_formatter(ScalarFormatter())
-        self.ax.ticklabel_format(style='plain', axis='x')
+        # self.ax.xaxis.set_major_formatter(ScalarFormatter())
+        # self.ax.ticklabel_format(style='plain', axis='x')
+
+        # Replaces the default x-axis formatter with a custom formatter that converts seconds to hh:mm:ss
+        # def format_time(x, pos):
+        #     # x is in seconds; convert to hh:mm:ss
+        #     hours = int(x // 3600)
+        #     minutes = int((x % 3600) // 60)
+        #     seconds = int(x % 60)
+        #     return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+        # self.ax.xaxis.set_major_formatter(FuncFormatter(format_time))
+        # After plotting your data and before drawing the canvas:
+        x_min, x_max = self.ax.get_xlim()
+
+        n_ticks = math.floor((x_max - x_min) / 5) + 1
+        if n_ticks < 6:
+            # If there would be fewer than 6 ticks,
+            # generate 6 evenly spaced tick locations over the x-range.
+            ticks = np.linspace(x_min, x_max, 6)
+            self.ax.set_xticks(ticks)
+        else:
+            # Otherwise, set ticks every 5 minutes.
+            self.ax.xaxis.set_major_locator(MultipleLocator(5))
+        # self.ax.tick_params(axis='x', labelrotation=45)
 
         # Position for the FUS logo
         if overlaid == False:
