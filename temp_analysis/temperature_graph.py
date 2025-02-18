@@ -73,7 +73,35 @@ class TemperatureGraph():
                 # )
                 # Append processed data to raw_data
                 #divide elapsed time by 60 to convert to minutes
+                # helper function that tests if a value can be converted to float
+                def is_numeric(val):
+                    try:
+                        float(val)
+                        return True
+                    except Exception:
+                        return False
+
+                # Check numeric validity for the elapsed column
+                elapsed_valid = data.iloc[:, 2].apply(is_numeric)
+                
+                # Check numeric validity for temperature columns (assumed to be index 3 onward)
+                temp_valid = data.iloc[:, 3:].applymap(is_numeric)
+                # For each row, if any temp column is invalid, mark the row as invalid
+                temp_rows_valid = temp_valid.all(axis=1)
+                
+                # Combine the validity masks for elapsed and temperature columns.
+                valid_rows = elapsed_valid & temp_rows_valid
+                
+                if not valid_rows.all():
+                    # Find the first row that is invalid
+                    first_invalid_idx = valid_rows.idxmin()  # idxmin returns the first index with False
+                    # Drop this row and all rows that follow.
+                    data = data.loc[:first_invalid_idx - 1]
+
+                
                 elapsed = data.iloc[:, 2] / 60
+                # print header for elapsed as f string
+                print(f"Elapsed header: {elapsed.head()}")
                 temps = data.iloc[:, 3:]
                 # print(f"Elapsed: {elapsed}")
                 # print(f"Temperature: {temp1}")
@@ -111,7 +139,7 @@ class TemperatureGraph():
         self.canvas = FigureCanvas(self.fig)
 
         # Generate a color palette based on the number of datasets
-        colors = self.generate_color_palette('#73A89E', len(self.raw_data))
+        # colors = self.generate_color_palette('#73A89E', len(self.raw_data[0][1]))
 
         # Load the FUS icon
         image_path = self.resource_path('images\\fus_icon_transparent.png')
@@ -119,19 +147,31 @@ class TemperatureGraph():
 
         if overlaid == False or len(self.raw_data) == 1:
             # Single dataset
-            data = self.raw_data
-            elapsed = data[0][0]
-            temperature = data[0][1]
+            data = self.raw_data[0]
+            elapsed = data[0]
+            temperatures = data[1]
             # print(f"Elapsed: {elapsed}")
             # print(f"Temperature: {temperature}")
-            self.ax.plot(elapsed, temperature, color='#73A89E', label="Dataset 1", linewidth=2)
+            colors = self.generate_color_palette('#73A89E', len(temperatures.columns))
+            for i, sensor in enumerate(temperatures.columns):
+                if len(temperatures.columns) == 1:
+                    linewidth = 2
+                else:
+                    linewidth = 1
+                self.ax.plot(elapsed, temperatures[sensor], linewidth=linewidth, label=f"Sensor {i+1}", color=colors[i])
+            if len(temperatures.columns) > 1:
+                legend = self.ax.legend(fontsize=12)
+                for line in legend.get_lines():
+                    line.set_linewidth(6)
+            #self.ax.plot(elapsed, temperature, color='#73A89E', label="Dataset 1", linewidth=2)
         else:
+            colors = self.generate_color_palette('#73A89E', len(self.raw_data))
             # Overlaid datasets
             for i, (elapsed, temperature) in enumerate(self.raw_data):
-                self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}',linewidth=1) #  color=colors[i], 
-            legend = self.ax.legend(fontsize=12)
-            for line in legend.get_lines():
-                line.set_linewidth(6)
+                self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}',linewidth=1, color=colors[i]) #  color=colors[i], 
+            # legend = self.ax.legend(fontsize=12)
+            # for line in legend.get_lines():
+            #     line.set_linewidth(6)
 
         # Graph labels
         self.ax.set_xlabel("Elapsed Time (min)", fontsize=14)
@@ -168,19 +208,35 @@ class TemperatureGraph():
             self.ax.xaxis.set_major_locator(MultipleLocator(5))
         # self.ax.tick_params(axis='x', labelrotation=45)
 
+        image_width, image_height = 0.07, 0.07
+
         # Position for the FUS logo
-        if overlaid == False:
-            image_xaxis, image_yaxis = 0.835, 0.78
+        if overlaid == False and len(temperatures.columns) == 1:
+            image_xaxis, image_yaxis = 0.87, 0.82
+                    # Add the image to the figure
+            ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
+            ax_image.imshow(image)
+            ax_image.axis('off')
+
+            # legend = self.ax.legend(
+            # loc='upper left', 
+            # bbox_to_anchor=(image_xaxis, image_yaxis), 
+            # fontsize=12
+            # )
+
         else:
-            image_xaxis, image_yaxis = 0.11, 0.78
+            image_xaxis, image_yaxis = 0.10, 0.82
+            # set the legend to be below the image
+            self.ax.legend(loc='upper right', fontsize=12)
+            # Add the image to the figure
+            ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
+            ax_image.imshow(image)
+            ax_image.axis('off')
+            legend = self.ax.legend(fontsize=12)
+            for line in legend.get_lines():
+                line.set_linewidth(6)
 
-        image_width, image_height = 0.10, 0.10
-
-        # Add the image to the figure
-        ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
-        ax_image.imshow(image)
-        ax_image.axis('off')
-
+        
         # Adjust padding to reduce white space
         self.fig.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.1)
 
