@@ -84,7 +84,7 @@ class TemperatureGraph():
                 # Combine the relevant columns into one DataFrame for the check.
                 relevant_columns = data.columns[2:]
                 # Apply the helper function to each cell; this returns a DataFrame of booleans.
-                numeric_mask = data[relevant_columns].applymap(can_convert_to_float).all(axis=1)
+                numeric_mask = data[relevant_columns].map(can_convert_to_float).all(axis=1)
                 
                 # If there's any row that isn't fully numeric, drop that row and all rows that follow.
                 if not numeric_mask.all():
