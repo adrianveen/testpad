@@ -57,15 +57,18 @@ class HydrophoneGraph():
         for file_path in file_paths:
             try:
                 with open (file_path, 'r') as f:
+                    first_line = f.readline()
                     tx_serial_line = f.readline()
 
                 cells = tx_serial_line.strip().split(',')
-                tx_serial_no = cells[1]
+                self.tx_serial_no = cells[1]
 
-                print(f"Transducer Serial Number: {tx_serial_no}")
+                # print(f"Transducer Serial Number: {tx_serial_no}")
                 # Read and process the file
-                data = pd.read_csv(file_path, header=27)
-                
+                data = pd.read_csv(file_path, header=22)
+                # check column names
+                # print("Columns in the DataFrame:", data.columns.tolist())
+
                 # Append processed data to raw_data
                 frequency = data["Frequency (MHz)"]
                 sensitivity = data["Sensitivity (mV/MPa)"]
@@ -109,18 +112,35 @@ class HydrophoneGraph():
         image_path = self.resource_path('images\\fus_icon_transparent.png')
         image = self.load_icon(image_path)
 
+        # print self.raw_data shape
+        print(f"Raw data shape: {len(self.raw_data)}")
+
         if overlaid == False or len(self.raw_data) == 1:
             # Single dataset
-            data = self.raw_data
-            freq = data[0][0]
-            sensitivity = data[0][1]
+            freq, sensitivity = self.raw_data[0]
             # print(f"Frequency: {freq}")
             # print(f"Sensitivity: {sensitivity}")
-            self.ax.plot(freq, sensitivity, color='#73A89E', label="Dataset 1", linewidth=2)
+            self.ax.plot(
+                freq, sensitivity,
+                linestyle='-', marker='o',
+                color='black',               # Line color (black)
+                markerfacecolor='#73A89E',    # Marker fill color
+                markeredgecolor='black',      # Marker border (edge) color
+                label="Dataset 1", linewidth=2,
+                markersize=8
+            )
         else:
             # Overlaid datasets
             for i, (freq, sensitivity) in enumerate(self.raw_data):
-                self.ax.plot(freq, sensitivity, alpha=0.7, label=f'Dataset {i+1}', color=colors[i], linewidth=1)
+                    self.ax.plot(
+                        freq, sensitivity,
+                        linestyle='-', marker='o',
+                        color='black',              # Line color (black)
+                        markerfacecolor=colors[i],   # Dataset-specific marker fill
+                        markeredgecolor='black',     # Marker border color
+                        alpha=0.7, label=f'Dataset {i+1}',
+                        linewidth=1, markersize=8
+                    )
             self.ax.legend(fontsize=12)
 
         # Graph labels

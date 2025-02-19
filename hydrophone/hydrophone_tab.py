@@ -13,7 +13,7 @@ class HydrophoneAnalysisTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.temperature_data_files = None
+        self.hydrophone_scan_data = None
         self.file_save_location = None
 
         # USER INTERACTION AREA
@@ -68,8 +68,8 @@ class HydrophoneAnalysisTab(QWidget):
             
             if self.dialog1.exec(): 
                 self.text_display.append("Hydrophone Scan Data Files: ")
-                self.temperature_data_files = self.dialog1.selectedFiles()
-                for file in self.temperature_data_files:
+                self.hydrophone_scan_data = self.dialog1.selectedFiles()
+                for file in self.hydrophone_scan_data:
                     self.text_display.append(file +"\n")
         
         # NOT IMPLEMENTED YET
@@ -101,6 +101,7 @@ class HydrophoneAnalysisTab(QWidget):
 
             self.graph_tab.addTab(graph_widget, "Hydrophone Scan Data")
 
+            self.text_display.append("Transducer Serial Number: " + hydrophone_object.tx_serial_no + "\n")
             # Debugging statements
             # print(f"save_box is checked: {self.save_box.isChecked()}")
             # if self.file_save_location is not None:
