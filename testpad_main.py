@@ -14,6 +14,7 @@ from vol2press.vol2press_tab import Vol2PressTab
 from burnin.burnin_tab import BurninTab
 from nanobubbles.nanobubbles_tab import NanobubblesTab
 from temp_analysis.temp_analysis_tab import TempAnalysisTab
+from hydrophone.hydrophone_tab import HydrophoneAnalysisTab
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -50,6 +51,7 @@ class ApplicationWindow(QMainWindow):
         tab_widget.addTab(BurninTab(self), "Burn-in Graph Viewer") # graphs HDF5 files from burn-in for user manipulation 
         tab_widget.addTab(NanobubblesTab(self), "Nanobubbles Tab") # graphs nanobubbles size vs. count
         tab_widget.addTab(TempAnalysisTab(self), "Temperature Analysis") # graphs temperature vs. time
+        tab_widget.addTab(HydrophoneAnalysisTab(self), "Hydrophone Analysis") # graphs hydrophone data
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(tab_widget)
