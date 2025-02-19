@@ -25,7 +25,7 @@ class ApplicationWindow(QMainWindow):
         base_path = getattr(sys, '_MEIPASS', os.getcwd())
         icon_path = os.path.join(base_path, 'images', 'fus_icon_transparent.ico')
         self.setWindowIcon(QIcon(icon_path))
-        self.setWindowTitle("FUS Data Viewer v1.7.3")
+        self.setWindowTitle("FUS Data Viewer v1.7.4")
         self.resize(800, 600)        
         
         tab_widget = QTabWidget()
