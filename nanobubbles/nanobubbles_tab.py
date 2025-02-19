@@ -17,8 +17,7 @@ class NanobubblesTab(QWidget):
 
         self.nanobubbles_files = None
         self.file_save_location = None
-        self.concentration_per_ml = None
-        self.size_distribution = None
+        self.selected_data_type = None
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox()
         # select file button 
@@ -28,6 +27,15 @@ class NanobubblesTab(QWidget):
         self.log_label = QLabel("Logarithmic Scale:")
         self.log_box = QCheckBox()
         self.log_box.setChecked(True)
+
+        self.convolution_label = QLabel("Apply Convolution Filter:")
+        self.convolution_box = QCheckBox()
+        self.convolution_box.setChecked(True)
+        self.convolution_spinbox = QSpinBox()
+        self.convolution_spinbox.setMaximum(20)
+        self.convolution_spinbox.setMinimum(2)
+        self.convolution_spinbox.setValue(3)
+
         # self.log_box.stateChanged.connect(self.toggle_log_scale)
         # bin count spin box
         self.bin_count_label = QLabel("Bin Count (log scale):")
@@ -84,28 +92,36 @@ class NanobubblesTab(QWidget):
         # add log scale label and checkbox
         selections_layout.addWidget(self.log_label, 1, 0)
         selections_layout.addWidget(self.log_box, 1, 1, Qt.AlignCenter)
+
+        selections_layout.addWidget(self.convolution_label, 2, 0)
+
+        self.convolution_settings_hbox = QHBoxLayout()
+        self.convolution_settings_hbox.addWidget(self.convolution_box)
+        self.convolution_settings_hbox.addWidget(self.convolution_spinbox)
+        selections_layout.addLayout(self.convolution_settings_hbox, 2, 1, Qt.AlignCenter)
+
         # add bin count label and spinbox
-        selections_layout.addWidget(self.bin_count_label, 2, 0)
-        selections_layout.addWidget(self.bin_count_spinbox, 2, 1)
+        selections_layout.addWidget(self.bin_count_label, 3, 0)
+        selections_layout.addWidget(self.bin_count_spinbox, 3, 1)
         # add bin width label and field
-        selections_layout.addWidget(self.bin_width_label, 3, 0)
-        selections_layout.addWidget(self.bin_width_field, 3, 1)
+        selections_layout.addWidget(self.bin_width_label, 4, 0)
+        selections_layout.addWidget(self.bin_width_field, 4, 1)
         # add data selection label and dropdown
-        selections_layout.addWidget(self.data_selection_label, 4, 0)
-        selections_layout.addWidget(self.data_selection, 4, 1)
+        selections_layout.addWidget(self.data_selection_label, 5, 0)
+        selections_layout.addWidget(self.data_selection, 5, 1)
         # add compare label and checkbox
-        selections_layout.addWidget(self.compare_label, 5, 0)
-        selections_layout.addWidget(self.compare_box, 5, 1, Qt.AlignCenter)
+        selections_layout.addWidget(self.compare_label, 6, 0)
+        selections_layout.addWidget(self.compare_box, 6, 1, Qt.AlignCenter)
         # add normalize label and checkbox
         # selections_layout.addWidget(self.normal_label, 5, 0)
         # selections_layout.addWidget(self.normal_box, 5, 1, Qt.AlignCenter)
 
         # add save label and checkbox
-        selections_layout.addWidget(self.save_label, 6, 0)
-        selections_layout.addWidget(self.save_box, 6, 1, Qt.AlignCenter)
-        selections_layout.addWidget(self.save_folder_btn, 7, 0, 1, 2)
+        selections_layout.addWidget(self.save_label, 7, 0)
+        selections_layout.addWidget(self.save_box, 7, 1, Qt.AlignCenter)
+        selections_layout.addWidget(self.save_folder_btn, 8, 0, 1, 2)
         # add print graph button
-        selections_layout.addWidget(self.print_graph_btn, 8, 0, 1, 2)
+        selections_layout.addWidget(self.print_graph_btn, 9, 0, 1, 2)
         buttons_groupbox.setLayout(selections_layout)
 
         # TEXT CONSOLE
@@ -168,10 +184,8 @@ class NanobubblesTab(QWidget):
     def create_graph(self):
         if self.nanobubbles_files is not None:
             self.graph_tab.clear()
-            if self.data_selection.currentText() == "Concentration Per mL":
-                self.concentration_per_ml = True
-            elif self.data_selection.currentText() == "Size Distribution":
-                self.size_distribution = True
+            self.selected_data_type = self.data_selection.currentText()
+            print(f"Selected data type: {self.selected_data_type}")
             # check that bin width is a number
             try:
                 bin_width = float(self.bin_width_field.text())
@@ -182,14 +196,18 @@ class NanobubblesTab(QWidget):
                 return
             
             if not self.log_box.isChecked():
-                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files, self.selected_data_type)
                 graph = nanobubbles_object.get_graphs(float(self.bin_width_field.text()), \
-                                                      False, False, self.compare_box.isChecked())
+                                                      False, False, self.compare_box.isChecked(), self.selected_data_type,
+                                                      apply_convolution_filter=self.convolution_box.isChecked(),
+                                                      convolution_size=self.convolution_spinbox.value())
                                                       # False, self.normal_box.isChecked(), self.compare_box.isChecked())
             else: #log scale
-                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files)
+                nanobubbles_object = NanobubblesGraph(self.nanobubbles_files, self.selected_data_type)
                 graph = nanobubbles_object.get_graphs(float(self.bin_count_spinbox.value()), "log", \
-                                                      False, self.compare_box.isChecked())
+                                                      False, self.compare_box.isChecked(), self.selected_data_type,
+                                                      apply_convolution_filter=self.convolution_box.isChecked(),
+                                                      convolution_size=self.convolution_spinbox.value())
                                                       # self.normal_box.isChecked(), self.compare_box.isChecked())
                 
             nav_tool = NavigationToolbar(graph)

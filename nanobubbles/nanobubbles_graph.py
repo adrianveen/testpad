@@ -5,22 +5,29 @@ import yaml
 import decimal
 from pathlib import Path
 import pandas as pd
-
 from definitions import SRC_DIR
 from PIL import Image
-from io import BytesIO
+from io import BytesIO, StringIO
 
 import matplotlib.pyplot as plt 
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
 
+def gaussian_kernel(size, sigma=1.0):
+    """
+    Generates a gaussian kernal for convolution filtering
+    """
+    kernel = np.exp(-np.linspace(-sigma, sigma, size) ** 2)
+    return kernel / kernel.sum()  # Normalize the kernel so the sum is 1
 
 class NanobubblesGraph():
-    def __init__(self, nanobubble_txt) -> None:
+    def __init__(self, nanobubble_txt, data_selection) -> None:
         self.nanobubble_txt = nanobubble_txt
         self.raw_data = []
-        
+        self.data_selection = data_selection
+        # initiate empty dataframe
+        self.data = pd.DataFrame()
         # Check if nanobubble_txt is None
         if nanobubble_txt is None:
             raise ValueError("No file selected") # nanobubble_txt cannot be none
@@ -28,7 +35,7 @@ class NanobubblesGraph():
         # Process each file if nanobubble_txt is a list
         if isinstance(nanobubble_txt, list):
             for file in nanobubble_txt:
-                self._process_file(file)
+                self._process_file(file, data_selection)
         else:
             self._process_file(nanobubble_txt)
 
@@ -43,51 +50,87 @@ class NanobubblesGraph():
         image_array = np.array(image)
         return image_array
 
-    def _process_file(self, file):
+    def _process_file(self, file, data_selection):
         if file is None:
             raise ValueError("No file selected")  # File cannot be None
 
-        try:
-            # Read the file, setting row 89 as the header and skipping rows 90 to 290
-            data = pd.read_csv(
-                file,
-                delimiter="\t",
-                encoding="utf-8",
-                header=88  # Row 89 is the header; 0-indexed
-            )
-        except UnicodeDecodeError:
-            # Fallback to latin1 encoding if utf-8 fails
-            data = pd.read_csv(
-                file,
-                delimiter="\t",
-                encoding="latin1",
-                header=88
-            )
+        # OLD APPROACH
+        # try:
+        #     # Read the file, setting row 89 as the header and skipping rows 90 to 290
+        #     data = pd.read_csv(
+        #         file,
+        #         delimiter="\t",
+        #         encoding="utf-8",
+        #         header=88  # Row 89 is the header; 0-indexed
+        #     )
+        # except UnicodeDecodeError:
+        #     # Fallback to latin1 encoding if utf-8 fails
+        #     data = pd.read_csv(
+        #         file,
+        #         delimiter="\t",
+        #         encoding="latin1",
+        #         header=88
+        #     )
+        with open(file, "r") as f:
+            lines = f.readlines()
 
+        drop_lines_index = 0
+
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith("-1"):
+                drop_lines_index = i + 1
+                break
+        
+        remaining_lines = lines[drop_lines_index:]
+
+        # OLD APPROACH
         # Identify the first row index where "Size / nm" is negative
-        negative_index = data[data["Size / nm"] < 0].index.min()
+        # negative_index = data[data["Size / nm"] < 0].index.min()
 
         # If a negative value exists, drop all rows up to and including that row
-        if not np.isnan(negative_index):  # Check if a negative value was found
-            data = data.iloc[negative_index + 1:]  # Remove rows up to and including the negative value row
+        #if not np.isnan(negative_index):  # Check if a negative value was found
+            #data = data.iloc[negative_index + 1:]  # Remove rows up to and including the negative value row
 
+        # DEBUGGING
         # print statements to confirm array matches data
         # print(f"First row of data: {data.iloc[0]}")
         # print(f"Last row of data: {data.iloc[-1]}")
         
+        # OLD APPROACH
         # Ensure we have the required columns
-        required_columns = ["Size / nm", "Number"]
-        if not all(col in data.columns for col in required_columns):
-            raise ValueError(f"Missing required columns: {required_columns}")
-        data = data[required_columns]
+        # required_columns = ["Size / nm", "Number"]
+        # if not all(col in data.columns for col in required_columns):
+        #     raise ValueError(f"Missing required columns: {required_columns}")
+        # data = data[required_columns]
+        col_names = ["Size / nm", "Number", "Concentration / cm-3", "Volume / nm^3", "Area / nm^2"]
 
-        data = data[(data["Size / nm"] >= 0) & (data["Number"] >= 0)]
-        data_array = data.to_numpy()
+        data_str = ''.join(remaining_lines)
 
-        if data_array.size == 0:
-            raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
+        data_io = StringIO(data_str)
+
+        self.data = pd.read_csv(data_io, sep="\t", header=None, names=col_names)
+        #self.set_data_selection(data_selection, self.data)
+        # self.raw_data.append(self.data)
+
+    # def set_data_selection(self, data_selection, data):
+    #     self.raw_data = []
+    #     if data_selection == "Size Distribution":
+    #         # Filter rows based on conditions
+    #         filtered = data[(data["Size / nm"] >= 0) & (data["Number"] >= 0)]
+    #         # Select the first (index 0) and second (index 1) columns
+    #         data = filtered.iloc[:, [0, 1]]
+    #         data_array = data.to_numpy()
+
+    #     elif data_selection == "Concentration Per mL":
+    #         filtered = data[(data["Size / nm"] >= 0) & (data["Concentration / cm-3"] >= 0)]
+    #         # Select the first (index 0) and third (index 2) columns
+    #         data = filtered.iloc[:, [0, 2]]
+    #         data_array = data.to_numpy()
+
+    #     if data_array.size == 0:
+    #         raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
         
-        self.raw_data.append(data_array)
+    #     self.raw_data.append(data_array)
 
     # Generate a color palette based on the base color provided
     def generate_color_palette(self, base_color, num_colors):
@@ -97,9 +140,10 @@ class NanobubblesGraph():
                            base_rgb[2] * (1 - i / num_colors))) for i in range(num_colors)]
         return palette
     
-    # returns canvas of mpl graph to UI
+    # returns canvas of mpl graph to UIapply_convolution_filter
 
-    def get_graphs(self, bins, scale, normalize=False, overlaid=False):
+    def get_graphs(self, bins, scale, normalize=False, overlaid=False, data_selection=None,
+                   apply_convolution_filter=False, convolution_size=3):
         """
         Generate and return a histogram plot of nanobubble size distributions.
         Parameters:
@@ -110,9 +154,11 @@ class NanobubblesGraph():
         Returns:
         FigureCanvas: The canvas containing the generated plot.
         """
+        # clear plot
+        plt.close('all')
         self.fig, self.ax = plt.subplots(1, 1)
         self.canvas = FigureCanvas(self.fig)
-        
+        # self.set_data_selection(data_selection, self.data)
         # Generate a color palette based on the base color (FUS Green)
         colors = self.generate_color_palette('#73A89E', len(self.raw_data))
         # load fus_icon png and conver to np array
@@ -127,20 +173,35 @@ class NanobubblesGraph():
         else:
             # Linear scale: use linear bins
             bins = np.arange(0, 1000 + bins, bins)
-
-        if not overlaid or len(self.raw_data) == 1:
+        
+        if not overlaid or len(self.data) == 1:
+            
             # Retrieve the first dataset
-            data = self.raw_data[0]
-            x = data[:, 0]
-            y = data[:, 1]
-            # Validate that `data` is a 2D array with two columns
-            if data.ndim != 2 or data.shape[1] != 2:
-                raise ValueError(f"`self.raw_data[0]` is not a valid 2D array. Current shape: {data.shape}")
+            data = self.data# self.raw_data[0]
+            # print(data.shape())
+            np_data = self.data.to_numpy()
+            if data_selection == "Size Distribution":
+                x = np_data[:, 0]  # first column
+                y = np_data[:, 1]  # second column
+            elif data_selection == "Concentration Per mL":
+                x = np_data[:, 0]  # first column
+                y = np_data[:, 2]  # third column
 
+            if apply_convolution_filter:
+                y = np.convolve(y, gaussian_kernel(convolution_size, sigma=1.0), mode='same')
+
+            # print middle rows of y
+            #print(y[100:110])
+
+            # Validate that `data` is a 2D array with two columns
+            # if data.ndim != 2 or data.shape[1] != 2:
+            #     raise ValueError(f"`self.raw_data[0]` is not a valid 2D array. Current shape: {data.shape}")
             # Create a giant array where each size is repeated 'count' times
             #sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
 
-            bar_widths = np.diff(data[:, 0])
+            bar_widths = np.diff(np_data[:, 0])
+
+            # Append an extrapolated width at the end.
             bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
             # Plot the histogram
             self.ax.bar(x, y, width=bar_widths, align='edge', color='#73A89E')
@@ -148,25 +209,41 @@ class NanobubblesGraph():
         elif overlaid == True :
 
             # Plot multiple overlaid and translucent histograms
-            for i, data in enumerate(self.raw_data):
-                # sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
-                x = data[:, 0]
-                y = data[:, 1]
-                bar_widths = np.diff(data[:, 0])
+            for i, data in enumerate(self.data):
+                
+                data = self.data
+                np_data = data.to_numpy()
+
+                if data_selection == "Size Distribution":
+                    # sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
+                    x = np_data[:, 0]
+                    y = np_data[:, 1]
+                    print(y[100:110])
+                elif data_selection == "Concentration Per mL":
+                    x = np_data[:, 0]
+                    y = np_data[:, 2]
+                    print(y[100:110])
+                bar_widths = np.diff(np_data[:, 0])
                 bar_widths = np.append(bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2])
                 self.ax.bar(x, y, width=bar_widths, align='edge', alpha=0.5, label=f'Batch {i+1}')
             self.ax.legend(fontsize=14)
+            
         
         # single histogram
         # self.ax.hist(self.raw_data[0], bins=bins, color='#73A89E', rwidth=0.95) 
         
         # graph labels
-        self.ax.set_xlabel("Diameter [nm]", fontsize=16)
-        self.ax.set_ylabel("Count", fontsize=16) # optional y axis label
-        self.ax.set_title("Nanobubble Size Distribution", fontsize=18)
-        self.ax.tick_params(axis='both', which='major', labelsize=14)
-        # self.ax.tick_params(axis='both', which='minor', labelsize=12)
-
+        if data_selection == "Size Distribution":    
+            self.ax.set_xlabel("Diameter [nm]", fontsize=16)
+            self.ax.set_ylabel("Count", fontsize=16) # optional y axis label
+            self.ax.set_title("Nanobubble Size Distribution", fontsize=18)
+            self.ax.tick_params(axis='both', which='major', labelsize=14)
+            # self.ax.tick_params(axis='both', which='minor', labelsize=12)
+        elif data_selection == "Concentration Per mL":
+            self.ax.set_xlabel("Diameter [nm]", fontsize=16)
+            self.ax.set_ylabel("Particles / mL", fontsize=16)
+            self.ax.set_title("Nanobubble Concentration", fontsize=18)
+            self.ax.tick_params(axis='both', which='major', labelsize=14)
         # formatting x-axis to not be in scientific notation
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
