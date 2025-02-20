@@ -124,7 +124,7 @@ def _parse_info_from_ncycle_sweep_directory(results_directory: str,
     return transducer_sn, freq_strs, ncycle_sweep_subfolders
 
 
-def add_ncycle_sweep_to_transducer_file(results_directory, transducer_config_file: str):
+def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_config_file: str):
     """
     Adds data to the transducer config file for each frequency at which ncycle sweep data was collected, containing
     data for how to derate unified_vol2press for low numbers of cycles.
