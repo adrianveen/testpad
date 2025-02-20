@@ -127,14 +127,14 @@ def _parse_info_from_ncycle_sweep_directory(results_directory: str,
 def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_config_file: str):
     """
     Adds data to the transducer config file for each frequency at which ncycle sweep data was collected, containing
-    data for how to derate unified_vol2press for low numbers of cycles.
+    data for how to derate pressure for low numbers of cycles.
 
-    A list of floats will be added to keys such as 612-T550H825\\550000.0\\vol2press_adjustment_by_num_cycles
+    A list of floats will be added to keys such as 612-T550H825\\550000.0\\normalized_pnp_by_num_cycles
     containing the normalized peak pressure for each cycle count. The final value of the lists should be 1, since the
     values should be normalized to the greatest number of cycles.
 
     :param results_directory, A directory containing ncycle sweep data for one or more frequencies for a given
-    transducer. The strucuture of this directory should be as follows:
+    transducer. The structure of this directory should be as follows:
     Top level: one or more directories of format like
     "...\\612_T550H825_sweep_550kHz_ncycle_sweep_data"
     Subfolders:
@@ -144,7 +144,7 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
     with a certain number of trials per cycle count (the extension)
 
     :param transducer_config_file: The path to the transducer config file to be updated.
-    Note: Keys such as 612-T550H825\\550000.0\\vol2press_adjustment_by_num_cycles will be added or overwritten.
+    Note: Keys such as 612-T550H825\\550000.0\\normalized_pnp_by_num_cycles will be added or overwritten.
     """
     transducer_sn, freq_strs, ncycle_sweep_subfolders = _parse_info_from_ncycle_sweep_directory(results_directory)
 
