@@ -11,7 +11,7 @@ from PIL import Image
 from io import BytesIO
 
 import matplotlib.pyplot as plt 
-from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator
+from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator, FormatStrFormatter
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
 import pandas as pd
@@ -162,15 +162,11 @@ class TemperatureGraph():
                 legend = self.ax.legend(fontsize=12)
                 for line in legend.get_lines():
                     line.set_linewidth(6)
-            #self.ax.plot(elapsed, temperature, color='#73A89E', label="Dataset 1", linewidth=2)
         else:
             colors = self.generate_color_palette('#73A89E', len(self.raw_data))
             # Overlaid datasets
             for i, (elapsed, temperature) in enumerate(self.raw_data):
                 self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}',linewidth=1, color=colors[i]) #  color=colors[i], 
-            # legend = self.ax.legend(fontsize=12)
-            # for line in legend.get_lines():
-            #     line.set_linewidth(6)
 
         # Graph labels
         self.ax.set_xlabel("Elapsed Time (min)", fontsize=14)
@@ -178,34 +174,22 @@ class TemperatureGraph():
         self.ax.set_title("Temperature vs. Elapsed Time", fontsize=16)
         self.ax.tick_params(axis='both', which='major', labelsize=12)
 
-        # Format x-axis to not use scientific notation
-        # self.ax.xaxis.set_major_formatter(ScalarFormatter())
-        # self.ax.ticklabel_format(style='plain', axis='x')
-
-        # Replaces the default x-axis formatter with a custom formatter that converts seconds to hh:mm:ss
-        # def format_time(x, pos):
-        #     # x is in seconds; convert to hh:mm:ss
-        #     hours = int(x // 3600)
-        #     minutes = int((x % 3600) // 60)
-        #     seconds = int(x % 60)
-        #     return f"{hours:02}:{minutes:02}:{seconds:02}"
-
-        # self.ax.xaxis.set_major_formatter(FuncFormatter(format_time))
         # After plotting your data and before drawing the canvas:
         x_min, x_max = self.ax.get_xlim()
 
-        n_ticks = math.floor((x_max - x_min) / 5) + 1
+        n_ticks = math.floor((x_max - 0) / 5) + 1
         if n_ticks < 6:
             # If there would be fewer than 6 ticks,
             # generate 6 evenly spaced tick locations over the x-range.
-            ticks = np.linspace(x_min, x_max, 6)
+            ticks = np.arange(0, 7)
             self.ax.set_xticks(ticks)
         elif elapsed.max() - elapsed.min() > 60:
             self.ax.xaxis.set_major_locator(MaxNLocator(12))
         else:
             # Otherwise, set ticks every 5 minutes.
             self.ax.xaxis.set_major_locator(MultipleLocator(5))
-        # self.ax.tick_params(axis='x', labelrotation=45)
+
+        self.ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
 
         image_width, image_height = 0.07, 0.07
 
@@ -217,27 +201,22 @@ class TemperatureGraph():
             ax_image.imshow(image)
             ax_image.axis('off')
 
-            # legend = self.ax.legend(
-            # loc='upper left', 
-            # bbox_to_anchor=(image_xaxis, image_yaxis), 
-            # fontsize=12
-            # )
-
         else:
             image_xaxis, image_yaxis = 0.10, 0.82
             # set the legend to be below the image
             # self.ax.legend(loc='upper right', fontsize=12)
-            legend_bbox = (0.22, 0, 0, 1)
+            legend_bbox = (0.32, 0, 0, 0.90)
             ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
             ax_image.imshow(image)
             ax_image.axis('off')
-            legend = self.ax.legend(loc='best', fontsize=12, 
+            legend = self.ax.legend(
+                        loc='best', fontsize=12, 
                         bbox_to_anchor=legend_bbox, 
-                        bbox_transform=self.ax.transAxes)
+                        bbox_transform=self.fig.transFigure
+                        )
             for line in legend.get_lines():
                 line.set_linewidth(6)
 
-        
         # Adjust padding to reduce white space
         self.fig.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.1)
 
