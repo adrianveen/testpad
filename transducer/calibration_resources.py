@@ -250,7 +250,12 @@ FILE CREATION METHODS
 
 # sweep file creation, returns an averaged file of all sweeps
 def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file: str = "",
-                      textbox: QTextBrowser = None):
+                      textbox: QTextBrowser = None,
+                      generate_figures: bool = True,
+                      show_feedback: bool = True) -> Union[Tuple[float, float], QWidget]:
+    """
+    If generate_figure is false this will only return the m-value (AKA unified_vol2press) and the greatest PNP in MPa.
+    """
     if eb50_file == None:
         eb50_file = ""
     # filename = os.path.join(folder, sweep_filename)
@@ -386,11 +391,11 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
     else:
         markersize = 6
 
-    # generate sweep graph using Marc's program 
+    # generate sweep graph using Marc's program
     sweep_freq, sweep_freq_ending = fmt(number_freq)
     graph = sweep_graph(data_mtx, transducer, str(sweep_freq) + " " + sweep_freq_ending, save_folder, markersize,
-                        textbox)
-    returned_graph = graph.generate_graph()
+                        textbox, generate_figure=generate_figures, show_feedback=show_feedback)
+    returned_graph = graph.generate_graph()  #Note will be None if generate_figures is False
     # graph.generate_graph()
 
     # get the m-value and the matlab r squared to put into the sweep file
@@ -435,7 +440,9 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
 
         f.close()
 
-    return (returned_graph)
+    if returned_graph is None:
+        return m, max(averaged_pressures)
+    return returned_graph
 
 
 # field graph svg
