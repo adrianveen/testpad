@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator, FormatStrFormatter
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox, HPacker, AnchoredOffsetbox
+from matplotlib.legend import Legend
 import pandas as pd
 
 
@@ -158,10 +160,10 @@ class TemperatureGraph():
                 else:
                     linewidth = 1
                 self.ax.plot(elapsed, temperatures[sensor], linewidth=linewidth, label=f"Sensor {i+1}", color=colors[i])
-            if len(temperatures.columns) > 1:
-                legend = self.ax.legend(fontsize=12)
-                for line in legend.get_lines():
-                    line.set_linewidth(6)
+            # if len(temperatures.columns) > 1:
+            #     legend = self.ax.legend(fontsize=12)
+            #     for line in legend.get_lines():
+            #         line.set_linewidth(6)
         else:
             colors = self.generate_color_palette('#73A89E', len(self.raw_data))
             # Overlaid datasets
@@ -202,18 +204,14 @@ class TemperatureGraph():
             ax_image.axis('off')
 
         else:
-            image_xaxis, image_yaxis = 0.10, 0.82
+            image_xaxis, image_yaxis = 0.20, 0.82
             # set the legend to be below the image
             # self.ax.legend(loc='upper right', fontsize=12)
-            legend_bbox = (0.32, 0, 0, 0.90)
+            #legend_bbox = (0.32, 0, 0, 0.90)
             ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
             ax_image.imshow(image)
             ax_image.axis('off')
-            legend = self.ax.legend(
-                        loc='best', fontsize=12, 
-                        bbox_to_anchor=legend_bbox, 
-                        bbox_transform=self.fig.transFigure
-                        )
+            legend = self.ax.legend(loc='best', fontsize=12)
             for line in legend.get_lines():
                 line.set_linewidth(6)
 
