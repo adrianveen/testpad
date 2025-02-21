@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import os
 import sys
 import math
@@ -16,8 +17,6 @@ from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox, HPacker, AnchoredOffsetbox
 from matplotlib.legend import Legend
-import pandas as pd
-
 
 class TemperatureGraph():
     def __init__(self, temperature_csv) -> None:
@@ -34,6 +33,9 @@ class TemperatureGraph():
 
         # Process the file(s) and store the data
         self.raw_data = self._process_files(temperature_csv)
+
+        self.image_path = self.resource_path('images\\fus_icon_transparent.png')
+        self.image = self.load_icon(self.image_path)
     
     def resource_path(self, relative_path):
         """Get the absolute path to a resource"""
@@ -142,10 +144,6 @@ class TemperatureGraph():
         # Generate a color palette based on the number of datasets
         # colors = self.generate_color_palette('#73A89E', len(self.raw_data[0][1]))
 
-        # Load the FUS icon
-        image_path = self.resource_path('images\\fus_icon_transparent.png')
-        image = self.load_icon(image_path)
-
         if overlaid == False or len(self.raw_data) == 1:
             # Single dataset
             data = self.raw_data[0]
@@ -193,26 +191,14 @@ class TemperatureGraph():
 
         self.ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
 
-        image_width, image_height = 0.07, 0.07
+        # image_width, image_height = 0.07, 0.07
 
-        # Position for the FUS logo
-        if overlaid == False and len(temperatures.columns) == 1:
-            image_xaxis, image_yaxis = 0.87, 0.82
-                    # Add the image to the figure
-            ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
-            ax_image.imshow(image)
-            ax_image.axis('off')
-
-        else:
-            image_xaxis, image_yaxis = 0.20, 0.82
-            # set the legend to be below the image
-            # self.ax.legend(loc='upper right', fontsize=12)
-            #legend_bbox = (0.32, 0, 0, 0.90)
-            ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
-            ax_image.imshow(image)
-            ax_image.axis('off')
-            legend = self.ax.legend(loc='best', fontsize=12)
-            for line in legend.get_lines():
+        if overlaid == True or len(temperatures.columns) > 1:
+            # ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
+            # ax_image.imshow(self.image)
+            # ax_image.axis('off')
+            self.legend = self.ax.legend(loc='best', fontsize=12)
+            for line in self.legend.get_lines():
                 line.set_linewidth(6)
 
         # Adjust padding to reduce white space
