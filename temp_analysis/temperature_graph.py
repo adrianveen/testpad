@@ -22,7 +22,7 @@ class TemperatureGraph():
     def __init__(self, temperature_csv) -> None:
         # self.aggregate_representation = np.array([])
         self.temperature_csv = temperature_csv
-        self.legend = None 
+        self.legend = None
         self.raw_data = []
         
         # Check if temperature_csv is None
@@ -191,8 +191,6 @@ class TemperatureGraph():
             self.ax.xaxis.set_major_locator(MultipleLocator(5))
 
         self.ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
-
-        image_width, image_height = 0.07, 0.07
 
         if overlaid == True or len(temperatures.columns) > 1:
             # ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])

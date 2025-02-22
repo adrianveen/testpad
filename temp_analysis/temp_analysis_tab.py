@@ -87,14 +87,14 @@ class TempAnalysisTab(QWidget):
             shift_x = (legend_bbox.width/self.temperature_object.fig.bbox.width) * 1.1
             if x_position > 0.5:
                 # Move the image to the left side if the legend is on the right
-                shift_x = - (legend_bbox.width/self.temperature_object.fig.bbox.width) * 0.6 # A small offset to the left
+                shift_x = - (legend_bbox.width/self.temperature_object.fig.bbox.width) * 0.65 # A small offset to the left
 
             # Add new axes for the image (positioned relative to the legend)
             self.image_ax = self.temperature_object.fig.add_axes([x_position + shift_x, y_position, image_width / self.temperature_object.fig.bbox.width,
                                                 image_height / self.temperature_object.fig.bbox.height])
         else:
             # display image in top right corner
-            self.image_ax = self.temperature_object.fig.add_axes([0.8, 0.8, 0.2, 0.2])
+            self.image_ax = self.temperature_object.fig.add_axes([0.855, 0.8, 0.08, 0.08])
         # Display the image
         self.image_ax.imshow(self.img)
         self.image_ax.axis('off')  # Hide the axes
