@@ -70,28 +70,31 @@ class TempAnalysisTab(QWidget):
         if self.image_ax:
             self.image_ax.remove()
 
-        # Get the legend's position and size
-        legend_bbox = self.temperature_object.legend.get_window_extent()
-        fig_bbox = self.temperature_object.fig.transFigure.inverted().transform(legend_bbox)
+        if self.temperature_object.legend is not None:
+            # Get the legend's position and size
+            legend_bbox = self.temperature_object.legend.get_window_extent()
+            fig_bbox = self.temperature_object.fig.transFigure.inverted().transform(legend_bbox)
 
-        # Get the position and size in figure coordinates
-        x_position, y_position = fig_bbox[0][0], fig_bbox[0][1]
+            # Get the position and size in figure coordinates
+            x_position, y_position = fig_bbox[0][0], fig_bbox[0][1]
 
-        # Use the height of the legend for the image's height
-        legend_height = legend_bbox.height  # In pixels
-        image_width = legend_height  # Make image width proportional to legend height
-        image_height = legend_height  # Fixed size based on the legend height
+            # Use the height of the legend for the image's height
+            legend_height = legend_bbox.height  # In pixels
+            image_width = legend_height  # Make image width proportional to legend height
+            image_height = legend_height  # Fixed size based on the legend height
 
-        # Determine whether the legend is on the left or right side of the figure
-        shift_x = (legend_bbox.width/self.temperature_object.fig.bbox.width) * 1.1
-        if x_position > 0.5:
-            # Move the image to the left side if the legend is on the right
-            shift_x = - (legend_bbox.width/self.temperature_object.fig.bbox.width) * 0.6 # A small offset to the left
+            # Determine whether the legend is on the left or right side of the figure
+            shift_x = (legend_bbox.width/self.temperature_object.fig.bbox.width) * 1.1
+            if x_position > 0.5:
+                # Move the image to the left side if the legend is on the right
+                shift_x = - (legend_bbox.width/self.temperature_object.fig.bbox.width) * 0.6 # A small offset to the left
 
-        # Add new axes for the image (positioned relative to the legend)
-        self.image_ax = self.temperature_object.fig.add_axes([x_position + shift_x, y_position, image_width / self.temperature_object.fig.bbox.width,
-                                              image_height / self.temperature_object.fig.bbox.height])
-
+            # Add new axes for the image (positioned relative to the legend)
+            self.image_ax = self.temperature_object.fig.add_axes([x_position + shift_x, y_position, image_width / self.temperature_object.fig.bbox.width,
+                                                image_height / self.temperature_object.fig.bbox.height])
+        else:
+            # display image in top right corner
+            self.image_ax = self.temperature_object.fig.add_axes([0.8, 0.8, 0.2, 0.2])
         # Display the image
         self.image_ax.imshow(self.img)
         self.image_ax.axis('off')  # Hide the axes
