@@ -8,6 +8,7 @@ import numpy as np
 import os
 import yaml
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 class TempAnalysisTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -15,6 +16,9 @@ class TempAnalysisTab(QWidget):
 
         self.temperature_data_files = None
         self.file_save_location = None
+        self.temperature_object = None
+        self.image_ax = None
+        self.img = []
 
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox("File Selection")
@@ -51,6 +55,52 @@ class TempAnalysisTab(QWidget):
         main_layout.addWidget(self.graph_tab, 0, 1, 2, 1)
         self.setLayout(main_layout)
     
+    def resizeEvent(self, event):
+        """Recalculate the position of the image when the window is resized."""
+        super().resizeEvent(event)
+        self.update_image_position()
+
+    def update_image_position(self):
+        """Update the image's position and size based on the legend's height and direction."""
+        if self.temperature_object is None:
+            return
+        
+        self.img = self.temperature_object.image
+
+        if self.image_ax:
+            self.image_ax.remove()
+
+        if self.temperature_object.legend is not None:
+            # Get the legend's position and size
+            legend_bbox = self.temperature_object.legend.get_window_extent()
+            fig_bbox = self.temperature_object.fig.transFigure.inverted().transform(legend_bbox)
+
+            # Get the position and size in figure coordinates
+            x_position, y_position = fig_bbox[0][0], fig_bbox[0][1]
+
+            # Use the height of the legend for the image's height
+            legend_height = legend_bbox.height  # In pixels
+            image_width = legend_height  # Make image width proportional to legend height
+            image_height = legend_height  # Fixed size based on the legend height
+
+            # Determine whether the legend is on the left or right side of the figure
+            shift_x = (legend_bbox.width/self.temperature_object.fig.bbox.width) * 1.1
+            if x_position > 0.5:
+                # Move the image to the left side if the legend is on the right
+                shift_x = - (legend_bbox.width/self.temperature_object.fig.bbox.width) * 0.80 # A small offset to the left
+
+            # Add new axes for the image (positioned relative to the legend)
+            self.image_ax = self.temperature_object.fig.add_axes([x_position + shift_x, y_position, image_width / self.temperature_object.fig.bbox.width,
+                                                image_height / self.temperature_object.fig.bbox.height])
+        else:
+            # display image in top right corner
+            self.image_ax = self.temperature_object.fig.add_axes([0.855, 0.8, 0.08, 0.08])
+        # Display the image
+        self.image_ax.imshow(self.img)
+        self.image_ax.axis('off')  # Hide the axes
+
+        # self.temperature_object.draw()
+
     @Slot()
     def openFileDialog(self, d_type):
         if d_type == "csv": # open nanobubble txt 
@@ -88,15 +138,15 @@ class TempAnalysisTab(QWidget):
         if self.temperature_data_files is not None:
             self.graph_tab.clear()
 
-            temperature_object = TemperatureGraph(self.temperature_data_files)
-            graph = temperature_object.get_graphs(self.compare_box.isChecked())
+            self.temperature_object = TemperatureGraph(self.temperature_data_files)
+            self.graph = self.temperature_object.get_graphs(self.compare_box.isChecked())
             
-            nav_tool = NavigationToolbar(graph)
+            nav_tool = NavigationToolbar(self.graph)
 
             graph_widget = QWidget()
             burn_layout = QVBoxLayout()
             burn_layout.addWidget(nav_tool)
-            burn_layout.addWidget(graph)
+            burn_layout.addWidget(self.graph)
             graph_widget.setLayout(burn_layout)
 
             self.graph_tab.addTab(graph_widget, "Temperature Graph")
@@ -105,6 +155,6 @@ class TempAnalysisTab(QWidget):
             # print(f"save_box is checked: {self.save_box.isChecked()}")
             # if self.file_save_location is not None:
             #   print(f"file_save_location: {self.file_save_location}")
-
+            self.update_image_position()
         else:
             self.text_display.append("Error: No temperature .csv file found.\n")

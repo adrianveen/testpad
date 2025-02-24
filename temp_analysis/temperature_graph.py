@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import os
 import sys
 import math
@@ -11,16 +12,17 @@ from PIL import Image
 from io import BytesIO
 
 import matplotlib.pyplot as plt 
-from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator
+from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator, FormatStrFormatter
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
-import pandas as pd
-
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox, HPacker, AnchoredOffsetbox
+from matplotlib.legend import Legend
 
 class TemperatureGraph():
     def __init__(self, temperature_csv) -> None:
         # self.aggregate_representation = np.array([])
         self.temperature_csv = temperature_csv
+        self.legend = None
         self.raw_data = []
         
         # Check if temperature_csv is None
@@ -32,6 +34,9 @@ class TemperatureGraph():
 
         # Process the file(s) and store the data
         self.raw_data = self._process_files(temperature_csv)
+
+        self.image_path = self.resource_path('images\\fus_icon_transparent.png')
+        self.image = self.load_icon(self.image_path)
     
     def resource_path(self, relative_path):
         """Get the absolute path to a resource"""
@@ -140,10 +145,6 @@ class TemperatureGraph():
         # Generate a color palette based on the number of datasets
         # colors = self.generate_color_palette('#73A89E', len(self.raw_data[0][1]))
 
-        # Load the FUS icon
-        image_path = self.resource_path('images\\fus_icon_transparent.png')
-        image = self.load_icon(image_path)
-
         if overlaid == False or len(self.raw_data) == 1:
             # Single dataset
             data = self.raw_data[0]
@@ -158,19 +159,15 @@ class TemperatureGraph():
                 else:
                     linewidth = 1
                 self.ax.plot(elapsed, temperatures[sensor], linewidth=linewidth, label=f"Sensor {i+1}", color=colors[i])
-            if len(temperatures.columns) > 1:
-                legend = self.ax.legend(fontsize=12)
-                for line in legend.get_lines():
-                    line.set_linewidth(6)
-            #self.ax.plot(elapsed, temperature, color='#73A89E', label="Dataset 1", linewidth=2)
+            # if len(temperatures.columns) > 1:
+            #     legend = self.ax.legend(fontsize=12)
+            #     for line in legend.get_lines():
+            #         line.set_linewidth(6)
         else:
             colors = self.generate_color_palette('#73A89E', len(self.raw_data))
             # Overlaid datasets
             for i, (elapsed, temperature) in enumerate(self.raw_data):
                 self.ax.plot(elapsed, temperature, alpha=0.7, label=f'Dataset {i+1}',linewidth=1, color=colors[i]) #  color=colors[i], 
-            # legend = self.ax.legend(fontsize=12)
-            # for line in legend.get_lines():
-            #     line.set_linewidth(6)
 
         # Graph labels
         self.ax.set_xlabel("Elapsed Time (min)", fontsize=14)
@@ -178,66 +175,31 @@ class TemperatureGraph():
         self.ax.set_title("Temperature vs. Elapsed Time", fontsize=16)
         self.ax.tick_params(axis='both', which='major', labelsize=12)
 
-        # Format x-axis to not use scientific notation
-        # self.ax.xaxis.set_major_formatter(ScalarFormatter())
-        # self.ax.ticklabel_format(style='plain', axis='x')
-
-        # Replaces the default x-axis formatter with a custom formatter that converts seconds to hh:mm:ss
-        # def format_time(x, pos):
-        #     # x is in seconds; convert to hh:mm:ss
-        #     hours = int(x // 3600)
-        #     minutes = int((x % 3600) // 60)
-        #     seconds = int(x % 60)
-        #     return f"{hours:02}:{minutes:02}:{seconds:02}"
-
-        # self.ax.xaxis.set_major_formatter(FuncFormatter(format_time))
         # After plotting your data and before drawing the canvas:
         x_min, x_max = self.ax.get_xlim()
 
-        n_ticks = math.floor((x_max - x_min) / 5) + 1
+        n_ticks = math.floor((x_max - 0) / 5) + 1
         if n_ticks < 6:
             # If there would be fewer than 6 ticks,
             # generate 6 evenly spaced tick locations over the x-range.
-            ticks = np.linspace(x_min, x_max, 6)
+            ticks = np.arange(0, 7)
             self.ax.set_xticks(ticks)
         elif elapsed.max() - elapsed.min() > 60:
             self.ax.xaxis.set_major_locator(MaxNLocator(12))
         else:
             # Otherwise, set ticks every 5 minutes.
             self.ax.xaxis.set_major_locator(MultipleLocator(5))
-        # self.ax.tick_params(axis='x', labelrotation=45)
 
-        image_width, image_height = 0.07, 0.07
+        self.ax.xaxis.set_major_formatter(FormatStrFormatter('%d'))
 
-        # Position for the FUS logo
-        if overlaid == False and len(temperatures.columns) == 1:
-            image_xaxis, image_yaxis = 0.87, 0.82
-                    # Add the image to the figure
-            ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
-            ax_image.imshow(image)
-            ax_image.axis('off')
-
-            # legend = self.ax.legend(
-            # loc='upper left', 
-            # bbox_to_anchor=(image_xaxis, image_yaxis), 
-            # fontsize=12
-            # )
-
-        else:
-            image_xaxis, image_yaxis = 0.10, 0.82
-            # set the legend to be below the image
-            # self.ax.legend(loc='upper right', fontsize=12)
-            legend_bbox = (0.22, 0, 0, 1)
-            ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
-            ax_image.imshow(image)
-            ax_image.axis('off')
-            legend = self.ax.legend(loc='best', fontsize=12, 
-                        bbox_to_anchor=legend_bbox, 
-                        bbox_transform=self.ax.transAxes)
-            for line in legend.get_lines():
+        if overlaid == True or len(temperatures.columns) > 1:
+            # ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
+            # ax_image.imshow(self.image)
+            # ax_image.axis('off')
+            self.legend = self.ax.legend(loc='best', fontsize=12)
+            for line in self.legend.get_lines():
                 line.set_linewidth(6)
 
-        
         # Adjust padding to reduce white space
         self.fig.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.1)
 

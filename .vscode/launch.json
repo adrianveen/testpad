@@ -8,7 +8,7 @@
             "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/testpad_main.py",
+            "program": "${file}",
             "console": "externalTerminal"
         },
         {
