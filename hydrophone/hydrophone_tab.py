@@ -53,7 +53,7 @@ class HydrophoneAnalysisTab(QWidget):
     
     @Slot()
     def openFileDialog(self, d_type):
-        if d_type == "csv": # open nanobubble txt 
+        if d_type == "csv": # open hydrophone csv 
             self.dialog1 = QFileDialog(self)
             
             if self.compare_box.isChecked():
@@ -64,7 +64,7 @@ class HydrophoneAnalysisTab(QWidget):
                 self.dialog1.setWindowTitle("Hydrophone Scan CSV File")
 
             self.dialog1.setNameFilter("*.csv")
-            self.dialog1.setDefaultSuffix("csv") # default suffix of yaml
+            self.dialog1.setDefaultSuffix("csv") # default suffix of csv
             
             if self.dialog1.exec(): 
                 self.text_display.append("Hydrophone Scan Data Files: ")

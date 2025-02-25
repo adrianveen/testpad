@@ -103,7 +103,7 @@ class TempAnalysisTab(QWidget):
 
     @Slot()
     def openFileDialog(self, d_type):
-        if d_type == "csv": # open nanobubble txt 
+        if d_type == "csv": # open temperature csv
             self.dialog1 = QFileDialog(self)
             
             if self.compare_box.isChecked():
@@ -114,7 +114,7 @@ class TempAnalysisTab(QWidget):
                 self.dialog1.setWindowTitle("Temperature Data CSV File")
 
             self.dialog1.setNameFilter("*.csv")
-            self.dialog1.setDefaultSuffix("csv") # default suffix of yaml
+            self.dialog1.setDefaultSuffix("csv") # default suffix of csv
             
             if self.dialog1.exec(): 
                 self.text_display.append("Temperature Data File(s): ")
