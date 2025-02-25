@@ -90,6 +90,10 @@ class SweepGraph():
         Returns:
             matplotlib.figure.Figure: A matplotlib figure object.
         """
+        # load FUS icon
+        image_path = self.resource_path("images\\fus_icon_transparent.png")
+        image = self.load_icon(image_path)
+
         selected_trace = str(trace_index + 1)
         num_data_pts = self.scan_data[0].shape[1]
         time = np.arange(0, 16*num_data_pts, 16) # time in ns
@@ -114,6 +118,7 @@ class SweepGraph():
         self.ax_time.set_xlabel("Time (ms)")
         self.ax_time.set_ylabel("Pressure (Pa)")
         self.ax_time.set_title("Pressure vs Time")
+        self.ax_time.grid(True)
         #print(f"Time graph of trace {selected_trace} plotted")
 
         # frequency domain FFT
@@ -123,6 +128,10 @@ class SweepGraph():
 
         fft_wf = np.abs(2 * 2 * real_fft_magnitude / num_data_pts) / 1e6 # MPa
         fft_freq_mhz = np.fft.rfftfreq(n=num_data_pts, d=self.time_delta) / 1e6 # MHz
+        #remove all values greater than 5 MHz
+        fft_freq_mhz = fft_freq_mhz[fft_freq_mhz <= 5]
+        # limit fft_wf to the same size as fft_freq_mhz
+        fft_wf = fft_wf[:len(fft_freq_mhz)]
 
         self.ax_fft.plot(
             fft_freq_mhz,
@@ -133,6 +142,20 @@ class SweepGraph():
         self.ax_fft.set_xlabel("Frequency (MHz)")
         self.ax_fft.set_ylabel("Pressure (MPa)")
         self.ax_fft.set_title("Pressure vs Frequency")
-        self.ax_fft.set_xlim(0, 5)
+        self.ax_fft.grid(True)
+        #self.ax_fft.set_xlim(0, 5)
+
+
+
+        # add image to plot area
+        image_xaxis, image_yaxis = 0.82, 0.77
+        image_width, image_height = 0.09, 0.09
+
+        ax_image_fft = self.fig_fft.add_axes([image_xaxis, image_yaxis, image_width, image_height])
+        ax_image_time = self.fig_time.add_axes([image_xaxis, image_yaxis, image_width, image_height])
+        ax_image_fft.imshow(image)
+        ax_image_time.imshow(image)
+        ax_image_fft.axis('off')
+        ax_image_time.axis('off')
 
         return self.canvas_time, self.canvas_fft
