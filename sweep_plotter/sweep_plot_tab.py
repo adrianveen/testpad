@@ -30,6 +30,10 @@ class SweepGraphTab(QWidget):
         self.trace_no_menu = QComboBox()
         self.trace_no_menu.setEnabled(False)
         self.trace_no_label = QLabel("Select Trace Number:")
+        # Save file as SVG button
+        self.save_as_svg_btn = QPushButton("SAVE GRAPH AS SVG")
+        self.save_as_svg_btn.setEnabled(False)
+        self.save_as_svg_btn.clicked.connect(lambda: self.openFileDialog("save"))
 
         # Layout for user interaction area
         selections_layout = QGridLayout()
@@ -37,6 +41,7 @@ class SweepGraphTab(QWidget):
         selections_layout.addWidget(self.trace_no_label, 1, 0)
         selections_layout.addWidget(self.trace_no_menu, 1, 1)
         selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
+        selections_layout.addWidget(self.save_as_svg_btn, 3, 0, 1, 2)
         buttons_groupbox.setLayout(selections_layout)
         buttons_groupbox.setFixedWidth(buttons_groupbox.minimumSizeHint().width())
 
@@ -82,6 +87,26 @@ class SweepGraphTab(QWidget):
                 self.file_save_location = self.dialog.selectedFiles()[0]
                 self.text_display.append(self.file_save_location+"\n")
 
+                        # Define DPI and compute dimensions for a 1080p display (1920x1080 pixels)
+                dpi = 100
+                fig_width = 1920 / dpi   # 19.2 inches
+                fig_height = 1080 / dpi  # 10.8 inches
+
+                dpi = 100
+                fig_width = 1920 / dpi   # 19.2 inches
+                fig_height = 1080 / dpi  # 10.8 inches
+
+                # Access the figure from the canvas for the time graph:
+                self.time_graph.figure.set_size_inches(fig_width, fig_height)
+                self.time_graph.figure.savefig(os.path.join(self.file_save_location, "time_graph.svg"), format="svg", dpi=dpi)
+
+                # Similarly for the FFT graph:
+                self.fft_graph.figure.set_size_inches(fig_width, fig_height)
+                self.fft_graph.figure.savefig(os.path.join(self.file_save_location, "fft_graph.svg"), format="svg", dpi=dpi)
+
+                # finished saving message
+                self.text_display.append("Graphs saved as SVG files.\n")
+
         self.trace_no_menu.setEnabled(True)
         self.trace_no_menu.clear()
         with h5py.File(self.scan_data_hdf5[0], 'r') as f:
@@ -96,28 +121,29 @@ class SweepGraphTab(QWidget):
     def create_graph(self):
         if self.scan_data_hdf5 is not None:
             self.graph_tabs.clear()
+            self.save_as_svg_btn.setEnabled(True)
 
             scan_data_object = SweepGraph(self.scan_data_hdf5)
-            time_graph, fft_graph = scan_data_object.get_graphs(self.trace_no_menu.currentIndex(), graph_type='time')
+            self.time_graph, self.fft_graph = scan_data_object.get_graphs(self.trace_no_menu.currentIndex(), graph_type='time')
             
             # if time_graph is None or fft_graph is None:
             #     print("Error: One of the graph canvases is None")
             #     return
 
-            nav_tool_time = NavigationToolbar(time_graph)
-            nav_tool_fft = NavigationToolbar(fft_graph)
+            nav_tool_time = NavigationToolbar(self.time_graph)
+            nav_tool_fft = NavigationToolbar(self.fft_graph)
 
             time_widget = QWidget()
             time_layout = QVBoxLayout()
             time_layout.addWidget(nav_tool_time)
-            time_layout.addWidget(time_graph)
+            time_layout.addWidget(self.time_graph)
             time_widget.setLayout(time_layout)
             self.graph_tabs.addTab(time_widget, "Time Domain")
 
             fft_widget = QWidget()
             fft_layout = QVBoxLayout()
             fft_layout.addWidget(nav_tool_fft)
-            fft_layout.addWidget(fft_graph)
+            fft_layout.addWidget(self.fft_graph)
             fft_widget.setLayout(fft_layout)
             self.graph_tabs.addTab(fft_widget, "FFT Graph")
 
