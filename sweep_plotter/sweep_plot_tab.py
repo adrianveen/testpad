@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
 import numpy as np
 import os
 import yaml
+from datetime import datetime
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 import h5py
 
@@ -87,22 +88,21 @@ class SweepGraphTab(QWidget):
                 self.file_save_location = self.dialog.selectedFiles()[0]
                 self.text_display.append(self.file_save_location+"\n")
 
-                        # Define DPI and compute dimensions for a 1080p display (1920x1080 pixels)
-                dpi = 100
-                fig_width = 1920 / dpi   # 19.2 inches
-                fig_height = 1080 / dpi  # 10.8 inches
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                time_svg_path = os.path.join(self.file_save_location, f"time_graph_{timestamp}.svg")
+                fft_svg_path = os.path.join(self.file_save_location, f"fft_graph_{timestamp}.svg")
 
+                # Define DPI and compute dimensions for a 1080p display (1920x1080 pixels)
                 dpi = 100
                 fig_width = 1920 / dpi   # 19.2 inches
                 fig_height = 1080 / dpi  # 10.8 inches
 
                 # Access the figure from the canvas for the time graph:
                 self.time_graph.figure.set_size_inches(fig_width, fig_height)
-                self.time_graph.figure.savefig(os.path.join(self.file_save_location, "time_graph.svg"), format="svg", dpi=dpi)
+                self.time_graph.figure.savefig(time_svg_path, format="svg", dpi=dpi)
 
-                # Similarly for the FFT graph:
                 self.fft_graph.figure.set_size_inches(fig_width, fig_height)
-                self.fft_graph.figure.savefig(os.path.join(self.file_save_location, "fft_graph.svg"), format="svg", dpi=dpi)
+                self.fft_graph.figure.savefig(fft_svg_path, format="svg", dpi=dpi)
 
                 # finished saving message
                 self.text_display.append("Graphs saved as SVG files.\n")
