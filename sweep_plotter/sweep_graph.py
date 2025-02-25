@@ -1,4 +1,3 @@
-# import hdf5 viewer
 import h5py
 import numpy as np
 import os
@@ -44,13 +43,13 @@ class SweepGraph():
     
     def _process_files(self, file_paths):
         """
-        Process one or more CSV files and extract relevant data.
+        Process one or more HDF5 files and extract relevant data. Currently only supports one HDF5 file at a time
         
         Args:
             file_paths (str or list of str): Single file path or a list of file paths.
             
         Returns:
-            list: A list of tuples, where each tuple contains (elapsed time, temperature).
+            list: A list of pandas DataFrames, where each DataFrame contains the raw pressure waveform data.
         """
         # Ensure file_paths is always a list
         if isinstance(file_paths, str):
@@ -61,19 +60,13 @@ class SweepGraph():
                 with h5py.File(file_path, 'r') as f:
                     # Access the Scan group
                     scan_group = f['Scan']
-                    
                     # Extract the raw pressure waveform data
                     raw_pressure_waveforms = scan_group['Raw pressure waveforms (Pa)'][:]
-                    
-                    # Print the shape of the raw data (optional)
-                    print(f"File: {file_path} - Data shape: {raw_pressure_waveforms.shape}")
-                    
                     # Convert the data into a pandas DataFrame
                     df = pd.DataFrame(raw_pressure_waveforms)
-                    
                     # Append the DataFrame to raw_data
                     self.scan_data.append(df)
-                    print(f"Raw data: {self.scan_data[0].shape[1]}")
+
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
 
@@ -81,31 +74,33 @@ class SweepGraph():
     
     def get_graphs(self, trace_index, graph_type='time'):
         """
-        Generate a graph based on the selected trace number and graph type.
+        Generate a graph based on the selected trace for both the time domain and frequency domain.
         
         Args:
             trace_no (int): The trace number to plot.
             graph_type (str): The type of graph to plot. Options are 'time' or 'fft'.
             
         Returns:
-            matplotlib.figure.Figure: A matplotlib figure object.
+            tuple: A tuple containing the time domain and frequency domain graphs as FigureCanvas objects.
         """
         # load FUS icon
         image_path = self.resource_path("images\\fus_icon_transparent.png")
         image = self.load_icon(image_path)
 
-        selected_trace = str(trace_index + 1)
-        num_data_pts = self.scan_data[0].shape[1]
+        selected_trace = str(trace_index + 1) # convert trace selection into string
+        num_data_pts = self.scan_data[0].shape[1] # extract number of samples taken
         time = np.arange(0, 16*num_data_pts, 16) # time in ns
-        time_ms = time / 1e6
+        time_ms = time / 1e6 # convert to ms
 
         raw_pressure_waveform = self.scan_data[0]
 
+        # generate canvases for time domain and fft
         self.fig_time, self.ax_time = plt.subplots(figsize=(10, 6))
         self.canvas_time = FigureCanvas(self.fig_time)
-
         self.fig_fft, self.ax_fft = plt.subplots(figsize=(10, 6))
         self.canvas_fft = FigureCanvas(self.fig_fft)
+
+        # extract the waveform selected by the user
         selected_waveform = raw_pressure_waveform.iloc[trace_index]
 
         # time domain trace
@@ -119,20 +114,21 @@ class SweepGraph():
         self.ax_time.set_ylabel("Pressure (Pa)")
         self.ax_time.set_title("Pressure vs Time")
         self.ax_time.grid(True)
-        #print(f"Time graph of trace {selected_trace} plotted")
 
-        # frequency domain FFT
+        # FFT
+        # apply hanning window to the selected waveform
         window_fft = np.hanning(num_data_pts)
 
         real_fft_magnitude = np.fft.rfft(selected_waveform * window_fft, axis=0)
 
         fft_wf = np.abs(2 * 2 * real_fft_magnitude / num_data_pts) / 1e6 # MPa
         fft_freq_mhz = np.fft.rfftfreq(n=num_data_pts, d=self.time_delta) / 1e6 # MHz
-        #remove all values greater than 5 MHz
+        # remove all values greater than 5 MHz
         fft_freq_mhz = fft_freq_mhz[fft_freq_mhz <= 5]
         # limit fft_wf to the same size as fft_freq_mhz
         fft_wf = fft_wf[:len(fft_freq_mhz)]
 
+        # fft plot
         self.ax_fft.plot(
             fft_freq_mhz,
             fft_wf,
@@ -143,11 +139,8 @@ class SweepGraph():
         self.ax_fft.set_ylabel("Pressure (MPa)")
         self.ax_fft.set_title("Pressure vs Frequency")
         self.ax_fft.grid(True)
-        #self.ax_fft.set_xlim(0, 5)
 
-
-
-        # add image to plot area
+        # add image to plot area for both time domain and fft
         image_xaxis, image_yaxis = 0.82, 0.77
         image_width, image_height = 0.09, 0.09
 

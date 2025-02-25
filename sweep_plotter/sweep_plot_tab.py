@@ -107,15 +107,16 @@ class SweepGraphTab(QWidget):
                 # finished saving message
                 self.text_display.append("Graphs saved as SVG files.\n")
 
-        self.trace_no_menu.setEnabled(True)
-        self.trace_no_menu.clear()
-        with h5py.File(self.scan_data_hdf5[0], 'r') as f:
-            # extract the number of rows to set the drop down
-            scan_group = f['Scan']
-            raw_pressu_waveforms = scan_group['Raw pressure waveforms (Pa)'][:]
-            self.trace_no_menu.addItems([str(i+1) for i in range(raw_pressu_waveforms.shape[0])])
-            # set the max index
-            self.trace_no_menu.setCurrentIndex(raw_pressu_waveforms.shape[0]-1)
+        if self.scan_data_hdf5 and len(self.scan_data_hdf5) > 0:
+            self.trace_no_menu.setEnabled(True)
+            self.trace_no_menu.clear()
+            with h5py.File(self.scan_data_hdf5[0], 'r') as f:
+                # extract the number of rows to set the drop down
+                scan_group = f['Scan']
+                raw_pressu_waveforms = scan_group['Raw pressure waveforms (Pa)'][:]
+                self.trace_no_menu.addItems([str(i+1) for i in range(raw_pressu_waveforms.shape[0])])
+                # set the max index
+                self.trace_no_menu.setCurrentIndex(raw_pressu_waveforms.shape[0]-1)
     
     @Slot()
     def create_graph(self):
