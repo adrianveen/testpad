@@ -7,7 +7,7 @@ from pathlib import Path
 
 from definitions import SRC_DIR
 from PIL import Image
-from io import BytesIO
+from io import BytesIO, StringIO
 
 import matplotlib.pyplot as plt 
 from matplotlib.ticker import ScalarFormatter
@@ -53,19 +53,30 @@ class HydrophoneGraph():
         if isinstance(file_paths, str):
             file_paths = [file_paths]
 
-        self.raw_data = []
         for file_path in file_paths:
             try:
                 with open (file_path, 'r') as f:
                     first_line = f.readline()
                     tx_serial_line = f.readline()
 
+                    lines = f.read().splitlines()
+
                 cells = tx_serial_line.strip().split(',')
                 self.tx_serial_no = cells[1]
 
+                header_index = None
+                for i, line in enumerate(lines):
+                    if "Frequency (MHz)" in line:
+                        header_index = i
+                        break
+
+                if header_index is None:
+                    raise ValueError("Could not find 'Frequency (MHz)' in the file")
+                
+                csv_string = "\n".join(lines[header_index:])
                 # print(f"Transducer Serial Number: {tx_serial_no}")
                 # Read and process the file
-                data = pd.read_csv(file_path, header=22)
+                data = pd.read_csv(StringIO(csv_string), usecols=[0, 1])
                 # check column names
                 # print("Columns in the DataFrame:", data.columns.tolist())
 
