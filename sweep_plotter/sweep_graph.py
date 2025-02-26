@@ -136,7 +136,7 @@ class SweepGraph():
             color='#73A89E'
             )
         self.ax_time.set_xlabel("Time (ms)")
-        self.ax_time.set_ylabel("Pressure (Pa)")
+        self.ax_time.set_ylabel("Pressure (MPa)")
         self.ax_time.set_title(f"Pressure Waveform in the Time Domain - {self.serial_no}")
         self.ax_time.legend(handlelength=0, handletextpad=1, loc='upper left')
         self.ax_time.grid(True)
@@ -154,6 +154,9 @@ class SweepGraph():
         # limit fft_wf to the same size as fft_freq_mhz
         fft_wf = fft_wf[:len(fft_freq_mhz)]
 
+        # normalize fft_wf to the maximum value
+        fft_wf = fft_wf / np.max(fft_wf)
+
         # fft plot
         self.ax_fft.plot(
             fft_freq_mhz,
@@ -162,7 +165,7 @@ class SweepGraph():
             color='#73A89E'
             )
         self.ax_fft.set_xlabel("Frequency (MHz)")
-        self.ax_fft.set_ylabel("Pressure (MPa)")
+        self.ax_fft.set_ylabel("Normalized Pressure Amplitude")
         self.ax_fft.set_title(f"Frequency Spectrum of the Pressure Waveform - {self.serial_no}")
         self.ax_fft.legend(handlelength=0, handletextpad=1, loc='upper left')
         self.ax_fft.grid(True)
