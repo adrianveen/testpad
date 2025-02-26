@@ -75,7 +75,6 @@ class HydrophoneGraph():
                 
                 csv_string = "\n".join(lines[header_index:])
                 # print(f"Transducer Serial Number: {tx_serial_no}")
-                # Read and process the file
                 data = pd.read_csv(StringIO(csv_string), usecols=[0, 1])
                 # check column names
                 # print("Columns in the DataFrame:", data.columns.tolist())
@@ -123,7 +122,6 @@ class HydrophoneGraph():
         image_path = self.resource_path('images\\fus_icon_transparent.png')
         image = self.load_icon(image_path)
 
-        # print self.raw_data shape
         #print(f"Raw data shape: {len(self.raw_data)}")
 
         if overlaid == False or len(self.raw_data) == 1:
@@ -205,6 +203,6 @@ if __name__ == "__main__":
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt")
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt")
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt")
-    n = HydrophoneGraph(r"G:\Shared drives\FUS_Team\Bed Temperature Data\RK50_MRIg_temp_test_01_phantom_bed_2025-01-16_T08-55-44.802 (1).csv")
+    n = HydrophoneGraph(r"G:\Shared drives\FUS_Team\Hydrophone Characterization\2025-02-24-13-39-10_613-T550H825_transducer_hydrophone_calibration.csv")
     n.get_graphs()
     plt.show()

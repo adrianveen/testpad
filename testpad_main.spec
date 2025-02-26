@@ -51,5 +51,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='testpad_main',
+    name='testpad_v1.8.5',
 )
