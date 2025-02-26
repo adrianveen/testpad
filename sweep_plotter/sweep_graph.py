@@ -112,7 +112,7 @@ class SweepGraph():
             )
         self.ax_time.set_xlabel("Time (ms)")
         self.ax_time.set_ylabel("Pressure (Pa)")
-        self.ax_time.set_title("Pressure vs Time")
+        self.ax_time.set_title("Pressure Waveform in the Time Domain")
         self.ax_time.grid(True)
 
         # FFT
@@ -137,7 +137,7 @@ class SweepGraph():
             )
         self.ax_fft.set_xlabel("Frequency (MHz)")
         self.ax_fft.set_ylabel("Pressure (MPa)")
-        self.ax_fft.set_title("Pressure vs Frequency")
+        self.ax_fft.set_title("Frequency Spectrum of the Pressure Waveform")
         self.ax_fft.grid(True)
 
         # add image to plot area for both time domain and fft
