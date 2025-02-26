@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+import re
 import yaml
 import decimal
 from pathlib import Path
@@ -161,6 +162,7 @@ class HydrophoneGraph():
         # Format x-axis to not use scientific notation
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
+        self.ax.grid(True)
 
         # Position for the FUS logo
         if overlaid == False:

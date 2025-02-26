@@ -2,6 +2,8 @@ import h5py
 import numpy as np
 import os
 import sys
+import re
+from pathlib import Path
 from numpy import fft as fft
 from pprint import pprint
 import pandas as pd
@@ -17,6 +19,8 @@ class SweepGraph():
         self.hdf5_file = hdf5_file
         self.scan_data = []
         self.time_delta = time_delta
+        self.harmonic_folder = ''
+        self.serial_no = ''
         # check if hdf5_file is None
         if hdf5_file is None:
             raise ValueError("No file selected")
@@ -27,8 +31,9 @@ class SweepGraph():
     def resource_path(self, relative_path):
         """Get the absolute path to a resource"""
         base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
-        return os.path.join(base_path, relative_path)
-
+        full_path = os.path.join(base_path, relative_path)
+        return full_path
+    
     def load_icon(self, path):
         image = Image.open(path)
         image_array = np.array(image)
@@ -54,6 +59,26 @@ class SweepGraph():
         # Ensure file_paths is always a list
         if isinstance(file_paths, str):
             file_paths = [file_paths]
+        
+        # The harmonic folder is one level up from the file's directory
+        # print(file_paths)
+        first_path = Path(file_paths[0])
+        harmonic_folder = first_path.parent.parent.name
+        pattern = r'^\d+(?:st|nd|rd|th) Harmonic$'
+        if re.match(pattern, harmonic_folder, re.IGNORECASE):
+            self.harmonic_folder = harmonic_folder
+        else:
+            raise ValueError(
+                f"Unexpected harmonic folder name: '{harmonic_folder}'. "
+                "Expected format like '1st Harmonic', '2nd Harmonic', etc."
+            )
+        
+        filename = first_path.name
+        # extract serial number from file name - all text up to second underscore
+        #replace the first underscore with a hyphen
+        first_path_modified = filename.replace('_', '-', 1)
+        self.serial_no, _ = first_path_modified.split("_", 1)
+        # print(f"Transducer serial number: {self.serial_no}")
 
         for file_path in file_paths:
             try:
@@ -107,12 +132,13 @@ class SweepGraph():
         self.ax_time.plot(
             time_ms,
             selected_waveform,
-            label=selected_trace,
+            label=f"{self.harmonic_folder} - Trace #{selected_trace}",
             color='#73A89E'
             )
         self.ax_time.set_xlabel("Time (ms)")
         self.ax_time.set_ylabel("Pressure (Pa)")
-        self.ax_time.set_title("Pressure Waveform in the Time Domain")
+        self.ax_time.set_title(f"Pressure Waveform in the Time Domain - {self.serial_no}")
+        self.ax_time.legend(handlelength=0, handletextpad=1, loc='upper left')
         self.ax_time.grid(True)
 
         # FFT
@@ -132,12 +158,13 @@ class SweepGraph():
         self.ax_fft.plot(
             fft_freq_mhz,
             fft_wf,
-            label=selected_trace,
+            label=f"{self.harmonic_folder} - Trace #{selected_trace}",
             color='#73A89E'
             )
         self.ax_fft.set_xlabel("Frequency (MHz)")
         self.ax_fft.set_ylabel("Pressure (MPa)")
-        self.ax_fft.set_title("Frequency Spectrum of the Pressure Waveform")
+        self.ax_fft.set_title(f"Frequency Spectrum of the Pressure Waveform - {self.serial_no}")
+        self.ax_fft.legend(handlelength=0, handletextpad=1, loc='upper left')
         self.ax_fft.grid(True)
 
         # add image to plot area for both time domain and fft
