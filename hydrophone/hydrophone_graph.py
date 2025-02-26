@@ -124,7 +124,7 @@ class HydrophoneGraph():
         image = self.load_icon(image_path)
 
         # print self.raw_data shape
-        print(f"Raw data shape: {len(self.raw_data)}")
+        #print(f"Raw data shape: {len(self.raw_data)}")
 
         if overlaid == False or len(self.raw_data) == 1:
             # Single dataset
