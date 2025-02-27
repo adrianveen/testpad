@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+import re
 import yaml
 import decimal
 from pathlib import Path
@@ -21,6 +22,7 @@ class HydrophoneGraph():
         
         self.hydrophone_csv = hydrophone_csv
         self.raw_data = []
+        self.transducer_serials = []
         
         # Check if hydrophone_csv is None
         if hydrophone_csv is None:
@@ -55,6 +57,7 @@ class HydrophoneGraph():
 
         for file_path in file_paths:
             try:
+                
                 with open (file_path, 'r') as f:
                     first_line = f.readline()
                     tx_serial_line = f.readline()
@@ -63,6 +66,8 @@ class HydrophoneGraph():
 
                 cells = tx_serial_line.strip().split(',')
                 self.tx_serial_no = cells[1]
+
+                self.transducer_serials.append(self.tx_serial_no)
 
                 header_index = None
                 for i, line in enumerate(lines):
@@ -78,7 +83,7 @@ class HydrophoneGraph():
                 data = pd.read_csv(StringIO(csv_string), usecols=[0, 1])
                 # check column names
                 # print("Columns in the DataFrame:", data.columns.tolist())
-
+                
                 # Append processed data to raw_data
                 frequency = data["Frequency (MHz)"]
                 sensitivity = data["Sensitivity (mV/MPa)"]
@@ -130,7 +135,7 @@ class HydrophoneGraph():
             # print(f"Frequency: {freq}")
             # print(f"Sensitivity: {sensitivity}")
             self.ax.plot(
-                freq, sensitivity,
+                freq, sensitivity / 1000,
                 linestyle='-', marker='o',
                 color='black',               # Line color (black)
                 markerfacecolor='#73A89E',    # Marker fill color
@@ -138,29 +143,35 @@ class HydrophoneGraph():
                 label="Dataset 1", linewidth=2,
                 markersize=8
             )
+            self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
         else:
             # Overlaid datasets
             for i, (freq, sensitivity) in enumerate(self.raw_data):
                     self.ax.plot(
-                        freq, sensitivity,
+                        freq, sensitivity / 1000,
                         linestyle='-', marker='o',
                         color='black',              # Line color (black)
                         markerfacecolor=colors[i],   # Dataset-specific marker fill
                         markeredgecolor='black',     # Marker border color
-                        alpha=0.7, label=f'Dataset {i+1}',
+                        alpha=0.7, label=self.transducer_serials[i],
                         linewidth=1, markersize=8
                     )
+                    self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
             self.ax.legend(fontsize=12)
 
         # Graph labels
         self.ax.set_xlabel("Frequency (MHz)", fontsize=14)
-        self.ax.set_ylabel("Sensitivity (mV/MPa)", fontsize=14)
-        self.ax.set_title("Frequency vs. Sensitivity", fontsize=16)
+        self.ax.set_ylabel("Sensitivity (V/MPa)", fontsize=14)
+        # self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
         self.ax.tick_params(axis='both', which='major', labelsize=12)
 
         # Format x-axis to not use scientific notation
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style='plain', axis='x')
+        self.ax.plot(0, 0, alpha=0, label='_nolegend_')
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.ax.grid(True)
 
         # Position for the FUS logo
         if overlaid == False:

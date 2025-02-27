@@ -89,8 +89,8 @@ class SweepGraphTab(QWidget):
                 self.text_display.append(self.file_save_location+"\n")
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                time_svg_path = os.path.join(self.file_save_location, f"time_graph_{timestamp}.svg")
-                fft_svg_path = os.path.join(self.file_save_location, f"fft_graph_{timestamp}.svg")
+                time_svg_path = os.path.join(self.file_save_location, f"{self.scan_data_object.serial_no}_time_graph_{timestamp}.svg")
+                fft_svg_path = os.path.join(self.file_save_location, f"{self.scan_data_object.serial_no}_fft_graph_{timestamp}.svg")
 
                 # Define DPI and compute dimensions for a 1080p display (1920x1080 pixels)
                 dpi = 100
@@ -105,7 +105,11 @@ class SweepGraphTab(QWidget):
                 self.fft_graph.figure.savefig(fft_svg_path, format="svg", dpi=dpi)
 
                 # finished saving message
-                self.text_display.append("Graphs saved as SVG files.\n")
+                self.text_display.append("The following graphs were saved as SVG files:\n")
+                self.text_display.append(f"Time Domain Graph: {self.scan_data_object.serial_no}_time_graph_{timestamp}.svg\n")
+                self.text_display.append(f"FFT Graph: {self.scan_data_object.serial_no}_fft_graph_{timestamp}.svg\n")
+
+                #print(f"serial no test: {self.scan_data_object.serial_no}")
 
         if self.scan_data_hdf5 and len(self.scan_data_hdf5) > 0:
             self.trace_no_menu.setEnabled(True)
@@ -124,8 +128,8 @@ class SweepGraphTab(QWidget):
             self.graph_tabs.clear()
             self.save_as_svg_btn.setEnabled(True)
 
-            scan_data_object = SweepGraph(self.scan_data_hdf5)
-            self.time_graph, self.fft_graph = scan_data_object.get_graphs(self.trace_no_menu.currentIndex(), graph_type='time')
+            self.scan_data_object = SweepGraph(self.scan_data_hdf5)
+            self.time_graph, self.fft_graph = self.scan_data_object.get_graphs(self.trace_no_menu.currentIndex(), graph_type='time')
             
             # if time_graph is None or fft_graph is None:
             #     print("Error: One of the graph canvases is None")
