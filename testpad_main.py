@@ -27,7 +27,7 @@ class ApplicationWindow(QMainWindow):
         base_path = getattr(sys, '_MEIPASS', os.getcwd())
         icon_path = os.path.join(base_path, 'images', 'fus_icon_transparent.ico')
         self.setWindowIcon(QIcon(icon_path))
-        self.setWindowTitle("FUS Testpad v1.8.5")
+        self.setWindowTitle("FUS Testpad v1.8.4")
         self.resize(800, 600)        
         
         tab_widget = QTabWidget()

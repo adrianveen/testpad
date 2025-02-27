@@ -126,7 +126,7 @@ class SweepGraph():
         self.canvas_fft = FigureCanvas(self.fig_fft)
 
         # extract the waveform selected by the user
-        selected_waveform = raw_pressure_waveform.iloc[trace_index]
+        selected_waveform = raw_pressure_waveform.iloc[trace_index] / 1e6
 
         # time domain trace
         self.ax_time.plot(
