@@ -99,10 +99,12 @@ class HydrophoneAnalysisTab(QWidget):
 
                 self.graph.figure.set_size_inches(fig_width, fig_height)
                 self.graph.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi)
-                csv_file_path = os.path.join(self.file_save_location, file_name.replace(".svg", ".txt"))
-                data_array = np.array(self.hydrophone_object.raw_data[0])
-                data_transposed = data_array.T
-                np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt='%s')
+                for i, data in enumerate(self.hydrophone_object.raw_data):
+                    txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
+                    csv_file_path = os.path.join(self.file_save_location, txt_file_name)
+                    data_array = np.array(data)
+                    data_transposed = data_array.T
+                    np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt='%s')
                 # finished saving message
                 self.text_display.append("The following files were saved:\n")
                 self.text_display.append(f"Hydrophone Sensitivity Graph:")
