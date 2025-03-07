@@ -77,7 +77,7 @@ class SweepGraphTab(QWidget):
                 for file in self.scan_data_hdf5:
                     self.text_display.append(file +"\n")
         
-        # NOT IMPLEMENTED YET
+        # file saving location and save graph as SVG
         elif d_type == "save": # save graph SVG location 
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
@@ -105,7 +105,7 @@ class SweepGraphTab(QWidget):
                 self.fft_graph.figure.savefig(fft_svg_path, format="svg", dpi=dpi)
 
                 # finished saving message
-                self.text_display.append("The following graphs were saved as SVG files:\n")
+                self.text_display.append("The following files were saved as SVG files:\n")
                 self.text_display.append(f"Time Domain Graph: {self.scan_data_object.serial_no}_time_graph_{timestamp}.svg\n")
                 self.text_display.append(f"FFT Graph: {self.scan_data_object.serial_no}_fft_graph_{timestamp}.svg\n")
 
