@@ -262,6 +262,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
     fn_gen_amplitudes = []  # amplitudes in each file
     pressures = []  # pressures in each file
     powers = []
+    ref_powers = []
 
     for sweep_filename in sweep_list:
         with h5py.File(sweep_filename, "r") as f:
@@ -291,6 +292,18 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
                     textbox.append(
                         "\nUsing the power values in the sweep instead of inferring with the EB-50 YAML file.\n")
                     eb50_file = ""
+
+                # Get the reflected power meter data, this is less important so we can fill it with float(nan)
+                # if it is missing. Only attempt this if we already got f meter data.
+                try:
+                    ref_pwr_hdf5 = f['Scan/Reverse power meter readings (W)']
+                    ref_pwr = np.zeros((ref_pwr_hdf5.shape))
+                    ref_pwr_hdf5.read_direct(ref_pwr)
+                    ref_powers.append(ref_pwr)
+                except KeyError:
+                    # Append a ndarray of nans equal in shape to fwd_pwr
+                    print("Warning, fwd power found but not ref power in the sweep file. This is unusual.")
+                    ref_powers.append(np.full(fwd_pwr.shape, np.nan))
             except KeyError as e:
                 textbox.append("KeyError: " + str(e))
                 if eb50_file == "":
@@ -361,10 +374,22 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
         v_out = np.sqrt(fwd_pwr * 8 * 50)
         # print(v_out.shape)
 
+        try:
+            # Repeat this process for reflected power (except the vout)
+            ref_powers = list(zip(*ref_powers))
+            ref_powers_list_to_array = np.zeros((len(ref_powers), len(ref_powers[0])))
+            for i in range(len(ref_powers[0])):
+                ref_powers_list_to_array[:,i] = np.array(list((map(lambda x: x[i], ref_powers))))
+            averaged_ref_powers = np.average(ref_powers_list_to_array, axis=1)
+            ref_pwr = averaged_ref_powers
+        except Exception as e:
+            print("Error averaging reflected power data across files:", e)
+            ref_pwr = np.full(fwd_pwr.shape, np.nan)
+
     """
     Write to file 
     """
-    data_mtx = np.zeros((len(averaged_pressures), 4))
+    data_mtx = np.zeros((len(averaged_pressures), 5))
     # print(data_mtx.shape)
 
     try:
@@ -372,6 +397,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
         data_mtx[:, 1] = v_out  # voltage across transducer
         data_mtx[:, 2] = fwd_pwr  # electrical power
         data_mtx[:, 3] = averaged_fn_gen_amplitudes  # amplitudes from function generator
+        data_mtx[:, 4] = ref_pwr  # reflected power
     except ValueError as e:
         textbox.append("\nValueError: " + str(e))
         textbox.append(
@@ -399,9 +425,13 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
 
     # header array in the txt file, m-value rounded to 6 decimal places 
     if eb50_file != "":  # if the EB-50 exists, add it to the header array
-        header_arr = f'Frequency: {original_freq}\nEB-50: {eb50}\nm-value: {m:.6f} MPa/Vpp\nr squared: {r_trunc_out}\n\nPeak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), Electrical Power (W), Input Voltage (Vpp)'
+        header_arr = (f'Frequency: {original_freq}\nEB-50: {eb50}\nm-value: {m:.6f} MPa/Vpp\nr squared: {r_trunc_out}\n\n'
+                      f'Peak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), '
+                      f'Electrical Power (W), Input Voltage (Vpp), Reflected Power (W)')
     else:
-        header_arr = f'Frequency: {original_freq}\nm-value: {m:.6f} MPa/Vpp\nr squared: {r_trunc_out}\n\nPeak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), Electrical Power (W), Input Voltage (Vpp)'
+        header_arr = (f'Frequency: {original_freq}\nm-value: {m:.6f} MPa/Vpp\nr squared: {r_trunc_out}\n\n'
+                      f'Peak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), '
+                      f'Electrical Power (W), Input Voltage (Vpp), Reflected Power (W)')
 
     # SAVE FILE 
     if save:
@@ -418,7 +448,10 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
                 with open(full_filename2, "x"):
                     np.savetxt(full_filename2, data_mtx, header=header_arr, comments='', fmt='%.3f', delimiter=',')
 
-                # DATA TXT FILE 
+                # DATA TXT FILE
+                # Remove reflected power column
+                data_mtx = np.delete(data_mtx, 4, 1)
+                # Remove input voltage column
                 data_mtx = np.delete(data_mtx, 3, 1)
                 full_filename1 = filename + "_DATA_" + str(counter) + ".txt"
                 with open(full_filename1, "x"):
