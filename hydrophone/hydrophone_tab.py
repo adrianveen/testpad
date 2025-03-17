@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
 import numpy as np
 import os
 import yaml
+from datetime import datetime
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 
 class HydrophoneAnalysisTab(QWidget):
@@ -29,6 +30,10 @@ class HydrophoneAnalysisTab(QWidget):
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
         self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
         self.print_graph_btn.clicked.connect(lambda: self.create_graph())
+        # save graphs as SVG button
+        self.save_as_svg_btn = QPushButton("SAVE GRAPH AS SVG")
+        self.save_as_svg_btn.setEnabled(False)
+        self.save_as_svg_btn.clicked.connect(lambda: self.openFileDialog("save"))
 
         # Layout for user interaction area
         selections_layout = QGridLayout()
@@ -36,6 +41,7 @@ class HydrophoneAnalysisTab(QWidget):
         selections_layout.addWidget(self.compare_box, 0, 1)
         selections_layout.addWidget(self.select_file_btn, 1, 0, 1, 2)
         selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
+        selections_layout.addWidget(self.save_as_svg_btn, 3, 0, 1, 2)
         buttons_groupbox.setLayout(selections_layout)
 
         # TEXT CONSOLE
@@ -72,7 +78,7 @@ class HydrophoneAnalysisTab(QWidget):
                 for file in self.hydrophone_scan_data:
                     self.text_display.append(file +"\n")
         
-        # NOT IMPLEMENTED YET
+        # file saving
         elif d_type == "save": # save graph SVG location 
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
@@ -82,26 +88,50 @@ class HydrophoneAnalysisTab(QWidget):
                 self.text_display.append("Save Location: ")
                 self.file_save_location = self.dialog.selectedFiles()[0]
                 self.text_display.append(self.file_save_location+"\n")
-    
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                file_name = f"{self.hydrophone_object.tx_serial_no}_sensitivity_vs_frequency_{timestamp}.svg"
+                hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
+
+                dpi = 100
+                fig_width = 1920 / dpi
+                fig_height = 1080 / dpi
+
+                self.graph.figure.set_size_inches(fig_width, fig_height)
+                self.graph.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi)
+                for i, data in enumerate(self.hydrophone_object.raw_data):
+                    txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
+                    csv_file_path = os.path.join(self.file_save_location, txt_file_name)
+                    data_array = np.array(data)
+                    data_transposed = data_array.T
+                    np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt='%s')
+                # finished saving message
+                self.text_display.append("The following files were saved:\n")
+                self.text_display.append(f"Hydrophone Sensitivity Graph:")
+                self.text_display.append(f"{hydrophone_svg_path}\n")
+                self.text_display.append(f"Hydrophone Sensitivity Data:")
+                self.text_display.append(f"{csv_file_path}\n")
+
     @Slot()
     def create_graph(self):
         if self.hydrophone_scan_data is not None:
             self.graph_tab.clear()
+            self.save_as_svg_btn.setEnabled(True)
 
-            hydrophone_object = HydrophoneGraph(self.hydrophone_scan_data)
-            graph = hydrophone_object.get_graphs(self.compare_box.isChecked())
+            self.hydrophone_object = HydrophoneGraph(self.hydrophone_scan_data)
+            self.graph = self.hydrophone_object.get_graphs(self.compare_box.isChecked())
             
-            nav_tool = NavigationToolbar(graph)
+            nav_tool = NavigationToolbar(self.graph)
 
             graph_widget = QWidget()
             burn_layout = QVBoxLayout()
             burn_layout.addWidget(nav_tool)
-            burn_layout.addWidget(graph)
+            burn_layout.addWidget(self.graph)
             graph_widget.setLayout(burn_layout)
 
             self.graph_tab.addTab(graph_widget, "Hydrophone Scan Data")
 
-            self.text_display.append("Transducer Serial Number: " + hydrophone_object.tx_serial_no + "\n")
+            self.text_display.append("Transducer Serial Number: " + self.hydrophone_object.tx_serial_no + "\n")
             # Debugging statements
             # print(f"save_box is checked: {self.save_box.isChecked()}")
             # if self.file_save_location is not None:

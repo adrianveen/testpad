@@ -1,17 +1,12 @@
 import numpy as np
 import os
 import sys
-import re
-import yaml
-import decimal
-from pathlib import Path
 
-from definitions import SRC_DIR
 from PIL import Image
-from io import BytesIO, StringIO
+from io import StringIO
 
 import matplotlib.pyplot as plt 
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import ScalarFormatter, MultipleLocator
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
 import pandas as pd
@@ -164,6 +159,8 @@ class HydrophoneGraph():
         self.ax.set_ylabel("Sensitivity (V/MPa)", fontsize=14)
         # self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
         self.ax.tick_params(axis='both', which='major', labelsize=12)
+        self.ax.xaxis.set_major_locator(MultipleLocator(0.2))
+
 
         # Format x-axis to not use scientific notation
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
