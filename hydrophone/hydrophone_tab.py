@@ -78,7 +78,7 @@ class HydrophoneAnalysisTab(QWidget):
                 for file in self.hydrophone_scan_data:
                     self.text_display.append(file +"\n")
         
-        # NOT IMPLEMENTED YET
+        # file saving
         elif d_type == "save": # save graph SVG location 
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
