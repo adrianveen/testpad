@@ -82,9 +82,10 @@ class HydrophoneGraph():
                 # Append processed data to raw_data
                 frequency = data["Frequency (MHz)"]
                 sensitivity = data["Sensitivity (mV/MPa)"]
+                std = ["Standard deviation (mV/MPa)"]
                 # print(f"Frequency: {frequency}")
                 # print(f"Sensitivity: {sensitivity}")
-                self.raw_data.append((frequency, sensitivity))
+                self.raw_data.append((frequency, sensitivity, std))
                 # print(f"Raw data: {self.raw_data}")
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
@@ -126,7 +127,7 @@ class HydrophoneGraph():
 
         if overlaid == False or len(self.raw_data) == 1:
             # Single dataset
-            freq, sensitivity = self.raw_data[0]
+            freq, sensitivity, sens_std = self.raw_data[0]
             # print(f"Frequency: {freq}")
             # print(f"Sensitivity: {sensitivity}")
             self.ax.plot(
@@ -138,10 +139,10 @@ class HydrophoneGraph():
                 label="Dataset 1", linewidth=2,
                 markersize=8
             )
-            self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
+            self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=24)
         else:
             # Overlaid datasets
-            for i, (freq, sensitivity) in enumerate(self.raw_data):
+            for i, (freq, sensitivity, sens_std) in enumerate(self.raw_data):
                     self.ax.plot(
                         freq, sensitivity / 1000,
                         linestyle='-', marker='o',
@@ -151,14 +152,14 @@ class HydrophoneGraph():
                         alpha=0.7, label=self.transducer_serials[i],
                         linewidth=1, markersize=8
                     )
-                    self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
+                    self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=24)
             self.ax.legend(fontsize=12)
 
         # Graph labels
-        self.ax.set_xlabel("Frequency (MHz)", fontsize=14)
-        self.ax.set_ylabel("Sensitivity (V/MPa)", fontsize=14)
+        self.ax.set_xlabel("Frequency (MHz)", fontsize=20)
+        self.ax.set_ylabel("Sensitivity (V/MPa)", fontsize=20)
         # self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
-        self.ax.tick_params(axis='both', which='major', labelsize=12)
+        self.ax.tick_params(axis='both', which='major', labelsize=18)
         self.ax.xaxis.set_major_locator(MultipleLocator(0.2))
 
 
