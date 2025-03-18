@@ -93,12 +93,12 @@ class HydrophoneAnalysisTab(QWidget):
                 file_name = f"{self.hydrophone_object.tx_serial_no}_sensitivity_vs_frequency_{timestamp}.svg"
                 hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
 
-                dpi = 100
-                fig_width = 1920 / dpi
-                fig_height = 1080 / dpi
+                dpi = 96
+                fig_width = 6.5
+                fig_height = 3.5
 
                 self.graph.figure.set_size_inches(fig_width, fig_height)
-                self.graph.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi)
+                self.graph.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi, bbox_inches="tight", pad_inches=0)
                 for i, data in enumerate(self.hydrophone_object.raw_data):
                     txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
                     csv_file_path = os.path.join(self.file_save_location, txt_file_name)
