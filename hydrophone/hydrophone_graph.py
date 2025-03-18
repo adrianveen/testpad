@@ -190,23 +190,6 @@ class HydrophoneGraph():
         self.fig.set_canvas(self.canvas)
         return self.canvas
 
-    
-    # NOT YET IMPLEMENTED
-    # def save_graph(self, folder, overlaid=False):
-    #     # Check if hydrophone_csv is a list and get the first file path
-    #     if overlaid == True:
-    #         temperature_svg_filename = "multi_batch_histogram"#(Path(self.hydrophone_csv[0]).name).split(".")[0]
-    #     else:
-    #         temperature_svg_filename = (Path(self.hydrophone_csv[0]).name).split(".")[0]
-        
-    #     full_save_name = os.path.join(folder, str(temperature_svg_filename) + ".svg")
-
-    #     # Debugging statement
-    #     print(f"Saving graph to: {full_save_name}")
-        
-    #     self.fig.savefig(full_save_name, format='svg', bbox_inches='tight', pad_inches=0, transparent=True)
-    #     return full_save_name
-
 if __name__ == "__main__":
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt")
     # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt")
