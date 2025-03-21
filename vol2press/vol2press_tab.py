@@ -4,7 +4,7 @@ from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
+                               QVBoxLayout, QWidget, QSizePolicy)
 import numpy as np
 import yaml
 import decimal
@@ -132,9 +132,21 @@ class Vol2PressTab(QWidget):
         self.add_to_yaml_btn.setStyleSheet("QPushButton:disabled {color: gray}")
         self.add_to_yaml_btn.clicked.connect(lambda: self.disable_btn())
         self.add_to_yaml_btn.clicked.connect(lambda: self.get_calcs())
-        results_btn = QPushButton("PRINT TO YAML")
-        results_btn.setStyleSheet("background-color: #74BEA3")
-        results_btn.clicked.connect(lambda: self.create_yaml())
+        self.n_cycles_container = QWidget()
+        self.n_cycles_layout = QGridLayout(self.n_cycles_container)
+        self.n_cycles_layout.setContentsMargins(0, 0, 0, 0)
+        self.n_cycles_layout.setSpacing(10)
+
+        # Create your widgets
+        cycles_checkbox = QCheckBox("INCLUDE N CYCLES DATA:")
+        self.browse_ncycles_data = QPushButton("SELECT N CYCLES DATA")
+        self.browse_ncycles_data.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        # Add each widget to its own cell in the grid layout, centered in its cell.
+        self.n_cycles_layout.addWidget(cycles_checkbox, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.n_cycles_layout.addWidget(self.browse_ncycles_data, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.results_btn = QPushButton("PRINT TO YAML")
+        self.results_btn.setStyleSheet("background-color: #74BEA3")
+        self.results_btn.clicked.connect(lambda: self.create_yaml())
         clear_btn = QPushButton("CLEAR DATA")
         clear_btn.clicked.connect(lambda: self.clear_dicts())
         clear_btn.clicked.connect(lambda: self.enable_btn())
@@ -156,10 +168,11 @@ class Vol2PressTab(QWidget):
         main_layout.addWidget(selections_group, 0, 0)
         main_layout.addWidget(single_fields_group, 1, 0)
         main_layout.addWidget(freq_fields_group, 2, 0)
-        main_layout.addWidget(self.add_to_yaml_btn, 3, 0)
-        main_layout.addWidget(results_btn, 4, 0)
-        main_layout.addWidget(clear_btn, 5, 0)
-        main_layout.addWidget(console_box, 6, 0)
+        main_layout.addWidget(self.add_to_yaml_btn, 3, 0, 1, 1)
+        main_layout.addWidget(self.n_cycles_container, 4, 0, 1, 1)
+        main_layout.addWidget(self.results_btn, 5, 0, 1, 1)
+        main_layout.addWidget(clear_btn, 6, 0, 1, 1)
+        main_layout.addWidget(console_box, 7, 0, 1, 1)
         main_layout.addWidget(self.graph_display, 0, 1, 7, 1)
 
         self.setLayout(main_layout)
@@ -170,7 +183,7 @@ class Vol2PressTab(QWidget):
         if d_type == "sweep":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Sweep File")
-            self.dialog1.setFileMode(QFileDialog.ExistingFile)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
             self.dialog1.setNameFilter("*.txt")
             self.dialog1.setDefaultSuffix("txt") # default suffix of yaml
             if self.dialog1.exec(): 
@@ -182,7 +195,7 @@ class Vol2PressTab(QWidget):
         elif d_type == "eb-50_cal":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Calibration EB-50 File")
-            self.dialog1.setFileMode(QFileDialog.ExistingFile)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
             self.dialog1.setNameFilter("*.yaml")
             self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
             if self.dialog1.exec(): 
@@ -193,7 +206,7 @@ class Vol2PressTab(QWidget):
         elif d_type == "eb-50_sys":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Customer EB-50 File")
-            self.dialog1.setFileMode(QFileDialog.ExistingFile)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
             self.dialog1.setNameFilter("*.yaml")
             self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
             if self.dialog1.exec(): 
@@ -206,7 +219,7 @@ class Vol2PressTab(QWidget):
             self.dialog1.setNameFilter("*.yaml")
             self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
             self.dialog1.setWindowTitle("YAML Save Location")
-            self.dialog1.setFileMode(QFileDialog.AnyFile)
+            self.dialog1.setFileMode(QFileDialog.FileMode.AnyFile)
             if self.dialog1.exec():
                 self.text_display.append("Save Location: ")
                 self.save_location = self.dialog1.selectedFiles()[0]
@@ -226,11 +239,11 @@ class Vol2PressTab(QWidget):
             self,
             'Confirm Clear',
             'Are you sure you want to clear all previously stored frequency data?',
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
 
-        if qReply == QMessageBox.Yes:  # if user says yes, clear previous dicts
+        if qReply == QMessageBox.StandardButton.Yes:  # if user says yes, clear previous dicts
             self.freq_dict = {}
             self.values_dict = {}
             self.summary_dict = {}
@@ -305,3 +318,14 @@ class Vol2PressTab(QWidget):
             self.text_display.append(f"Writing dictionary to {self.save_location}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append("Writing to dictionary complete.")
+    
+    def resizeEvent(self, event):
+        """
+        Override resizeEvent to force the 'SELECT N CYCLES DATA' button
+        to be half the width of the 'PRINT TO YAML' button.
+        """
+        super().resizeEvent(event)
+        # Measure the PRINT TO YAML button’s current width
+        full_width = self.results_btn.width()
+        # Set the N cycles button to half that width
+        self.browse_ncycles_data.setFixedWidth(full_width // 2)
