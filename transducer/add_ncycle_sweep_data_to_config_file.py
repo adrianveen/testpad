@@ -1,10 +1,8 @@
 import os
+import sys
 from typing import Tuple, List, Union
-
-import h5py
 import numpy as np
 import yaml
-
 from testpad.transducer.calibration_resources import create_sweep_file
 
 
@@ -146,6 +144,7 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
 
     :param transducer_config_file: The path to the transducer config file to be updated. If none, no data will be saved
     :return: ncycle_axis: list of (np.ndarray, np.ndarray), where each item is a tuple consisting of:
+    The frequency in Hz (ex: 550000 for 550kHz)
     The x-axis for the number of cycles, e.g. [1, 2, 3, ...]
     normalized_PNP_MPa_by_cycle: np.ndarray
     A list of floats containing the normalized peak pressure for each cycle count. The final value of the lists
@@ -162,7 +161,7 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
 
         # Normalize peak pressure to the standard peak pressure to the last value in the list
         normalized_PNP_MPa_by_cycle = [x / PNP_MPa_by_cycle[-1] for x in PNP_MPa_by_cycle]
-        print(f"Normalized sensitivity by cycle:")
+        print(f"Normalized sensitivity by cycle for frequency: {freq_str}")
         for i in range(len(PNP_MPa_by_cycle)):
             print(f"{normalized_PNP_MPa_by_cycle[i]}")
 
@@ -182,8 +181,7 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
                             normalized_PNP_MPa_by_cycle = normalized_PNP_MPa_by_cycle.tolist()
                         normalized_PNP_MPa_by_cycle = [float(x) for x in normalized_PNP_MPa_by_cycle]
                         ncycle_axis = np.arange(1, len(normalized_PNP_MPa_by_cycle) + 1)
-                        plot_data.append((ncycle_axis, np.array(normalized_PNP_MPa_by_cycle))
-
+                        plot_data.append((freq_int, ncycle_axis, np.array(normalized_PNP_MPa_by_cycle)))
                         yaml_dict[key1][key2]['vol2press_adjustment_by_num_cycles'] = normalized_PNP_MPa_by_cycle
                         frequency_key_found = True
                         break
@@ -192,14 +190,21 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
 
     with open(transducer_config_file, 'w') as file:
         yaml.dump(yaml_dict, file)
-
     return plot_data
 
-# if __name__ == '__main__':
-#     # Example usage. Ncycle adjustment data will be added to the transducer config file.
-#     add_ncycle_sweep_to_transducer_file(
-#         r'G:\Shared drives\FUS_Team\Transducers Calibration and RFB\
-#         612-T550H825_DUAL_FREQUENCY\Scan Data\Cycle_sweeps_Feb_20',
-#         r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB\
-#         612-T550H825_DUAL_FREQUENCY\612-T550H825_DUAL_FREQUENCY - Copy.yaml"
-#     )
+
+def run_example():
+    # Example usage. Ncycle adjustment data will be added to the transducer config file.
+    results_dir = (r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB\612-T550H825_DUAL_FREQUENCY\Scan "
+                   r"Data\Cycle_sweeps_Feb_20")
+    tx_config = (r"G:\Shared drives\FUS_Team\Transducers Calibration and "
+                 r"RFB\612-T550H825_DUAL_FREQUENCY\612-T550H825_DUAL_FREQUENCY - Copy.yaml")
+    plot_data = add_ncycle_sweep_to_transducer_file(results_dir, tx_config)
+    for (frequency_Hz, ncycle_axis, normalized_PNP_MPa_by_cycle) in plot_data:
+        print(f"Frequency: {frequency_Hz}")
+        print(f"ncycle_axis: {ncycle_axis}")
+        print(f"normalized_PNP_MPa_by_cycle: {normalized_PNP_MPa_by_cycle}")
+
+
+if __name__ == '__main__':
+    run_example()
