@@ -44,26 +44,32 @@ class HydrophoneGraph():
             file_paths (str or list of str): Single file path or a list of file paths.
             
         Returns:
-            list: A list of tuples, where each tuple contains (elapsed time, temperature).
+            list: A list of tuples, where each tuple contains (frequency, sensitivity)
+                if the STD column is missing or (frequency, sensitivity, std) if present.
         """
+        self.raw_data = []  # Reset raw_data for new files
+        self.transducer_serials = []
+        frequency = []
+        sensitivity = []
+        std = []
+
         # Ensure file_paths is always a list
         if isinstance(file_paths, str):
             file_paths = [file_paths]
 
         for file_path in file_paths:
             try:
-                
-                with open (file_path, 'r') as f:
+                with open(file_path, 'r') as f:
                     first_line = f.readline()
                     tx_serial_line = f.readline()
-
                     lines = f.read().splitlines()
 
+                # Extract serial number
                 cells = tx_serial_line.strip().split(',')
                 self.tx_serial_no = cells[1]
-
                 self.transducer_serials.append(self.tx_serial_no)
 
+                # Locate the header row
                 header_index = None
                 for i, line in enumerate(lines):
                     if "Frequency (MHz)" in line:
@@ -74,19 +80,21 @@ class HydrophoneGraph():
                     raise ValueError("Could not find 'Frequency (MHz)' in the file")
                 
                 csv_string = "\n".join(lines[header_index:])
-                # print(f"Transducer Serial Number: {tx_serial_no}")
-                data = pd.read_csv(StringIO(csv_string), usecols=[0, 1, 2])
-                # check column names
-                # print("Columns in the DataFrame:", data.columns.tolist())
                 
-                # Append processed data to raw_data
+                # Read CSV; attempt to read all three expected columns
+                data = pd.read_csv(StringIO(csv_string),
+                                usecols=lambda col: col in ["Frequency (MHz)", "Sensitivity (mV/MPa)", "Standard deviation (mV/MPa)"])
+                
                 frequency = data["Frequency (MHz)"]
                 sensitivity = data["Sensitivity (mV/MPa)"]
-                std = data["Standard deviation (mV/MPa)"]
-                # print(f"Frequency: {frequency}")
-                # print(f"Sensitivity: {sensitivity}")
-                self.raw_data.append((frequency, sensitivity, std))
-                print(f"Raw data: {self.raw_data[0]}")
+                
+                # If the STD column is missing, only append the two columns
+                if "Standard deviation (mV/MPa)" not in data.columns:
+                    self.raw_data.append((frequency, sensitivity))
+                else:
+                    std = data["Standard deviation (mV/MPa)"]
+                    self.raw_data.append((frequency, sensitivity, std))
+                    
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
         
@@ -123,11 +131,15 @@ class HydrophoneGraph():
         image_path = self.resource_path('images\\fus_icon_transparent.png')
         image = self.load_icon(image_path)
 
-        #print(f"Raw data shape: {len(self.raw_data)}")
+        # print(f"Raw data shape: {len(self.raw_data)}")
 
         if overlaid == False or len(self.raw_data) == 1:
             # Single dataset
-            freq, sensitivity, sens_std = self.raw_data[0]
+            dataset = self.raw_data[0]
+            if len(dataset) == 2:
+                freq, sensitivity = dataset
+            else:
+                freq, sensitivity, sens_std = dataset
             # print(f"Frequency: {freq}")
             # print(f"Sensitivity: {sensitivity}")
             self.ax.plot(
@@ -142,23 +154,29 @@ class HydrophoneGraph():
             self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency")
         else:
             # Overlaid datasets
-            for i, (freq, sensitivity, sens_std) in enumerate(self.raw_data):
-                    self.ax.plot(
-                        freq, sensitivity / 1000,
-                        linestyle='-', marker='o',
-                        color='black',              # Line color (black)
-                        markerfacecolor=colors[i],   # Dataset-specific marker fill
-                        markeredgecolor='black',     # Marker border color
-                        alpha=0.7, label=self.transducer_serials[i],
-                        linewidth=1, markersize=8
-                    )
-                    self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency")
+                            # Overlaid datasets
+            for i, dataset in enumerate(self.raw_data):
+                if len(dataset) == 2:
+                    freq, sensitivity = dataset
+                    sens_std = None
+                else:
+                    freq, sensitivity, sens_std = dataset
+
+                self.ax.plot(
+                    freq, sensitivity / 1000,
+                    linestyle='-', marker='o',
+                    color='black',              # Line color (black)
+                    markerfacecolor=colors[i],   # Dataset-specific marker fill
+                    markeredgecolor='black',     # Marker border color
+                    alpha=0.7, label=self.transducer_serials[i],
+                    linewidth=1, markersize=8
+                )
+                self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency")
             self.ax.legend()
 
         # Graph labels
         self.ax.set_xlabel("Frequency (MHz)")
         self.ax.set_ylabel("Sensitivity (V/MPa)")
-        # self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency", fontsize=14)
         self.ax.tick_params(axis='both', which='major')
         self.ax.xaxis.set_major_locator(MultipleLocator(0.2))
         self.fig.set_size_inches(6.5, 3.5, forward=True)
@@ -179,13 +197,12 @@ class HydrophoneGraph():
 
         image_width, image_height = 0.12, 0.12
 
-        # Add the image to the figure
+        # Add the FUS logo to the figure
         ax_image = self.fig.add_axes([image_xaxis, image_yaxis, image_width, image_height])
         ax_image.imshow(image)
         ax_image.axis('off')
 
         # Adjust padding to reduce white space
-        #self.fig.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.1)
         self.fig.tight_layout()
         # Set the canvas to the figure
         self.fig.set_canvas(self.canvas)
