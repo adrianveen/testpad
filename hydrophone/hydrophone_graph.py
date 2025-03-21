@@ -109,7 +109,6 @@ class HydrophoneGraph():
         return palette
     
     # returns canvas of mpl graph to UI
-
     def get_graphs(self, overlaid=False):
         """
         Generate and return a line plot of the temperature over time.
@@ -154,7 +153,6 @@ class HydrophoneGraph():
             self.ax.set_title(f"Hydrophone Sensitivity as a Function of Frequency")
         else:
             # Overlaid datasets
-                            # Overlaid datasets
             for i, dataset in enumerate(self.raw_data):
                 if len(dataset) == 2:
                     freq, sensitivity = dataset

@@ -103,7 +103,7 @@ class HydrophoneAnalysisTab(QWidget):
                 original_marker_edge_widths = {}
                 original_line_widths = {}
 
-                # Temporarily reduce marker size, marker edge width, and line width to 70%
+                # Temporarily reduce marker size, marker edge width, and line width to 70% for saving
                 for ax in self.graph.figure.get_axes():
                     for line in ax.get_lines():
                         # Save original values
@@ -111,7 +111,7 @@ class HydrophoneAnalysisTab(QWidget):
                         original_marker_edge_widths[line] = line.get_markeredgewidth()
                         original_line_widths[line] = line.get_linewidth()
 
-                        # Reduce each property to 70% of its original value
+                        # Scale plot properties to 70% of its original size
                         line.set_markersize(original_marker_sizes[line] * 0.7)
                         line.set_markeredgewidth(original_marker_edge_widths[line] * 0.7)
                         line.set_linewidth(original_line_widths[line] * 0.7)
