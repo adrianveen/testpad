@@ -7,7 +7,10 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
                                QVBoxLayout, QWidget, QSizePolicy)
 import numpy as np
 import yaml
+import os
 import decimal
+
+from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
 
 class Vol2PressTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -41,16 +44,23 @@ class Vol2PressTab(QWidget):
         single_fields_group = QGroupBox("Transducer Fields")
         transducer_label = QLabel("Transducer Serial No.")
         self.transducer_field = QLineEdit()
+        self.transducer_field.setText("600")
         impedance_label = QLabel("impedance_fund [\u03A9]")
         self.impedance_field = QLineEdit()
+        self.impedance_field.setPlaceholderText("50")
+        self.impedance_field.setText("50")
         phase_label = QLabel("phase_fund [\u00B0]")
         self.phase_field = QLineEdit()
+        self.phase_field.setPlaceholderText("0")
+        self.phase_field.setText("0")
         pcd_label = QLabel("PCD_freq [Hz]")
         self.pcd_field = QLineEdit()
         diameter_label = QLabel("txDiameter [mm]")
         self.diameter_field = QLineEdit()
+        self.diameter_field.setText("35")
         focal_point_label = QLabel("txFocalPointFactor")
         self.focal_point_field = QLineEdit()
+        self.focal_point_field.setText("0.7")
 
         self.one_time_fields_list = [self.transducer_field, self.impedance_field, self.phase_field, self.pcd_field, self.diameter_field, self.focal_point_field]
 
@@ -77,13 +87,16 @@ class Vol2PressTab(QWidget):
         sweep_btn.clicked.connect(lambda: self.openFileDialog("sweep"))
         freq_label = QLabel("Frequency [MHz]")
         self.freq_field = QLineEdit()
+        self.freq_field.setText("0.550")
         freq_affix = QComboBox()
         freq_affix.addItems(["MHz, kHz"])
         freq_affix.setCurrentText("MHz")
         axial_len_label = QLabel("TxAxialFocalDiameter [mm]")
         self.axial_field = QLineEdit()
+        self.axial_field.setText("16.5")
         lateral_len_label = QLabel("TxLateralFocalDiameter [mm]")
         self.lateral_field = QLineEdit()
+        self.lateral_field.setText("2.5")
         offset_label = QLabel("offset")
         offset_widget = QWidget()
         offset_widget.setContentsMargins(0, 0, 0, 0)
@@ -104,6 +117,7 @@ class Vol2PressTab(QWidget):
         offset_widget.setLayout(offset_layout)
         uni_cali_label = QLabel("unified_vol2press [MPa/Vpp]")
         self.uni_cali_field = QLineEdit()
+        self.uni_cali_field.setPlaceholderText("0.08")
 
         self.fields_list = [self.freq_field, self.axial_field, self.lateral_field, self.offset_field_1, \
                             self.offset_field_2, self.offset_field_3, self.uni_cali_field]
@@ -184,35 +198,55 @@ class Vol2PressTab(QWidget):
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Sweep File")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
-            self.dialog1.setNameFilter("*.txt")
-            self.dialog1.setDefaultSuffix("txt") # default suffix of yaml
-            if self.dialog1.exec(): 
+            self.dialog1.setNameFilter("Text Files (*.txt)")
+            self.dialog1.setDefaultSuffix("txt")  # default suffix
+
+            # Set the default directory if it exists
+            default_dir = r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB"
+            if os.path.isdir(default_dir):
+                self.dialog1.setDirectory(default_dir)
+            
+            if self.dialog1.exec():
                 self.text_display.append("Sweep File: ")
                 self.sweep_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.sweep_file+"\n")
-                self.enable_btn() # enable the new frequency to be added to the YAML 
+                self.text_display.append(self.sweep_file + "\n")
+                self.enable_btn()  # enable the new frequency to be added to the YAML
 
         elif d_type == "eb-50_cal":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Calibration EB-50 File")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
-            self.dialog1.setNameFilter("*.yaml")
-            self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
-            if self.dialog1.exec(): 
+            self.dialog1.setNameFilter("YAML Files (*.yaml)")
+            self.dialog1.setDefaultSuffix("yaml")  # default suffix of yaml
+
+            # Specify the desired initial directory.
+            specified_path = r"G:\Shared drives\FUS_Team\Siglent.And.EB-50-Calibration\eb-50_yaml\2183-eb50"
+            if os.path.isdir(specified_path):
+                self.dialog1.setDirectory(specified_path)
+            # Otherwise, QFileDialog will use its default directory.
+
+            if self.dialog1.exec():
                 self.text_display.append("Calibration EB-50 File: ")
                 self.cal_eb50_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.cal_eb50_file+"\n")
+                self.text_display.append(self.cal_eb50_file + "\n")
+
 
         elif d_type == "eb-50_sys":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Customer EB-50 File")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
-            self.dialog1.setNameFilter("*.yaml")
-            self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
-            if self.dialog1.exec(): 
+            self.dialog1.setNameFilter("YAML Files (*.yaml)")
+            self.dialog1.setDefaultSuffix("yaml")  # default suffix of yaml
+
+            # Specify the desired default directory
+            specified_path = r"G:\Shared drives\FUS_Team\Siglent.And.EB-50-Calibration\eb-50_yaml"
+            if os.path.isdir(specified_path):
+                self.dialog1.setDirectory(specified_path)
+            
+            if self.dialog1.exec():
                 self.text_display.append("Customer EB-50 File: ")
                 self.sys_eb50_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.sys_eb50_file+"\n")
+                self.text_display.append(self.sys_eb50_file + "\n")
 
         elif d_type == "n_cycles":
             self.dialog1 = QFileDialog(self)
@@ -226,18 +260,23 @@ class Vol2PressTab(QWidget):
                 self.n_cycles_file = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.n_cycles_file + "\n")
 
-
         elif d_type == "save":
             self.dialog1 = QFileDialog(self)
-            self.dialog1.setNameFilter("*.yaml")
-            self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
+            self.dialog1.setNameFilter("YAML Files (*.yaml)")
+            self.dialog1.setDefaultSuffix("yaml")  # default suffix of yaml
             self.dialog1.setWindowTitle("YAML Save Location")
             self.dialog1.setFileMode(QFileDialog.FileMode.AnyFile)
             if self.dialog1.exec():
-                self.text_display.append("Save Location: ")
-                self.save_location = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.save_location+"\n")
-    
+                selected_file = self.dialog1.selectedFiles()[0]
+                # If a directory is selected, append a default file name.
+                if os.path.isdir(selected_file):
+                    selected_file = os.path.join(selected_file, "default_config.yaml")
+                self.save_file_path = selected_file          # Full file path (directory + file name)
+                self.save_location = os.path.dirname(selected_file)  # Just the directory
+                self.config_filename = os.path.basename(selected_file)  # Just the file name
+                self.text_display.append("Save Location: " + self.save_location + "\n")
+                self.text_display.append("Config File Name: " + self.config_filename + "\n")
+
     # disable the add frequency button 
     def disable_btn(self):
         self.add_to_yaml_btn.setEnabled(False)
@@ -327,10 +366,15 @@ class Vol2PressTab(QWidget):
         self.summary_dict = {}
         self.summary_dict[self.transducer_field.text()] = self.values_dict
 
-        with open(self.save_location, 'wt', encoding='utf8') as f:
-            self.text_display.append(f"Writing dictionary to {self.save_location}...\n")
+        with open(self.save_file_path, 'wt', encoding='utf8') as f:
+            full_path = os.path.join(self.save_location, self.config_filename)
+            self.text_display.append(f"Writing dictionary to {full_path}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append("Writing to dictionary complete.")
+
+        n_cycles_plot_data = add_ncycle_sweep_to_transducer_file(self.save_location, self.save_file_path)
+        # f string print plot data
+        print(f"Plot data: {n_cycles_plot_data}")
     
     # def resizeEvent(self, event):
     #     """
