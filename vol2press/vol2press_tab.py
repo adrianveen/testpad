@@ -150,7 +150,7 @@ class Vol2PressTab(QWidget):
         cycles_checkbox = QCheckBox("INCLUDE N CYCLES DATA:")
         cycles_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         
-        self.browse_ncycles_data = QPushButton("SELECT N CYCLES DATA")
+        self.browse_ncycles_data = QPushButton("SELECT N CYCLES FOLDER")
         self.browse_ncycles_data.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.browse_ncycles_data.clicked.connect(lambda: self.openFileDialog("n_cycles"))
         self.browse_ncycles_data.setEnabled(False)
@@ -251,14 +251,17 @@ class Vol2PressTab(QWidget):
         elif d_type == "n_cycles":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("N Cycles Data")
-            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
-            # Update filter to look for HDF5 files
-            self.dialog1.setNameFilter("HDF5 Files (*.hdf5 *.h5)")
-            self.dialog1.setDefaultSuffix("hdf5")
+            # Set the file mode to Directory so only folders can be selected
+            self.dialog1.setFileMode(QFileDialog.Directory)
+            # Ensure that only directories are shown
+            self.dialog1.setOption(QFileDialog.ShowDirsOnly, True)
+            
             if self.dialog1.exec():
-                self.text_display.append("N Cycles Data: ")
-                self.n_cycles_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.n_cycles_file + "\n")
+                selected_dir = self.dialog1.selectedFiles()[0]
+                # Now store the selected directory and its parent directory
+                self.n_cycles_dir = selected_dir
+                self.n_cycles_parent_dir = os.path.dirname(selected_dir)
+                self.text_display.append("N Cycles Data: " + selected_dir + "\n")
 
         elif d_type == "save":
             self.dialog1 = QFileDialog(self)
@@ -372,7 +375,7 @@ class Vol2PressTab(QWidget):
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append("Writing to dictionary complete.")
 
-        n_cycles_plot_data = add_ncycle_sweep_to_transducer_file(self.save_location, self.save_file_path)
+        n_cycles_plot_data = add_ncycle_sweep_to_transducer_file(self.n_cycles_dir, self.save_file_path)
         # f string print plot data
         print(f"Plot data: {n_cycles_plot_data}")
     
