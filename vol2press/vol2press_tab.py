@@ -132,18 +132,16 @@ class Vol2PressTab(QWidget):
         self.add_to_yaml_btn.setStyleSheet("QPushButton:disabled {color: gray}")
         self.add_to_yaml_btn.clicked.connect(lambda: self.disable_btn())
         self.add_to_yaml_btn.clicked.connect(lambda: self.get_calcs())
-        self.n_cycles_container = QWidget()
-        self.n_cycles_layout = QGridLayout(self.n_cycles_container)
-        self.n_cycles_layout.setContentsMargins(0, 0, 0, 0)
-        self.n_cycles_layout.setSpacing(10)
 
-        # Create your widgets
         cycles_checkbox = QCheckBox("INCLUDE N CYCLES DATA:")
+        cycles_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        
         self.browse_ncycles_data = QPushButton("SELECT N CYCLES DATA")
         self.browse_ncycles_data.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.browse_ncycles_data.clicked.connect(lambda: self.openFileDialog("n_cycles"))
+        self.browse_ncycles_data.setEnabled(False)
+        cycles_checkbox.toggled.connect(self.browse_ncycles_data.setEnabled)
         # Add each widget to its own cell in the grid layout, centered in its cell.
-        self.n_cycles_layout.addWidget(cycles_checkbox, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.n_cycles_layout.addWidget(self.browse_ncycles_data, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
         self.results_btn = QPushButton("PRINT TO YAML")
         self.results_btn.setStyleSheet("background-color: #74BEA3")
         self.results_btn.clicked.connect(lambda: self.create_yaml())
@@ -164,16 +162,18 @@ class Vol2PressTab(QWidget):
         # MAIN LAYOUT 
         main_layout = QGridLayout()
         main_layout.setColumnStretch(0, 1)
-        main_layout.setColumnStretch(1, 2)
-        main_layout.addWidget(selections_group, 0, 0)
-        main_layout.addWidget(single_fields_group, 1, 0)
-        main_layout.addWidget(freq_fields_group, 2, 0)
-        main_layout.addWidget(self.add_to_yaml_btn, 3, 0, 1, 1)
-        main_layout.addWidget(self.n_cycles_container, 4, 0, 1, 1)
-        main_layout.addWidget(self.results_btn, 5, 0, 1, 1)
-        main_layout.addWidget(clear_btn, 6, 0, 1, 1)
-        main_layout.addWidget(console_box, 7, 0, 1, 1)
-        main_layout.addWidget(self.graph_display, 0, 1, 7, 1)
+        main_layout.setColumnStretch(1, 1)
+        main_layout.setColumnStretch(2, 2)
+        main_layout.addWidget(selections_group, 0, 0, 1, 2)
+        main_layout.addWidget(single_fields_group, 1, 0, 1, 2)
+        main_layout.addWidget(freq_fields_group, 2, 0, 1, 2)
+        main_layout.addWidget(self.add_to_yaml_btn, 3, 0, 1, 2)
+        main_layout.addWidget(cycles_checkbox, 4, 0, 1, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.browse_ncycles_data, 4, 1, 1, 1)
+        main_layout.addWidget(self.results_btn, 5, 0, 1, 2)
+        main_layout.addWidget(clear_btn, 6, 0, 1, 2)
+        main_layout.addWidget(console_box, 7, 0, 1, 2)
+        main_layout.addWidget(self.graph_display, 0, 2, 7, 2)
 
         self.setLayout(main_layout)
 
@@ -213,6 +213,19 @@ class Vol2PressTab(QWidget):
                 self.text_display.append("Customer EB-50 File: ")
                 self.sys_eb50_file = self.dialog1.selectedFiles()[0]
                 self.text_display.append(self.sys_eb50_file+"\n")
+
+        elif d_type == "n_cycles":
+            self.dialog1 = QFileDialog(self)
+            self.dialog1.setWindowTitle("N Cycles Data")
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
+            # Update filter to look for HDF5 files
+            self.dialog1.setNameFilter("HDF5 Files (*.hdf5 *.h5)")
+            self.dialog1.setDefaultSuffix("hdf5")
+            if self.dialog1.exec():
+                self.text_display.append("N Cycles Data: ")
+                self.n_cycles_file = self.dialog1.selectedFiles()[0]
+                self.text_display.append(self.n_cycles_file + "\n")
+
 
         elif d_type == "save":
             self.dialog1 = QFileDialog(self)
@@ -319,13 +332,13 @@ class Vol2PressTab(QWidget):
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append("Writing to dictionary complete.")
     
-    def resizeEvent(self, event):
-        """
-        Override resizeEvent to force the 'SELECT N CYCLES DATA' button
-        to be half the width of the 'PRINT TO YAML' button.
-        """
-        super().resizeEvent(event)
-        # Measure the PRINT TO YAML button’s current width
-        full_width = self.results_btn.width()
-        # Set the N cycles button to half that width
-        self.browse_ncycles_data.setFixedWidth(full_width // 2)
+    # def resizeEvent(self, event):
+    #     """
+    #     Override resizeEvent to force the 'SELECT N CYCLES DATA' button
+    #     to be half the width of the 'PRINT TO YAML' button.
+    #     """
+    #     super().resizeEvent(event)
+    #     # Measure the PRINT TO YAML button’s current width
+    #     full_width = self.results_btn.width()
+    #     # Set the N cycles button to half that width
+    #     self.browse_ncycles_data.setFixedWidth(full_width // 2)
