@@ -179,21 +179,20 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
         else:
             raise Exception(f"Frequency string {freq_str} does not contain 'kHz' or 'MHz'")
 
-        for key1 in yaml_dict:
-            if 'T' in key1 and 'H' in key1:
-                frequency_key_found = False
-                for key2 in yaml_dict[key1]:
-                    if str(freq_int) in str(key2):
-                        if isinstance(normalized_PNP_MPa_by_cycle, np.ndarray):
-                            normalized_PNP_MPa_by_cycle = normalized_PNP_MPa_by_cycle.tolist()
-                        normalized_PNP_MPa_by_cycle = [float(x) for x in normalized_PNP_MPa_by_cycle]
-                        ncycle_axis = np.arange(1, len(normalized_PNP_MPa_by_cycle) + 1)
-                        plot_data.append((freq_int, ncycle_axis, np.array(normalized_PNP_MPa_by_cycle)))
-                        yaml_dict[key1][key2]['vol2press_adjustment_by_num_cycles'] = normalized_PNP_MPa_by_cycle
-                        frequency_key_found = True
-                        break
-                if not frequency_key_found:
-                    print(f"Warning: Did not find frequency key for {freq_int} in the transducer config file.")
+        key1 = list(yaml_dict.keys())[0]
+        frequency_key_found = False
+        for key2 in yaml_dict[key1]:
+            if str(freq_int) in str(key2):
+                if isinstance(normalized_PNP_MPa_by_cycle, np.ndarray):
+                    normalized_PNP_MPa_by_cycle = normalized_PNP_MPa_by_cycle.tolist()
+                normalized_PNP_MPa_by_cycle = [float(x) for x in normalized_PNP_MPa_by_cycle]
+                ncycle_axis = np.arange(1, len(normalized_PNP_MPa_by_cycle) + 1)
+                plot_data.append((freq_int, ncycle_axis, np.array(normalized_PNP_MPa_by_cycle)))
+                yaml_dict[key1][key2]['vol2press_adjustment_by_num_cycles'] = normalized_PNP_MPa_by_cycle
+                frequency_key_found = True
+                break
+        if not frequency_key_found:
+            print(f"Warning: Did not find frequency key for {freq_int} in the transducer config file.")
 
     with open(transducer_config_file, 'w') as file:
         yaml.dump(yaml_dict, file)
