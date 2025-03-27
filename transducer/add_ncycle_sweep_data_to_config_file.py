@@ -3,17 +3,24 @@ import sys
 from typing import Tuple, List, Union
 import numpy as np
 import yaml
+import h5py
 
-try:
-    from transducer.calibration_resources import create_sweep_file
-except:
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    from transducer.calibration_resources import create_sweep_file
+def get_pnp_from_files(sweep_files: List[str]) -> float:
+    for file in sweep_files:
+        min_MPa_hdf5_per_file = []
+
+        with h5py.File(file, 'r') as f:
+            min_Pa_hdf5 = f['/Scan/Min output pressure (Pa)']
+            min_MPa_hdf5_per_file.append(np.min(np.multiply(min_Pa_hdf5, 1e-6)))
+
+        # Convert to numpy array and average across trials
+        min_MPa_hdf5_per_file = np.min(np.mean(min_MPa_hdf5_per_file, axis=0))
+    return float(np.abs(np.min(min_MPa_hdf5_per_file)))  # Return the maximum value across trials
 
 def _get_unified_vol2press_and_peak_pressure_across_trials(folder_path,
                                                            freq_str: str,
                                                            transducer_serial: str
-                                                           ) -> Tuple[float, float]:
+                                                           ) -> float:
     # List all the files in the folder with .hdf5 extension
     file_list = [f for f in os.listdir(folder_path) if f.endswith('.hdf5')]
 
@@ -37,18 +44,14 @@ def _get_unified_vol2press_and_peak_pressure_across_trials(folder_path,
 
     if len(sweep_list) == 0:
         print(f"Error: No sweep files found in folder {folder_path}")
-        return 0, 0
+        return 0
 
-    unified_vol2press, PNP_MPa = create_sweep_file(sweep_list, None,
-                                                   transducer_serial, freq_str, False, generate_figures=False,
-                                                   show_feedback=False)
-    if not isinstance(unified_vol2press, float):
-        print(f"Error: unified_vol2press is not a float: {unified_vol2press}")
+    PNP_MPa = get_pnp_from_files(sweep_list)
 
     if not isinstance(PNP_MPa, float):
         print(f"Error: peak_pressure_MPa is not a float: {PNP_MPa}")
 
-    return unified_vol2press, PNP_MPa
+    return PNP_MPa
 
 
 def _get_peak_pressure_MPa_by_cycle(folder_path, freq_str: str, transducer_serial: str):
@@ -61,7 +64,7 @@ def _get_peak_pressure_MPa_by_cycle(folder_path, freq_str: str, transducer_seria
         if '_cycles' in folder:
             # try:
             num_cycles = int(folder.split('_')[0])
-            _, PNP_MPa = _get_unified_vol2press_and_peak_pressure_across_trials(os.path.join(folder_path,
+            PNP_MPa = _get_unified_vol2press_and_peak_pressure_across_trials(os.path.join(folder_path,
                                                                                              folder),
                                                                                 freq_str,
                                                                                 transducer_serial)
@@ -199,10 +202,9 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
 
 def run_example():
     # Example usage. Ncycle adjustment data will be added to the transducer config file.
-    results_dir = (r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB\612-T550H825_DUAL_FREQUENCY\Scan "
-                   r"Data\Cycle_sweeps_Feb_20")
+    results_dir = (r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB\612-T550H825_DUAL_FREQUENCY\Scan Data\Cycle_sweeps_Feb_20")
     tx_config = (r"G:\Shared drives\FUS_Team\Transducers Calibration and "
-                 r"RFB\612-T550H825_DUAL_FREQUENCY\612-T550H825_DUAL_FREQUENCY - Copy.yaml")
+                r"RFB\612-T550H825_DUAL_FREQUENCY\612-T550H825_DUAL_FREQUENCY - Copy.yaml")
     plot_data = add_ncycle_sweep_to_transducer_file(results_dir, tx_config)
     for (frequency_Hz, ncycle_axis, normalized_PNP_MPa_by_cycle) in plot_data:
         print(f"Frequency: {frequency_Hz}")
