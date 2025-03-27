@@ -3,7 +3,7 @@ import sys
 from typing import Tuple, List, Union
 import numpy as np
 import yaml
-from testpad.transducer.calibration_resources import create_sweep_file
+from transducer.calibration_resources import create_sweep_file
 
 
 def _get_unified_vol2press_and_peak_pressure_across_trials(folder_path,
