@@ -63,10 +63,10 @@ class HydrophoneAnalysisTab(QWidget):
             self.dialog1 = QFileDialog(self)
             
             if self.compare_box.isChecked():
-                self.dialog1.setFileMode(QFileDialog.ExistingFiles)
+                self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
                 self.dialog1.setWindowTitle("Hydrophone Scan CSV Files")
             else:
-                self.dialog1.setFileMode(QFileDialog.ExistingFile)
+                self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
                 self.dialog1.setWindowTitle("Hydrophone Scan CSV File")
 
             self.dialog1.setNameFilter("*.csv")
@@ -82,8 +82,7 @@ class HydrophoneAnalysisTab(QWidget):
         elif d_type == "save": # save graph SVG location 
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
-            # self.dialog.setDefaultSuffix("*.txt")
-            self.dialog.setFileMode(QFileDialog.Directory)
+            self.dialog.setFileMode(QFileDialog.FileMode.Directory)
             if self.dialog.exec():
                 self.text_display.append("Save Location: ")
                 self.file_save_location = self.dialog.selectedFiles()[0]
@@ -93,17 +92,53 @@ class HydrophoneAnalysisTab(QWidget):
                 file_name = f"{self.hydrophone_object.tx_serial_no}_sensitivity_vs_frequency_{timestamp}.svg"
                 hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
 
-                dpi = 100
-                fig_width = 1920 / dpi
-                fig_height = 1080 / dpi
+                dpi = 96
+                fig_width = 6.5
+                fig_height = 3.5
 
                 self.graph.figure.set_size_inches(fig_width, fig_height)
-                self.graph.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi)
+                
+                # Create dictionaries to hold the original properties
+                original_marker_sizes = {}
+                original_marker_edge_widths = {}
+                original_line_widths = {}
+
+                # Temporarily reduce marker size, marker edge width, and line width to 70% for saving
+                for ax in self.graph.figure.get_axes():
+                    for line in ax.get_lines():
+                        # Save original values
+                        original_marker_sizes[line] = line.get_markersize()
+                        original_marker_edge_widths[line] = line.get_markeredgewidth()
+                        original_line_widths[line] = line.get_linewidth()
+
+                        # Scale plot properties to 70% of its original size
+                        line.set_markersize(original_marker_sizes[line] * 0.7)
+                        line.set_markeredgewidth(original_marker_edge_widths[line] * 0.7)
+                        line.set_linewidth(original_line_widths[line] * 0.7)
+
+                self.graph.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi, bbox_inches="tight", pad_inches=0)
+
+                for ax in self.graph.figure.get_axes():
+                    for line in ax.get_lines():
+                        line.set_markersize(original_marker_sizes[line])
+                        
                 for i, data in enumerate(self.hydrophone_object.raw_data):
                     txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
                     csv_file_path = os.path.join(self.file_save_location, txt_file_name)
-                    data_array = np.array(data)
-                    data_transposed = data_array.T
+                    
+                    # Check if data tuple has 2 or 3 elements
+                    if len(data) == 2:
+                        # Only frequency and sensitivity
+                        data_array = np.array(data)
+                        data_transposed = data_array.T
+                    else:
+                        # Tuple contains STD as well
+                        data_array = np.array(data)
+                        data_transposed = data_array.T
+                        # Optionally, if STD values are all NaN, discard the column:
+                        if np.all(np.isnan(data_transposed[:, 2])):
+                            data_transposed = data_transposed[:, :2]
+                    
                     np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt='%s')
                 # finished saving message
                 self.text_display.append("The following files were saved:\n")
