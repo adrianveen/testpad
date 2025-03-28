@@ -196,6 +196,7 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
 
     with open(transducer_config_file, 'w') as file:
         yaml.dump(yaml_dict, file)
+
     return plot_data
 
 

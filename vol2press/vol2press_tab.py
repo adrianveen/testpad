@@ -9,6 +9,8 @@ import numpy as np
 import yaml
 import os
 import decimal
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
 
@@ -312,7 +314,7 @@ class Vol2PressTab(QWidget):
             self.calcs = Vol2Press(self.cal_eb50_file, self.sys_eb50_file, self.sweep_file, float(self.freq_field.text()))
             self.r_value = float(f"{self.calcs.return_B_value():.4f}")
             self.text_display.append(f"Regression value: {self.r_value} MPa/Vpp\n")
-            self.printGraphs()
+            self.printGraphs(dataset=self.calcs)
             self.add_to_frequency()
         else:
             if self.sweep_file is None:
@@ -324,7 +326,7 @@ class Vol2PressTab(QWidget):
 
     # print the graphs
     @Slot()
-    def printGraphs(self):
+    def printGraphs(self, dataset):
         self.graph_display.clear()
         comparison_graph = self.calcs.getGraphs()
         self.graph_display.addTab(comparison_graph, "Comparison Graph")
@@ -375,9 +377,28 @@ class Vol2PressTab(QWidget):
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append("Writing to dictionary complete.")
 
-        n_cycles_plot_data = add_ncycle_sweep_to_transducer_file(self.n_cycles_dir, self.save_file_path)
-        # f string print plot data
-        print(f"Plot data: {n_cycles_plot_data}")
+        self.n_cycles_plot_data = add_ncycle_sweep_to_transducer_file(self.n_cycles_dir, self.save_file_path)
+        
+        self.plot_ncycle_data(self.n_cycles_plot_data)
+
+    def plot_ncycle_data(self, plot_data = list):
+        self.fig, self.ax = plt.subplots(1, 1)
+        self.canvas = FigureCanvas(self.fig)
+        # store frequencies in a list
+        frequencies = []
+        for freq, cycles, pressure in plot_data:
+            self.ax.plot(cycles, pressure, label=f"{freq} MHz")
+
+        self.ax.set_xlabel("Cycle Number")
+        self.ax.set_ylabel("Normalized Pressure (MPA)")
+        self.ax.legend(title="Frequency")
+        self.ax.grid(True)
+        self.ax.set_title("N Cycles Data")
+        self.fig.set_canvas(self.canvas)
+        self.graph_display.addTab(self.canvas, "N Cycles Data")
+        self.graph_display.setCurrentWidget(self.canvas)
+
+
     
     # def resizeEvent(self, event):
     #     """
