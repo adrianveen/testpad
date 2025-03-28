@@ -300,14 +300,14 @@ class Vol2PressTab(QWidget):
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 file_name = f"T{self.n_cycles_plot_data[0][0]}_normalized_pnp_plot_{timestamp}.svg"
-                hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
+                pnp_svg_path = os.path.join(self.file_save_location, file_name)
 
                 dpi = 100
-                fig_width = 1920 / dpi
-                fig_height = 1080 / dpi
+                fig_width = 6.5
+                fig_height = 3.5
 
                 self.pnp_plot.figure.set_size_inches(fig_width, fig_height)
-                self.pnp_plot.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi)
+                self.pnp_plot.figure.savefig(pnp_svg_path,ormat="svg", dpi=dpi, bbox_inches="tight", pad_inches=0)
 
                 cycles = self.n_cycles_plot_data[0][1]
                 pressure_arrays = [data[2] for data in self.n_cycles_plot_data]
@@ -319,7 +319,7 @@ class Vol2PressTab(QWidget):
                 # finished saving message
                 self.text_display.append("The following files were saved:\n")
                 self.text_display.append(f"Normalized PNP Plot:")
-                self.text_display.append(f"{hydrophone_svg_path}\n")
+                self.text_display.append(f"{pnp_svg_path}\n")
                 self.text_display.append(f"Normalized PNP Data:")
                 self.text_display.append(f"{txt_file_path}\n")
 
