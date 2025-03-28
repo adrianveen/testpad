@@ -187,7 +187,7 @@ class Vol2PressTab(QWidget):
         main_layout.addWidget(self.results_btn, 5, 0, 1, 2)
         main_layout.addWidget(clear_btn, 6, 0, 1, 2)
         main_layout.addWidget(console_box, 7, 0, 1, 2)
-        main_layout.addWidget(self.graph_display, 0, 2, 7, 2)
+        main_layout.addWidget(self.graph_display, 0, 2, 8, 2)
 
         self.setLayout(main_layout)
 
