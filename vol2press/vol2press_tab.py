@@ -11,6 +11,8 @@ import os
 import decimal
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.colors import to_rgb, to_hex
+from datetime import datetime
 
 from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
 
@@ -157,10 +159,13 @@ class Vol2PressTab(QWidget):
         self.browse_ncycles_data.clicked.connect(lambda: self.openFileDialog("n_cycles"))
         self.browse_ncycles_data.setEnabled(False)
         cycles_checkbox.toggled.connect(self.browse_ncycles_data.setEnabled)
-        # Add each widget to its own cell in the grid layout, centered in its cell.
+
         self.results_btn = QPushButton("PRINT TO YAML")
         self.results_btn.setStyleSheet("background-color: #74BEA3")
         self.results_btn.clicked.connect(lambda: self.create_yaml())
+
+        self.save_svg_btn = QPushButton("SAVE PNP AS SVG")
+        self.save_svg_btn.clicked.connect(lambda: self.openFileDialog("save_svg"))
         clear_btn = QPushButton("CLEAR DATA")
         clear_btn.clicked.connect(lambda: self.clear_dicts())
         clear_btn.clicked.connect(lambda: self.enable_btn())
@@ -187,9 +192,10 @@ class Vol2PressTab(QWidget):
         main_layout.addWidget(cycles_checkbox, 4, 0, 1, 1, alignment=Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.browse_ncycles_data, 4, 1, 1, 1)
         main_layout.addWidget(self.results_btn, 5, 0, 1, 2)
-        main_layout.addWidget(clear_btn, 6, 0, 1, 2)
-        main_layout.addWidget(console_box, 7, 0, 1, 2)
-        main_layout.addWidget(self.graph_display, 0, 2, 8, 2)
+        main_layout.addWidget(self.save_svg_btn, 6, 0, 1, 2)
+        main_layout.addWidget(clear_btn, 7, 0, 1, 2)
+        main_layout.addWidget(console_box, 8, 0, 1, 2)
+        main_layout.addWidget(self.graph_display, 0, 2, 9, 2)
 
         self.setLayout(main_layout)
 
@@ -281,6 +287,41 @@ class Vol2PressTab(QWidget):
                 self.config_filename = os.path.basename(selected_file)  # Just the file name
                 self.text_display.append("Save Location: " + self.save_location + "\n")
                 self.text_display.append("Config File Name: " + self.config_filename + "\n")
+
+        elif d_type == "save_svg":
+            self.dialog = QFileDialog(self)
+            self.dialog.setWindowTitle("Graph Save Location")
+            # self.dialog.setDefaultSuffix("*.txt")
+            self.dialog.setFileMode(QFileDialog.FileMode.Directory)
+            if self.dialog.exec():
+                self.text_display.append("Save Location: ")
+                self.file_save_location = self.dialog.selectedFiles()[0]
+                self.text_display.append(self.file_save_location+"\n")
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                file_name = f"T{self.n_cycles_plot_data[0][0]}_normalized_pnp_plot_{timestamp}.svg"
+                hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
+
+                dpi = 100
+                fig_width = 1920 / dpi
+                fig_height = 1080 / dpi
+
+                self.pnp_plot.figure.set_size_inches(fig_width, fig_height)
+                self.pnp_plot.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi)
+
+                cycles = self.n_cycles_plot_data[0][1]
+                pressure_arrays = [data[2] for data in self.n_cycles_plot_data]
+                combined_data = np.column_stack((cycles, *pressure_arrays))
+                header = "Cycles," + ",".join([f"{freq/1e6:.3f} MHz" for freq, _, _ in self.n_cycles_plot_data])
+                txt_file_path = os.path.join(self.file_save_location, f"combined_normalized_pnp_data_{timestamp}.txt")
+                np.savetxt(txt_file_path, combined_data, delimiter=',', header=header, fmt = ('%d',) + ('%.18e',) * len(pressure_arrays), comments='')
+                
+                # finished saving message
+                self.text_display.append("The following files were saved:\n")
+                self.text_display.append(f"Normalized PNP Plot:")
+                self.text_display.append(f"{hydrophone_svg_path}\n")
+                self.text_display.append(f"Normalized PNP Data:")
+                self.text_display.append(f"{txt_file_path}\n")
 
     # disable the add frequency button 
     def disable_btn(self):
@@ -383,20 +424,32 @@ class Vol2PressTab(QWidget):
 
     def plot_ncycle_data(self, plot_data = list):
         self.fig, self.ax = plt.subplots(1, 1)
-        self.canvas = FigureCanvas(self.fig)
+        self.pnp_plot = FigureCanvas(self.fig)
         # store frequencies in a list
+        fus_colors = self.generate_color_palette("#74BEA3", len(plot_data))
+        
         frequencies = []
-        for freq, cycles, pressure in plot_data:
-            self.ax.plot(cycles, pressure, label=f"{freq} MHz")
+        for i, (freq, cycles, pressure) in enumerate(plot_data):
+            self.ax.plot(cycles, pressure, label=f"{freq / 1e6} MHz", color=fus_colors[i])
 
         self.ax.set_xlabel("Cycle Number")
-        self.ax.set_ylabel("Normalized Pressure (MPA)")
+        self.ax.set_ylabel("Sensitivity of PNP to AWG Input Voltage")
+        self.ax.set_xticks(np.arange(0, np.max(plot_data[0][1]) + 1, 5))
+        self.ax.set_yticks(np.arange(0, 1.1, 0.1))
         self.ax.legend(title="Frequency")
         self.ax.grid(True)
-        self.ax.set_title("N Cycles Data")
-        self.fig.set_canvas(self.canvas)
-        self.graph_display.addTab(self.canvas, "N Cycles Data")
-        self.graph_display.setCurrentWidget(self.canvas)
+        self.ax.set_title(f"PNP (normalized to {len(plot_data[0][2])} cycles) vs Cycle Number")
+        self.fig.set_canvas(self.pnp_plot)
+        self.graph_display.addTab(self.pnp_plot, "N Cycles Data")
+        self.graph_display.setCurrentWidget(self.pnp_plot)
+    
+    # Generate a color palette based on the base color provided
+    def generate_color_palette(self, base_color, num_colors):
+        base_rgb = to_rgb(base_color)
+        palette = [to_hex((base_rgb[0] * (1 - i / num_colors), 
+                           base_rgb[1] * (1 - i / num_colors), 
+                           base_rgb[2] * (1 - i / num_colors))) for i in range(num_colors)]
+        return palette
 
 
     
