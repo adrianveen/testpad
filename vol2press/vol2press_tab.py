@@ -307,7 +307,19 @@ class Vol2PressTab(QWidget):
                 fig_height = 3.5
 
                 self.pnp_plot.figure.set_size_inches(fig_width, fig_height)
-                self.pnp_plot.figure.savefig(pnp_svg_path,ormat="svg", dpi=dpi, bbox_inches="tight", pad_inches=0)
+
+                original_line_widths = {}
+
+                # Temporarily reduce marker size, marker edge width, and line width to 70% for saving
+                for ax in self.pnp_plot.figure.get_axes():
+                    for line in ax.get_lines():
+                        # Save original values
+                        original_line_widths[line] = line.get_linewidth()
+
+                        # Scale plot properties to 70% of its original size
+                        line.set_linewidth(original_line_widths[line] * 0.7)
+
+                self.pnp_plot.figure.savefig(pnp_svg_path,format="svg", dpi=dpi, bbox_inches="tight", pad_inches=0)
 
                 cycles = self.n_cycles_plot_data[0][1]
                 pressure_arrays = [data[2] for data in self.n_cycles_plot_data]
