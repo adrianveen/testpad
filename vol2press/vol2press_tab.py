@@ -326,7 +326,7 @@ class Vol2PressTab(QWidget):
                 combined_data = np.column_stack((cycles, *pressure_arrays))
                 header = "Cycles," + ",".join([f"{freq/1e6:.3f} MHz" for freq, _, _ in self.n_cycles_plot_data])
                 txt_file_path = os.path.join(self.file_save_location, f"combined_normalized_pnp_data_{timestamp}.txt")
-                np.savetxt(txt_file_path, combined_data, delimiter=',', header=header, fmt = ('%d',) + ('%.18e',) * len(pressure_arrays), comments='')
+                np.savetxt(txt_file_path, combined_data, delimiter=',', header=header, fmt = ('%d',) + ('%.3f',) * len(pressure_arrays), comments='')
                 
                 # finished saving message
                 self.text_display.append("The following files were saved:\n")
@@ -444,13 +444,13 @@ class Vol2PressTab(QWidget):
         for i, (freq, cycles, pressure) in enumerate(plot_data):
             self.ax.plot(cycles, pressure, label=f"{freq / 1e6} MHz", color=fus_colors[i])
 
-        self.ax.set_xlabel("Cycle Number")
-        self.ax.set_ylabel("Sensitivity of PNP to AWG Input Voltage")
+        self.ax.set_xlabel("Number of Cycles")
+        self.ax.set_ylabel("Normalized Peak Negative Pressure")
         self.ax.set_xticks(np.arange(0, np.max(plot_data[0][1]) + 1, 5))
         self.ax.set_yticks(np.arange(0, 1.1, 0.1))
         self.ax.legend(title="Frequency")
-        self.ax.grid(True)
-        self.ax.set_title(f"PNP (normalized to {len(plot_data[0][2])} cycles) vs Cycle Number")
+        self.ax.grid(True, color='lightgrey')
+        self.ax.set_title(f"Number of Cycles vs. Normalized Peak Negative Pressure")
         self.fig.set_canvas(self.pnp_plot)
         self.graph_display.addTab(self.pnp_plot, "N Cycles Data")
         self.graph_display.setCurrentWidget(self.pnp_plot)
