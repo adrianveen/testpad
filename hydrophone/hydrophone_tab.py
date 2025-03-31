@@ -125,21 +125,27 @@ class HydrophoneAnalysisTab(QWidget):
                 for i, data in enumerate(self.hydrophone_object.raw_data):
                     txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
                     csv_file_path = os.path.join(self.file_save_location, txt_file_name)
-                    
-                    # Check if data tuple has 2 or 3 elements
-                    if len(data) == 2:
-                        # Only frequency and sensitivity
-                        data_array = np.array(data)
-                        data_transposed = data_array.T
-                    else:
-                        # Tuple contains STD as well
-                        data_array = np.array(data)
-                        data_transposed = data_array.T
-                        # Optionally, if STD values are all NaN, discard the column:
+
+                    data_array = np.array(data)
+                    data_transposed = data_array.T
+
+                    # Convert sensitivity (column 1) from mV/MPa to V/MPa
+                    data_transposed[:, 1] = data_transposed[:, 1] #/ 1000.0
+
+                    # Check if a STD column is present (assumed in column 2)
+                    if data_transposed.shape[1] == 3:
+                        # If STD values are all NaN, discard the column and use 2 columns only
                         if np.all(np.isnan(data_transposed[:, 2])):
                             data_transposed = data_transposed[:, :2]
+                            fmt = ('%s', '%.3f')
+                        else:
+                            # Convert STD values from mV/MPa to V/MPa
+                            data_transposed[:, 2] = data_transposed[:, 2] #/ 1000.0
+                            fmt = ('%s', '%.3f', '%.5f')
+                    else:
+                        fmt = ('%s', '%.3f')
                     
-                    np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt='%s')
+                    np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt=fmt)
                 # finished saving message
                 self.text_display.append("The following files were saved:\n")
                 self.text_display.append(f"Hydrophone Sensitivity Graph:")

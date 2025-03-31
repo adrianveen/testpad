@@ -185,7 +185,7 @@ class HydrophoneGraph():
         self.ax.plot(0, 0, alpha=0, label='_nolegend_')
         self.ax.relim()
         self.ax.autoscale_view()
-        self.ax.grid(True)
+        self.ax.grid(True, color='#dddddd')
 
         # Position for the FUS logo
         if overlaid == False:
