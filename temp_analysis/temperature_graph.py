@@ -14,7 +14,7 @@ from io import BytesIO
 import matplotlib.pyplot as plt 
 from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator, FormatStrFormatter
 from matplotlib.colors import to_rgb, to_hex
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox, HPacker, AnchoredOffsetbox
 from matplotlib.legend import Legend
 
@@ -72,12 +72,8 @@ class TemperatureGraph():
 
                 # Drop the selected columns
                 data = data.drop(columns=cols_to_drop)
-                # convert to hh:mm:ss format
-                # data['time_str'] = data.iloc[:, 2].apply(
-                #     lambda s: f"{s // 3600:02}:{(s % 3600) // 60:02}:{s % 60:02}"
-                # )
-                # Append processed data to raw_data
-                                    # Define a helper function to check if a value can be converted to float.
+                
+                # helper function to check if a value can be converted to float.
                 def can_convert_to_float(x):
                     try:
                         float(x)
@@ -85,7 +81,6 @@ class TemperatureGraph():
                     except:
                         return False
 
-                # We'll check the elapsed column (index 2) and temperature columns (index 3 onward).
                 # Combine the relevant columns into one DataFrame for the check.
                 relevant_columns = data.columns[2:]
                 # Apply the helper function to each cell; this returns a DataFrame of booleans.

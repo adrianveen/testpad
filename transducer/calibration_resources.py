@@ -272,7 +272,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
 
             v_in = input_mV * 1e-3  # mV to V
 
-            # try-catch to deal with old code that used MPa instead of Pa 
+            # try-catch to deal with old code that used MPa instead of Pa
             try:
                 min_mV_hdf5 = f['/Scan/Min output pressure (MPa)']
                 min_mV = np.zeros((min_mV_hdf5.shape))
@@ -282,7 +282,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
                 min_mV = np.zeros((min_mV_hdf5.shape))
                 min_mV_hdf5.read_direct(min_mV)
 
-            # try-catch to deal with old code that didn't have power readings in it 
+            # try-catch to deal with old code that didn't have power readings in it
             try:
                 fwd_pwr_hdf5 = f['Scan/Forward power meter readings (W)']
                 fwd_pwr = np.zeros((fwd_pwr_hdf5.shape))
@@ -318,7 +318,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
             pressures.append(neg_pressure)  # add the pressure to the list of pressures
             fn_gen_amplitudes.append(v_in)  # add the amplitude to the list of amplitudes
 
-    # list of pressures bundled up into an array of tuples with EQUAL length 
+    # list of pressures bundled up into an array of tuples with EQUAL length
     pressures = list(zip(*pressures))
     # print(len(pressures))
     pressure_list_to_array = np.zeros(
@@ -327,10 +327,10 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
         pressure_list_to_array[:, i] = np.array(
             list((map(lambda x: x[i], pressures))))  # convert the tuple columns to numpy arrays
 
-    # find the average pressure 
+    # find the average pressure
     averaged_pressures = np.average(pressure_list_to_array, axis=1)
 
-    # list of amplitudes bundled up into an array of tuples with EQUAL length 
+    # list of amplitudes bundled up into an array of tuples with EQUAL length
     fn_gen_amplitudes = list(zip(*fn_gen_amplitudes))
     fn_gen_amplitudes_list_to_array = np.zeros((len(fn_gen_amplitudes), len(
         fn_gen_amplitudes[0])))  # x dimensions: rows of pressures, y dimensions: columns of pressures
@@ -341,9 +341,9 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
     # find the average amplitudes
     averaged_fn_gen_amplitudes = np.average(fn_gen_amplitudes_list_to_array, axis=1)
 
-    # if an EB-50 file exists: 
+    # if an EB-50 file exists:
     if eb50_file != "":
-        # EB-50 GAINS 
+        # EB-50 GAINS
         raw_gain = eb50_dict["gain"]
         interpolated_gain = interp1d(eb50_dict["amplitudes"], raw_gain, fill_value="extrapolate",
                                      kind="linear")  # interpolate the gain
@@ -352,9 +352,9 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
         v_out = averaged_fn_gen_amplitudes * (10 ** (gain_EB50 / 20.0))
         fwd_pwr = v_out ** 2 / 8.0 / 50.0  # electrical power
         eb50 = eb50_file.split("/")[-1]
-        # EB-50 sanity test graph 
+        # EB-50 sanity test graph
         # data_mtx_2 = np.zeros((len(averaged_pressures), 4))
-    # otherwise, take the power directly from the files 
+    # otherwise, take the power directly from the files
     else:
         # print("hello")
         powers = list(zip(*powers))
@@ -412,7 +412,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
     else:
         markersize = 6
 
-    # generate sweep graph using Marc's program 
+    # generate sweep graph using Marc's program
     sweep_freq, sweep_freq_ending = fmt(number_freq)
     graph = sweep_graph(data_mtx, transducer, str(sweep_freq) + " " + sweep_freq_ending, save_folder, markersize,
                         textbox)
@@ -423,7 +423,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
     m = graph.m
     r_trunc_out = graph.r2_trunc_out
 
-    # header array in the txt file, m-value rounded to 6 decimal places 
+    # header array in the txt file, m-value rounded to 6 decimal places
     if eb50_file != "":  # if the EB-50 exists, add it to the header array
         header_arr = (f'Frequency: {original_freq}\nEB-50: {eb50}\nm-value: {m:.6f} MPa/Vpp\nr squared: {r_trunc_out}\n\n'
                       f'Peak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), '
@@ -433,7 +433,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
                       f'Peak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), '
                       f'Electrical Power (W), Input Voltage (Vpp), Reflected Power (W)')
 
-    # SAVE FILE 
+    # SAVE FILE
     if save:
         graph.save_graph()  # save the sweep graph from Marc's program
 
@@ -443,7 +443,7 @@ def create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file
             try:
 
                 filename = os.path.join(save_folder, "sweep_" + transducer + "_" + original_freq)
-                # DATA WITH HEADER ARRAY 
+                # DATA WITH HEADER ARRAY
                 full_filename2 = filename + "_" + str(counter) + ".txt"
                 with open(full_filename2, "x"):
                     np.savetxt(full_filename2, data_mtx, header=header_arr, comments='', fmt='%.3f', delimiter=',')

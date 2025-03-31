@@ -7,7 +7,14 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
                                QVBoxLayout, QWidget, QSizePolicy)
 import numpy as np
 import yaml
+import os
 import decimal
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.colors import to_rgb, to_hex
+from datetime import datetime
+
+from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
 
 class Vol2PressTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -41,16 +48,23 @@ class Vol2PressTab(QWidget):
         single_fields_group = QGroupBox("Transducer Fields")
         transducer_label = QLabel("Transducer Serial No.")
         self.transducer_field = QLineEdit()
+        self.transducer_field.setText("600")
         impedance_label = QLabel("impedance_fund [\u03A9]")
         self.impedance_field = QLineEdit()
+        self.impedance_field.setPlaceholderText("50")
+        self.impedance_field.setText("50")
         phase_label = QLabel("phase_fund [\u00B0]")
         self.phase_field = QLineEdit()
+        self.phase_field.setPlaceholderText("0")
+        self.phase_field.setText("0")
         pcd_label = QLabel("PCD_freq [Hz]")
         self.pcd_field = QLineEdit()
         diameter_label = QLabel("txDiameter [mm]")
         self.diameter_field = QLineEdit()
+        self.diameter_field.setText("35")
         focal_point_label = QLabel("txFocalPointFactor")
         self.focal_point_field = QLineEdit()
+        self.focal_point_field.setText("0.7")
 
         self.one_time_fields_list = [self.transducer_field, self.impedance_field, self.phase_field, self.pcd_field, self.diameter_field, self.focal_point_field]
 
@@ -77,13 +91,16 @@ class Vol2PressTab(QWidget):
         sweep_btn.clicked.connect(lambda: self.openFileDialog("sweep"))
         freq_label = QLabel("Frequency [MHz]")
         self.freq_field = QLineEdit()
+        self.freq_field.setText("0.550")
         freq_affix = QComboBox()
         freq_affix.addItems(["MHz, kHz"])
         freq_affix.setCurrentText("MHz")
         axial_len_label = QLabel("TxAxialFocalDiameter [mm]")
         self.axial_field = QLineEdit()
+        self.axial_field.setText("16.5")
         lateral_len_label = QLabel("TxLateralFocalDiameter [mm]")
         self.lateral_field = QLineEdit()
+        self.lateral_field.setText("2.5")
         offset_label = QLabel("offset")
         offset_widget = QWidget()
         offset_widget.setContentsMargins(0, 0, 0, 0)
@@ -104,6 +121,7 @@ class Vol2PressTab(QWidget):
         offset_widget.setLayout(offset_layout)
         uni_cali_label = QLabel("unified_vol2press [MPa/Vpp]")
         self.uni_cali_field = QLineEdit()
+        self.uni_cali_field.setPlaceholderText("0.08")
 
         self.fields_list = [self.freq_field, self.axial_field, self.lateral_field, self.offset_field_1, \
                             self.offset_field_2, self.offset_field_3, self.uni_cali_field]
@@ -132,21 +150,22 @@ class Vol2PressTab(QWidget):
         self.add_to_yaml_btn.setStyleSheet("QPushButton:disabled {color: gray}")
         self.add_to_yaml_btn.clicked.connect(lambda: self.disable_btn())
         self.add_to_yaml_btn.clicked.connect(lambda: self.get_calcs())
-        self.n_cycles_container = QWidget()
-        self.n_cycles_layout = QGridLayout(self.n_cycles_container)
-        self.n_cycles_layout.setContentsMargins(0, 0, 0, 0)
-        self.n_cycles_layout.setSpacing(10)
 
-        # Create your widgets
         cycles_checkbox = QCheckBox("INCLUDE N CYCLES DATA:")
-        self.browse_ncycles_data = QPushButton("SELECT N CYCLES DATA")
+        cycles_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        
+        self.browse_ncycles_data = QPushButton("SELECT N CYCLES FOLDER")
         self.browse_ncycles_data.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        # Add each widget to its own cell in the grid layout, centered in its cell.
-        self.n_cycles_layout.addWidget(cycles_checkbox, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.n_cycles_layout.addWidget(self.browse_ncycles_data, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.browse_ncycles_data.clicked.connect(lambda: self.openFileDialog("n_cycles"))
+        self.browse_ncycles_data.setEnabled(False)
+        cycles_checkbox.toggled.connect(self.browse_ncycles_data.setEnabled)
+
         self.results_btn = QPushButton("PRINT TO YAML")
         self.results_btn.setStyleSheet("background-color: #74BEA3")
         self.results_btn.clicked.connect(lambda: self.create_yaml())
+
+        self.save_svg_btn = QPushButton("SAVE PNP AS SVG")
+        self.save_svg_btn.clicked.connect(lambda: self.openFileDialog("save_svg"))
         clear_btn = QPushButton("CLEAR DATA")
         clear_btn.clicked.connect(lambda: self.clear_dicts())
         clear_btn.clicked.connect(lambda: self.enable_btn())
@@ -164,16 +183,19 @@ class Vol2PressTab(QWidget):
         # MAIN LAYOUT 
         main_layout = QGridLayout()
         main_layout.setColumnStretch(0, 1)
-        main_layout.setColumnStretch(1, 2)
-        main_layout.addWidget(selections_group, 0, 0)
-        main_layout.addWidget(single_fields_group, 1, 0)
-        main_layout.addWidget(freq_fields_group, 2, 0)
-        main_layout.addWidget(self.add_to_yaml_btn, 3, 0, 1, 1)
-        main_layout.addWidget(self.n_cycles_container, 4, 0, 1, 1)
-        main_layout.addWidget(self.results_btn, 5, 0, 1, 1)
-        main_layout.addWidget(clear_btn, 6, 0, 1, 1)
-        main_layout.addWidget(console_box, 7, 0, 1, 1)
-        main_layout.addWidget(self.graph_display, 0, 1, 7, 1)
+        main_layout.setColumnStretch(1, 1)
+        main_layout.setColumnStretch(2, 2)
+        main_layout.addWidget(selections_group, 0, 0, 1, 2)
+        main_layout.addWidget(single_fields_group, 1, 0, 1, 2)
+        main_layout.addWidget(freq_fields_group, 2, 0, 1, 2)
+        main_layout.addWidget(self.add_to_yaml_btn, 3, 0, 1, 2)
+        main_layout.addWidget(cycles_checkbox, 4, 0, 1, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.browse_ncycles_data, 4, 1, 1, 1)
+        main_layout.addWidget(self.results_btn, 5, 0, 1, 2)
+        main_layout.addWidget(self.save_svg_btn, 6, 0, 1, 2)
+        main_layout.addWidget(clear_btn, 7, 0, 1, 2)
+        main_layout.addWidget(console_box, 8, 0, 1, 2)
+        main_layout.addWidget(self.graph_display, 0, 2, 9, 2)
 
         self.setLayout(main_layout)
 
@@ -184,47 +206,135 @@ class Vol2PressTab(QWidget):
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Sweep File")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
-            self.dialog1.setNameFilter("*.txt")
-            self.dialog1.setDefaultSuffix("txt") # default suffix of yaml
-            if self.dialog1.exec(): 
+            self.dialog1.setNameFilter("Text Files (*.txt)")
+            self.dialog1.setDefaultSuffix("txt")  # default suffix
+
+            # Set the default directory if it exists
+            default_dir = r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB"
+            if os.path.isdir(default_dir):
+                self.dialog1.setDirectory(default_dir)
+            
+            if self.dialog1.exec():
                 self.text_display.append("Sweep File: ")
                 self.sweep_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.sweep_file+"\n")
-                self.enable_btn() # enable the new frequency to be added to the YAML 
+                self.text_display.append(self.sweep_file + "\n")
+                self.enable_btn()  # enable the new frequency to be added to the YAML
 
         elif d_type == "eb-50_cal":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Calibration EB-50 File")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
-            self.dialog1.setNameFilter("*.yaml")
-            self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
-            if self.dialog1.exec(): 
+            self.dialog1.setNameFilter("YAML Files (*.yaml)")
+            self.dialog1.setDefaultSuffix("yaml")  # default suffix of yaml
+
+            # Specify the desired initial directory.
+            specified_path = r"G:\Shared drives\FUS_Team\Siglent.And.EB-50-Calibration\eb-50_yaml\2183-eb50"
+            if os.path.isdir(specified_path):
+                self.dialog1.setDirectory(specified_path)
+            # Otherwise, QFileDialog will use its default directory.
+
+            if self.dialog1.exec():
                 self.text_display.append("Calibration EB-50 File: ")
                 self.cal_eb50_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.cal_eb50_file+"\n")
+                self.text_display.append(self.cal_eb50_file + "\n")
+
 
         elif d_type == "eb-50_sys":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Customer EB-50 File")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
-            self.dialog1.setNameFilter("*.yaml")
-            self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
-            if self.dialog1.exec(): 
+            self.dialog1.setNameFilter("YAML Files (*.yaml)")
+            self.dialog1.setDefaultSuffix("yaml")  # default suffix of yaml
+
+            # Specify the desired default directory
+            specified_path = r"G:\Shared drives\FUS_Team\Siglent.And.EB-50-Calibration\eb-50_yaml"
+            if os.path.isdir(specified_path):
+                self.dialog1.setDirectory(specified_path)
+            
+            if self.dialog1.exec():
                 self.text_display.append("Customer EB-50 File: ")
                 self.sys_eb50_file = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.sys_eb50_file+"\n")
+                self.text_display.append(self.sys_eb50_file + "\n")
+
+        elif d_type == "n_cycles":
+            self.dialog1 = QFileDialog(self)
+            self.dialog1.setWindowTitle("N Cycles Data")
+            # Set the file mode to Directory so only folders can be selected
+            self.dialog1.setFileMode(QFileDialog.Directory)
+            # Ensure that only directories are shown
+            self.dialog1.setOption(QFileDialog.ShowDirsOnly, True)
+            
+            if self.dialog1.exec():
+                selected_dir = self.dialog1.selectedFiles()[0]
+                # Now store the selected directory and its parent directory
+                self.n_cycles_dir = selected_dir
+                self.n_cycles_parent_dir = os.path.dirname(selected_dir)
+                self.text_display.append("N Cycles Data: " + selected_dir + "\n")
 
         elif d_type == "save":
             self.dialog1 = QFileDialog(self)
-            self.dialog1.setNameFilter("*.yaml")
-            self.dialog1.setDefaultSuffix("yaml") # default suffix of yaml
+            self.dialog1.setNameFilter("YAML Files (*.yaml)")
+            self.dialog1.setDefaultSuffix("yaml")  # default suffix of yaml
             self.dialog1.setWindowTitle("YAML Save Location")
             self.dialog1.setFileMode(QFileDialog.FileMode.AnyFile)
             if self.dialog1.exec():
+                selected_file = self.dialog1.selectedFiles()[0]
+                # If a directory is selected, append a default file name.
+                if os.path.isdir(selected_file):
+                    selected_file = os.path.join(selected_file, "default_config.yaml")
+                self.save_file_path = selected_file          # Full file path (directory + file name)
+                self.save_location = os.path.dirname(selected_file)  # Just the directory
+                self.config_filename = os.path.basename(selected_file)  # Just the file name
+                self.text_display.append("Save Location: " + self.save_location + "\n")
+                self.text_display.append("Config File Name: " + self.config_filename + "\n")
+
+        elif d_type == "save_svg":
+            self.dialog = QFileDialog(self)
+            self.dialog.setWindowTitle("Graph Save Location")
+            # self.dialog.setDefaultSuffix("*.txt")
+            self.dialog.setFileMode(QFileDialog.FileMode.Directory)
+            if self.dialog.exec():
                 self.text_display.append("Save Location: ")
-                self.save_location = self.dialog1.selectedFiles()[0]
-                self.text_display.append(self.save_location+"\n")
-    
+                self.file_save_location = self.dialog.selectedFiles()[0]
+                self.text_display.append(self.file_save_location+"\n")
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                file_name = f"T{self.n_cycles_plot_data[0][0]}_normalized_pnp_plot_{timestamp}.svg"
+                pnp_svg_path = os.path.join(self.file_save_location, file_name)
+
+                dpi = 100
+                fig_width = 6.5
+                fig_height = 3.5
+
+                self.pnp_plot.figure.set_size_inches(fig_width, fig_height)
+
+                original_line_widths = {}
+
+                # Temporarily reduce marker size, marker edge width, and line width to 70% for saving
+                for ax in self.pnp_plot.figure.get_axes():
+                    for line in ax.get_lines():
+                        # Save original values
+                        original_line_widths[line] = line.get_linewidth()
+
+                        # Scale plot properties to 70% of its original size
+                        line.set_linewidth(original_line_widths[line] * 0.7)
+
+                self.pnp_plot.figure.savefig(pnp_svg_path,format="svg", dpi=dpi, bbox_inches="tight", pad_inches=0)
+
+                cycles = self.n_cycles_plot_data[0][1]
+                pressure_arrays = [data[2] for data in self.n_cycles_plot_data]
+                combined_data = np.column_stack((cycles, *pressure_arrays))
+                header = "Cycles," + ",".join([f"{freq/1e6:.3f} MHz" for freq, _, _ in self.n_cycles_plot_data])
+                txt_file_path = os.path.join(self.file_save_location, f"combined_normalized_pnp_data_{timestamp}.txt")
+                np.savetxt(txt_file_path, combined_data, delimiter=',', header=header, fmt = ('%d',) + ('%.3f',) * len(pressure_arrays), comments='')
+                
+                # finished saving message
+                self.text_display.append("The following files were saved:\n")
+                self.text_display.append(f"Normalized PNP Plot:")
+                self.text_display.append(f"{pnp_svg_path}\n")
+                self.text_display.append(f"Normalized PNP Data:")
+                self.text_display.append(f"{txt_file_path}\n")
+
     # disable the add frequency button 
     def disable_btn(self):
         self.add_to_yaml_btn.setEnabled(False)
@@ -257,7 +367,7 @@ class Vol2PressTab(QWidget):
             self.calcs = Vol2Press(self.cal_eb50_file, self.sys_eb50_file, self.sweep_file, float(self.freq_field.text()))
             self.r_value = float(f"{self.calcs.return_B_value():.4f}")
             self.text_display.append(f"Regression value: {self.r_value} MPa/Vpp\n")
-            self.printGraphs()
+            self.printGraphs(dataset=self.calcs)
             self.add_to_frequency()
         else:
             if self.sweep_file is None:
@@ -269,7 +379,7 @@ class Vol2PressTab(QWidget):
 
     # print the graphs
     @Slot()
-    def printGraphs(self):
+    def printGraphs(self, dataset):
         self.graph_display.clear()
         comparison_graph = self.calcs.getGraphs()
         self.graph_display.addTab(comparison_graph, "Comparison Graph")
@@ -314,18 +424,54 @@ class Vol2PressTab(QWidget):
         self.summary_dict = {}
         self.summary_dict[self.transducer_field.text()] = self.values_dict
 
-        with open(self.save_location, 'wt', encoding='utf8') as f:
-            self.text_display.append(f"Writing dictionary to {self.save_location}...\n")
+        with open(self.save_file_path, 'wt', encoding='utf8') as f:
+            full_path = os.path.join(self.save_location, self.config_filename)
+            self.text_display.append(f"Writing dictionary to {full_path}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append("Writing to dictionary complete.")
+
+        self.n_cycles_plot_data = add_ncycle_sweep_to_transducer_file(self.n_cycles_dir, self.save_file_path)
+        
+        self.plot_ncycle_data(self.n_cycles_plot_data)
+
+    def plot_ncycle_data(self, plot_data = list):
+        self.fig, self.ax = plt.subplots(1, 1)
+        self.pnp_plot = FigureCanvas(self.fig)
+        # store frequencies in a list
+        fus_colors = self.generate_color_palette("#74BEA3", len(plot_data))
+        
+        frequencies = []
+        for i, (freq, cycles, pressure) in enumerate(plot_data):
+            self.ax.plot(cycles, pressure, label=f"{freq / 1e6} MHz", color=fus_colors[i])
+
+        self.ax.set_xlabel("Number of Cycles")
+        self.ax.set_ylabel("Normalized Peak Negative Pressure")
+        self.ax.set_xticks(np.arange(0, np.max(plot_data[0][1]) + 1, 5))
+        self.ax.set_yticks(np.arange(0, 1.1, 0.1))
+        self.ax.legend(title="Frequency")
+        self.ax.grid(True, color='lightgrey')
+        self.ax.set_title(f"Number of Cycles vs. Normalized Peak Negative Pressure")
+        self.fig.set_canvas(self.pnp_plot)
+        self.graph_display.addTab(self.pnp_plot, "N Cycles Data")
+        self.graph_display.setCurrentWidget(self.pnp_plot)
     
-    def resizeEvent(self, event):
-        """
-        Override resizeEvent to force the 'SELECT N CYCLES DATA' button
-        to be half the width of the 'PRINT TO YAML' button.
-        """
-        super().resizeEvent(event)
-        # Measure the PRINT TO YAML button’s current width
-        full_width = self.results_btn.width()
-        # Set the N cycles button to half that width
-        self.browse_ncycles_data.setFixedWidth(full_width // 2)
+    # Generate a color palette based on the base color provided
+    def generate_color_palette(self, base_color, num_colors):
+        base_rgb = to_rgb(base_color)
+        palette = [to_hex((base_rgb[0] * (1 - i / num_colors), 
+                           base_rgb[1] * (1 - i / num_colors), 
+                           base_rgb[2] * (1 - i / num_colors))) for i in range(num_colors)]
+        return palette
+
+
+    
+    # def resizeEvent(self, event):
+    #     """
+    #     Override resizeEvent to force the 'SELECT N CYCLES DATA' button
+    #     to be half the width of the 'PRINT TO YAML' button.
+    #     """
+    #     super().resizeEvent(event)
+    #     # Measure the PRINT TO YAML button’s current width
+    #     full_width = self.results_btn.width()
+    #     # Set the N cycles button to half that width
+    #     self.browse_ncycles_data.setFixedWidth(full_width // 2)
