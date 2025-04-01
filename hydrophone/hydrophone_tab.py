@@ -138,13 +138,13 @@ class HydrophoneAnalysisTab(QWidget):
                         # If STD values are all NaN, discard the column and use 2 columns only
                         if np.all(np.isnan(data_transposed[:, 2])):
                             data_transposed = data_transposed[:, :2]
-                            fmt = ('%s', '%.3f')
+                            fmt = ('%s', '%.5f')
                         else:
                             # Convert STD values from mV/MPa to V/MPa
                             data_transposed[:, 2] = data_transposed[:, 2] / 1000.0
-                            fmt = ('%s', '%.3f', '%.5f')
+                            fmt = ('%s', '%.5f', '%.5f')
                     else:
-                        fmt = ('%s', '%.3f')
+                        fmt = ('%s', '%.5f')
                     
                     np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt=fmt)
                 # finished saving message
