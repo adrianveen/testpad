@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
 import numpy as np
 import os
 import yaml
+import re
 from datetime import datetime
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 
@@ -29,7 +30,7 @@ class HydrophoneAnalysisTab(QWidget):
         # print graph button
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
         self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
-        self.print_graph_btn.clicked.connect(lambda: self.create_graph())
+        self.print_graph_btn.clicked.connect(lambda: self.print_graphs_clicked())
         # save graphs as SVG button
         self.save_as_svg_btn = QPushButton("SAVE GRAPH AS SVG")
         self.save_as_svg_btn.setEnabled(False)
@@ -125,21 +126,27 @@ class HydrophoneAnalysisTab(QWidget):
                 for i, data in enumerate(self.hydrophone_object.raw_data):
                     txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
                     csv_file_path = os.path.join(self.file_save_location, txt_file_name)
-                    
-                    # Check if data tuple has 2 or 3 elements
-                    if len(data) == 2:
-                        # Only frequency and sensitivity
-                        data_array = np.array(data)
-                        data_transposed = data_array.T
-                    else:
-                        # Tuple contains STD as well
-                        data_array = np.array(data)
-                        data_transposed = data_array.T
-                        # Optionally, if STD values are all NaN, discard the column:
+
+                    data_array = np.array(data)
+                    data_transposed = data_array.T
+
+                    # Convert sensitivity (column 1) from mV/MPa to V/MPa
+                    data_transposed[:, 1] = data_transposed[:, 1] / 1000.0
+
+                    # Check if a STD column is present (assumed in column 2)
+                    if data_transposed.shape[1] == 3:
+                        # If STD values are all NaN, discard the column and use 2 columns only
                         if np.all(np.isnan(data_transposed[:, 2])):
                             data_transposed = data_transposed[:, :2]
+                            fmt = ('%s', '%.3f')
+                        else:
+                            # Convert STD values from mV/MPa to V/MPa
+                            data_transposed[:, 2] = data_transposed[:, 2] / 1000.0
+                            fmt = ('%s', '%.3f', '%.5f')
+                    else:
+                        fmt = ('%s', '%.3f')
                     
-                    np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt='%s')
+                    np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt=fmt)
                 # finished saving message
                 self.text_display.append("The following files were saved:\n")
                 self.text_display.append(f"Hydrophone Sensitivity Graph:")
@@ -148,12 +155,95 @@ class HydrophoneAnalysisTab(QWidget):
                 self.text_display.append(f"{csv_file_path}\n")
 
     @Slot()
+    def print_graphs_clicked(self):
+        self.hydrophone_object = HydrophoneGraph(self.hydrophone_scan_data)
+        self.create_graph()
+
+        if isinstance(self.hydrophone_object.transducer_serials, (list, np.ndarray)):
+            if len(self.hydrophone_object.transducer_serials) > 1:
+                self.text_display.append("Transducer Serial Numbers: ")
+                for i, serial in enumerate(self.hydrophone_object.transducer_serials):
+                        self.text_display.append(f"{i+1}. {serial}")
+                self.text_display.append("")
+            else:
+                self.text_display.append(f"Transducer Serial Number: {self.hydrophone_object.transducer_serials[0]}\n")
+        
+        self.print_sensitivities()
+
+    def print_sensitivities(self):
+        if self.hydrophone_scan_data is not None and self.hydrophone_object.raw_data:
+            converted_data = []  # Store converted datasets here
+
+            for i, dataset in enumerate(self.hydrophone_object.raw_data):
+                # Retrieve the transducer serial number for this dataset
+                try:
+                    serial = self.hydrophone_object.transducer_serials[i]
+                except IndexError:
+                    serial = "Unknown"
+
+                # Convert dataset to a NumPy array and transpose it so each row is a data point
+                data_array = np.array(dataset)
+                data_transposed = data_array.T.copy()  # copy to leave raw_data unmodified
+
+                # Convert sensitivity (column 1) from mV/MPa to V/MPa
+                data_transposed[:, 1] /= 1000.0
+
+                # Convert STD column if present (column 2)
+                if data_transposed.shape[1] >= 3:
+                    data_transposed[:, 2] /= 1000.0
+
+                # Store the converted dataset (transpose back to original structure if needed)
+                converted_data.append(data_transposed.T.tolist())
+
+                # Extract frequency and sensitivity arrays (assumed to be in MHz and V/MPa now)
+                freq = data_transposed[:, 0]
+                sensitivity = data_transposed[:, 1]
+
+                # Find the maximum sensitivity and its corresponding frequency
+                max_index = np.argmax(sensitivity)
+                max_sensitivity = sensitivity[max_index]
+                max_freq = freq[max_index]
+
+                # Parse the transducer serial number to extract resonant frequencies.
+                # Expected format: "343-T1650H825"
+                match = re.search(r'T(\d+)H(\d+)', serial)
+                if match:
+                    transducer_res_freq_khz = float(match.group(1))
+                    hydrophone_res_freq_khz = float(match.group(2))
+                    # Convert from kHz to MHz
+                    transducer_res_freq_mhz = transducer_res_freq_khz / 1000.0
+                    hydrophone_res_freq_mhz = hydrophone_res_freq_khz / 1000.0
+
+                    # Find the sensitivity values at these resonant frequencies by finding the nearest value
+                    idx_transducer = np.argmin(np.abs(freq - transducer_res_freq_mhz))
+                    sens_at_transducer = sensitivity[idx_transducer]
+
+                    idx_hydrophone = np.argmin(np.abs(freq - hydrophone_res_freq_mhz))
+                    sens_at_hydrophone = sensitivity[idx_hydrophone]
+                else:
+                    # If parsing fails, set these values to None
+                    transducer_res_freq_mhz = None
+                    hydrophone_res_freq_mhz = None
+                    sens_at_transducer = None
+                    sens_at_hydrophone = None
+
+                # Build the output string to append to the text display widget
+                output_str = f"Transducer Serial: {serial}\n" \
+                            f"Max Sensitivity: {max_sensitivity:.3f} V/MPa at {max_freq:.3f} MHz\n"
+                if transducer_res_freq_mhz is not None and sens_at_transducer is not None:
+                    output_str += f"Sensitivity at transducer resonance ({transducer_res_freq_mhz:.3f} MHz): " \
+                                f"{sens_at_transducer:.3f} V/MPa\n"
+                if hydrophone_res_freq_mhz is not None and sens_at_hydrophone is not None:
+                    output_str += f"Sensitivity at hydrophone resonance ({hydrophone_res_freq_mhz:.3f} MHz): " \
+                                f"{sens_at_hydrophone:.3f} V/MPa\n"
+
+                self.text_display.append(output_str)
+
     def create_graph(self):
         if self.hydrophone_scan_data is not None:
             self.graph_tab.clear()
             self.save_as_svg_btn.setEnabled(True)
 
-            self.hydrophone_object = HydrophoneGraph(self.hydrophone_scan_data)
             self.graph = self.hydrophone_object.get_graphs(self.compare_box.isChecked())
             
             nav_tool = NavigationToolbar(self.graph)
@@ -165,12 +255,6 @@ class HydrophoneAnalysisTab(QWidget):
             graph_widget.setLayout(burn_layout)
 
             self.graph_tab.addTab(graph_widget, "Hydrophone Scan Data")
-
-            self.text_display.append("Transducer Serial Number: " + self.hydrophone_object.tx_serial_no + "\n")
-            # Debugging statements
-            # print(f"save_box is checked: {self.save_box.isChecked()}")
-            # if self.file_save_location is not None:
-            #   print(f"file_save_location: {self.file_save_location}")
 
         else:
             self.text_display.append("Error: No hydrophone data .csv file found.\n")

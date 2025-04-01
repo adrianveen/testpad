@@ -449,7 +449,7 @@ class Vol2PressTab(QWidget):
         self.ax.set_xticks(np.arange(0, np.max(plot_data[0][1]) + 1, 5))
         self.ax.set_yticks(np.arange(0, 1.1, 0.1))
         self.ax.legend(title="Frequency")
-        self.ax.grid(True, color='lightgrey')
+        self.ax.grid(True, color='#dddddd')
         self.ax.set_title(f"Number of Cycles vs. Normalized Peak Negative Pressure")
         self.fig.set_canvas(self.pnp_plot)
         self.graph_display.addTab(self.pnp_plot, "N Cycles Data")
@@ -462,7 +462,6 @@ class Vol2PressTab(QWidget):
                            base_rgb[1] * (1 - i / num_colors), 
                            base_rgb[2] * (1 - i / num_colors))) for i in range(num_colors)]
         return palette
-
 
     
     # def resizeEvent(self, event):
