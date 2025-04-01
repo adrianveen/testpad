@@ -129,6 +129,7 @@ class Vol2PressTab(QWidget):
         for field in self.fields_list:
             field.textChanged.connect(lambda: self.enable_btn())
 
+        # add widget to the field layout
         fields_layout = QGridLayout()
         fields_layout.setColumnStretch(0, 1)
         fields_layout.setColumnStretch(1, 1)
@@ -202,6 +203,10 @@ class Vol2PressTab(QWidget):
     @Slot()
     # file dialog boxes to select sweep/calibration eb-50/customer eb-50 files/a save location
     def openFileDialog(self, d_type):
+        """
+        Open a file dialog to select a file or directory based on the type specified.
+        The selected file or directory is stored in the corresponding attribute of the class.
+        """
         if d_type == "sweep":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Sweep File")
@@ -437,10 +442,8 @@ class Vol2PressTab(QWidget):
     def plot_ncycle_data(self, plot_data = list):
         self.fig, self.ax = plt.subplots(1, 1)
         self.pnp_plot = FigureCanvas(self.fig)
-        # store frequencies in a list
         fus_colors = self.generate_color_palette("#74BEA3", len(plot_data))
-        
-        frequencies = []
+
         for i, (freq, cycles, pressure) in enumerate(plot_data):
             self.ax.plot(cycles, pressure, label=f"{freq / 1e6} MHz", color=fus_colors[i])
 
@@ -462,15 +465,3 @@ class Vol2PressTab(QWidget):
                            base_rgb[1] * (1 - i / num_colors), 
                            base_rgb[2] * (1 - i / num_colors))) for i in range(num_colors)]
         return palette
-
-    
-    # def resizeEvent(self, event):
-    #     """
-    #     Override resizeEvent to force the 'SELECT N CYCLES DATA' button
-    #     to be half the width of the 'PRINT TO YAML' button.
-    #     """
-    #     super().resizeEvent(event)
-    #     # Measure the PRINT TO YAML button’s current width
-    #     full_width = self.results_btn.width()
-    #     # Set the N cycles button to half that width
-    #     self.browse_ncycles_data.setFixedWidth(full_width // 2)

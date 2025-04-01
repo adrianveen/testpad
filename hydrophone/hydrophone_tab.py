@@ -112,7 +112,7 @@ class HydrophoneAnalysisTab(QWidget):
                         original_marker_edge_widths[line] = line.get_markeredgewidth()
                         original_line_widths[line] = line.get_linewidth()
 
-                        # Scale plot properties to 70% of its original size
+                        # Scale plot properties to 70% of its original size for saving
                         line.set_markersize(original_marker_sizes[line] * 0.7)
                         line.set_markeredgewidth(original_marker_edge_widths[line] * 0.7)
                         line.set_linewidth(original_line_widths[line] * 0.7)
@@ -133,7 +133,7 @@ class HydrophoneAnalysisTab(QWidget):
                     # Convert sensitivity (column 1) from mV/MPa to V/MPa
                     data_transposed[:, 1] = data_transposed[:, 1] / 1000.0
 
-                    # Check if a STD column is present (assumed in column 2)
+                    # Check if a STD column is present
                     if data_transposed.shape[1] == 3:
                         # If STD values are all NaN, discard the column and use 2 columns only
                         if np.all(np.isnan(data_transposed[:, 2])):

@@ -4,6 +4,7 @@ import sys
 
 from PIL import Image
 from io import StringIO
+import pandas as pd
 
 import matplotlib.pyplot as plt 
 from matplotlib.ticker import ScalarFormatter, MultipleLocator
@@ -48,8 +49,6 @@ class HydrophoneGraph():
             list: A list of tuples, where each tuple contains (frequency, sensitivity)
                 if the STD column is missing or (frequency, sensitivity, std) if present.
         """
-        import pandas as pd
-        from io import StringIO
 
         self.raw_data = []  # Reset raw_data for new files
         self.transducer_serials = []
@@ -134,7 +133,7 @@ class HydrophoneGraph():
         self.fig, self.ax = plt.subplots(figsize=(10, 6))
         self.canvas = FigureCanvas(self.fig)
 
-        # Generate a color palette based on the number of datasets
+        # Generate a color palette based on the number of datasets and FUS Green
         colors = self.generate_color_palette('#73A89E', len(self.raw_data))
 
         # Load the FUS icon
@@ -168,9 +167,9 @@ class HydrophoneGraph():
             self.ax.plot(
                 freq, sensitivity / 1000,
                 linestyle='-', marker='o',
-                color='black',               # Line color (black)
-                markerfacecolor='#73A89E',    # Marker fill color
-                markeredgecolor='black',      # Marker border (edge) color
+                color='black',
+                markerfacecolor='#73A89E',
+                markeredgecolor='black',
                 label="Dataset 1", linewidth=2,
                 markersize=8
             )
@@ -236,9 +235,6 @@ class HydrophoneGraph():
         return self.canvas
 
 if __name__ == "__main__":
-    # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt")
-    # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt")
-    # n = TemperatureGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt")
     n = HydrophoneGraph(r"G:\Shared drives\FUS_Team\Hydrophone Characterization\2025-02-24-13-39-10_613-T550H825_transducer_hydrophone_calibration.csv")
     n.get_graphs()
     plt.show()
