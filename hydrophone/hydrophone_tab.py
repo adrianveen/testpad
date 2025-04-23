@@ -45,6 +45,7 @@ class HydrophoneAnalysisTab(QWidget):
         self.compare_box.setToolTip("Select to compare multiple datasets if legacy data set is being used.")
         self.compare_box.setEnabled(False) # disable for now
         self.compare_box.setChecked(False)
+        self.combo_box.currentIndexChanged.connect(self.onFormatChanged)
         # select file button
         self.select_file_btn = QPushButton("SELECT HYDROPHONE CSV FILE(S)")
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
@@ -100,7 +101,7 @@ class HydrophoneAnalysisTab(QWidget):
         if d_type == "csv": # open hydrophone csv 
             self.dialog1 = QFileDialog(self)
             
-            if self.compare_box.isChecked():
+            if self.compare_box.isChecked() or self.combo_box.currentText() == "Multiple CSV files per transducer":
                 self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
                 self.dialog1.setWindowTitle("Hydrophone Scan CSV Files")
             else:
@@ -206,6 +207,13 @@ class HydrophoneAnalysisTab(QWidget):
                 self.text_display.append(f"Transducer Serial Number: {self.hydrophone_object.transducer_serials[0]}\n")
         
         self.print_sensitivities()
+   
+    @Slot(int)
+    def onFormatChanged(self, index: int):
+        """Enable compare_box only when the second combo-item is chosen."""
+        # index 0 → “Multiple CSV files…”
+        # index 1 → “Single CSV file…”
+        self.compare_box.setEnabled(index == 1)
 
     def print_sensitivities(self):
         if self.hydrophone_scan_data is not None and self.hydrophone_object.raw_data:
