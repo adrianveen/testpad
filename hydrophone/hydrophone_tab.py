@@ -20,9 +20,30 @@ class HydrophoneAnalysisTab(QWidget):
 
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox("File Selection")
+        # combo box for single CSV or multiple CSV per transducer
+        self.combo_label = QLabel("Select CSV Format:")
+        self.combo_box = QComboBox()
+        self.combo_box.setToolTip("Select the type of hydrophone scan data file.")
+        self.combo_box.setPlaceholderText("Select CSV Format")
+        self.combo_box.addItem("Multiple CSV files per transducer")
+        self.combo_box.addItem("Single CSV file per transducer (legacy CSV format)")
+        self.combo_box.setEditable(True)
+        le: QLineEdit = self.combo_box.lineEdit()
+        le.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        le.setReadOnly(True)
+
+        # 3) Set the placeholder *after* it’s editable
+        self.combo_box.setPlaceholderText("Select CSV Format")
+        le.setPlaceholderText("Select CSV Format")   # ensure the edit itself knows
+
+        # 4) Finally, reset to “no selection”
+        self.combo_box.setCurrentIndex(-1)
+        
         # compare checkbox
         self.compare_label = QLabel("Compare multiple datasets:")
         self.compare_box = QCheckBox()
+        self.compare_box.setToolTip("Select to compare multiple datasets if legacy data set is being used.")
+        self.compare_box.setEnabled(False) # disable for now
         self.compare_box.setChecked(False)
         # select file button
         self.select_file_btn = QPushButton("SELECT HYDROPHONE CSV FILE(S)")
@@ -38,11 +59,27 @@ class HydrophoneAnalysisTab(QWidget):
 
         # Layout for user interaction area
         selections_layout = QGridLayout()
-        selections_layout.addWidget(self.compare_label, 0, 0)
-        selections_layout.addWidget(self.compare_box, 0, 1)
-        selections_layout.addWidget(self.select_file_btn, 1, 0, 1, 2)
-        selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
-        selections_layout.addWidget(self.save_as_svg_btn, 3, 0, 1, 2)
+
+        rows = [
+            (self.combo_label, self.combo_box),  # 2-cell row
+            (self.compare_label, self.compare_box),  # 2-cell row
+            (self.select_file_btn,),                 # 1-widget, spans 2 columns
+            (self.print_graph_btn,),
+            (self.save_as_svg_btn,),
+        ]
+
+        for r, cells in enumerate(rows):
+            if len(cells) == 1:
+                selections_layout.addWidget(cells[0], r, 0, 1, 2)
+            else:                   # exactly two widgets: left + right
+                selections_layout.addWidget(cells[0], r, 0)
+                selections_layout.addWidget(cells[1], r, 1)
+        selections_layout.setAlignment(self.compare_box, Qt.AlignmentFlag.AlignCenter)
+        # selections_layout.addWidget(self.compare_label, 0, 0)
+        # selections_layout.addWidget(self.compare_box, 0, 1)
+        # selections_layout.addWidget(self.select_file_btn, 1, 0, 1, 2)
+        # selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
+        # selections_layout.addWidget(self.save_as_svg_btn, 3, 0, 1, 2)
         buttons_groupbox.setLayout(selections_layout)
 
         # TEXT CONSOLE
