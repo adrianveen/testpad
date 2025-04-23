@@ -95,7 +95,7 @@ class Vol2PressTab(QWidget):
         freq_affix.setCurrentText("MHz")
         axial_len_label = QLabel("TxAxialFocalDiameter [mm]")
         self.axial_field = QLineEdit()
-        self.axial_field.placeholderText("16.5")
+        self.axial_field.setPlaceholderText("16.5")
         lateral_len_label = QLabel("TxLateralFocalDiameter [mm]")
         self.lateral_field = QLineEdit()
         self.lateral_field.setPlaceholderText("2.5")
@@ -430,8 +430,9 @@ class Vol2PressTab(QWidget):
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append("Writing to dictionary complete.")
 
+        if not hasattr(self, 'n_cycles_dir'):
+            return
         self.n_cycles_plot_data = add_ncycle_sweep_to_transducer_file(self.n_cycles_dir, self.save_file_path)
-        
         self.plot_ncycle_data(self.n_cycles_plot_data)
 
     def plot_ncycle_data(self, plot_data = list):
