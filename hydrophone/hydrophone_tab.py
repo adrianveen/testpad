@@ -194,8 +194,21 @@ class HydrophoneAnalysisTab(QWidget):
 
     @Slot()
     def print_graphs_clicked(self):
+        # 1. create the object from whatever files the user picked
         self.hydrophone_object = HydrophoneGraph(self.hydrophone_scan_data)
-        self.create_graph()
+
+        # 2. pick the plotting mode based on combo + checkbox
+        text = self.combo_box.currentText()
+        if text == "Multiple CSV files per transducer":
+            mode = "append"      # all files mashed into one dataset
+        elif self.compare_box.isChecked():
+            mode = "overlaid"    # each file its own series, overlaid
+        else:
+            mode = "single"      # first (and only) file as a single series
+
+        # 3. generate & show the graph
+        canvas = self.hydrophone_object.get_graphs(mode=mode)
+        self.create_graph(canvas)
 
         if isinstance(self.hydrophone_object.transducer_serials, (list, np.ndarray)):
             if len(self.hydrophone_object.transducer_serials) > 1:
@@ -284,22 +297,28 @@ class HydrophoneAnalysisTab(QWidget):
 
                 self.text_display.append(output_str)
 
-    def create_graph(self):
-        if self.hydrophone_scan_data is not None:
-            self.graph_tab.clear()
-            self.save_as_svg_btn.setEnabled(True)
-
-            self.graph = self.hydrophone_object.get_graphs(self.compare_box.isChecked())
-            
-            nav_tool = NavigationToolbar(self.graph)
-
-            graph_widget = QWidget()
-            burn_layout = QVBoxLayout()
-            burn_layout.addWidget(nav_tool)
-            burn_layout.addWidget(self.graph)
-            graph_widget.setLayout(burn_layout)
-
-            self.graph_tab.addTab(graph_widget, "Hydrophone Scan Data")
-
-        else:
+    def create_graph(self, canvas):
+        # ensure we actually have data
+        if not getattr(self, "hydrophone_scan_data", None):
             self.text_display.append("Error: No hydrophone data .csv file found.\n")
+            return
+
+        # 1) clear out the old plot tab
+        self.graph_tab.clear()
+        self.save_as_svg_btn.setEnabled(True)
+
+        # 2) adopt the passed‐in canvas as our active graph
+        self.graph = canvas
+
+        # 3) build a toolbar for that canvas
+        #    parent can be self or canvas.parent(), depending on your layout
+        nav_tool = NavigationToolbar(self.graph, self)
+
+        # 4) pack toolbar + canvas into a container widget
+        graph_widget = QWidget()
+        layout = QVBoxLayout(graph_widget)
+        layout.addWidget(nav_tool)
+        layout.addWidget(self.graph)
+
+        # 5) add the new tab
+        self.graph_tab.addTab(graph_widget, "Hydrophone Scan Data")
