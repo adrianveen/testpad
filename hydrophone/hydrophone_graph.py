@@ -24,15 +24,13 @@ class HydrophoneGraph:
         # Pre-compute bandwidths @ half-max for each dataset
         self.bandwidths = [self._compute_bandwidth(freq, sens)
                            for freq, sens, *rest in self.raw_data]
-        # Placeholder for combined bandwidth (single/append modes)
-        self.bandwidth = None
     
     @property
     def tx_serial_no(self):
         """
         Returns the transducer serial number.
         """
-        return self.transducer_serials[0] if self.transducer_serials else None
+        return "-".join(self.transducer_serials) if self.transducer_serials else None
     
     def _process_files(self, file_paths):
         """
@@ -65,7 +63,7 @@ class HydrophoneGraph:
             df = pd.read_csv(StringIO(csv_str))
             # Required columns
             freq = df["Frequency (MHz)"]
-            sens = df["Sensitivity (mV/MPa)"]
+            sens = df["Sensitivity (mV/MPa)"] / 1000
             if "Standard deviation (mV/MPa)" in df:
                 std = df["Standard deviation (mV/MPa)"]
                 datasets.append((freq, sens, std))
@@ -80,7 +78,7 @@ class HydrophoneGraph:
         Returns bandwidth in same units as freq (MHz), ignoring higher harmonics.
         """
         f = np.asarray(freq, dtype=float)
-        y = np.asarray(sens, dtype=float) / 1000.0
+        y = np.asarray(sens, dtype=float)
 
         # 1) Sort by frequency
         order = np.argsort(f)
@@ -120,7 +118,7 @@ class HydrophoneGraph:
         else:
             f_high = f[-1]
 
-        return f_high - f_low
+        return max(f_high - f_low, 0.0)
 
     def get_graphs(self, mode: str = "single") -> FigureCanvas:
         """
@@ -132,7 +130,6 @@ class HydrophoneGraph:
         if mode == "append":
             self._plot_appended()
             # Compute combined bandwidth
-            import pandas as pd
             dfs = [pd.DataFrame({'freq': f, 'sens': s}) for f, s, *rest in self.raw_data]
             big = pd.concat(dfs, ignore_index=True).sort_values('freq')
             self.bandwidth = self._compute_bandwidth(big['freq'], big['sens'])
@@ -169,11 +166,11 @@ class HydrophoneGraph:
 
     def _plot_single(self):
         freq, sens, *rest = self.raw_data[0]
-        self.ax.plot(freq, sens/1000,
+        self.ax.plot(freq, sens,
                      marker='o', linestyle='-', color='black',
                      markerfacecolor='#73A89E', markeredgecolor='black',
                      linewidth=2, markersize=8)
-        half = max(sens)/2/1000
+        half = max(sens)/2
         hl = self.ax.axhline(y=half, linestyle='--', color='#3b5e58')
         hl.set_dashes([10,5])
         self._finalize_plot("Hydrophone Sensitivity")
@@ -181,7 +178,7 @@ class HydrophoneGraph:
     def _plot_overlaid(self):
         cols = self.generate_color_palette('#73A89E', len(self.raw_data))
         for i, (freq, sens, *rest) in enumerate(self.raw_data):
-            self.ax.plot(freq, sens/1000,
+            self.ax.plot(freq, sens,
                          marker='o', linestyle='-', color='black',
                          markerfacecolor=cols[i], markeredgecolor='black',
                          alpha=0.7, linewidth=1, markersize=8,
@@ -192,12 +189,12 @@ class HydrophoneGraph:
     def _plot_appended(self):
         dfs = [pd.DataFrame({'freq': f, 'sens': s}) for f, s, *rest in self.raw_data]
         big = pd.concat(dfs, ignore_index=True).sort_values('freq')
-        self.ax.plot(big['freq'], big['sens']/1000,
+        self.ax.plot(big['freq'], big['sens'],
                      marker='o', linestyle='-', color='black',
                      markerfacecolor='#73A89E', markeredgecolor='black',
                      linewidth=2, markersize=8
                      )
-        half = big['sens'].max()/2/1000
+        half = big['sens'].max()/2
         hl = self.ax.axhline(y=half, linestyle='--', color='#3b5e58')
         hl.set_dashes([10,5])
         self._finalize_plot("Hydrophone Sensitivity (Combined)")

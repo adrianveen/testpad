@@ -192,10 +192,8 @@ class HydrophoneAnalysisTab(QWidget):
                 txt_path = os.path.join(self.file_save_location, txt_name)
 
                 arr = np.array(data).T
-                arr[:, 1] /= 1000.0  # convert sensitivity to V/MPa
 
                 if arr.shape[1] == 3 and not np.all(np.isnan(arr[:, 2])):
-                    arr[:, 2] /= 1000.0
                     fmt = ('%s', '%.5f', '%.5f')
                 else:
                     arr = arr[:, :2]
@@ -280,12 +278,9 @@ class HydrophoneAnalysisTab(QWidget):
         # 1) gather & convert all datasets
         serials = self.hydrophone_object.transducer_serials
         unique_serials = list(dict.fromkeys(serials))  # preserve order, remove dupes
-        converted = []  # each entry is an Nx2 or Nx3 array: [freq, sens, (std)]
+        converted = []   # each entry: [freq (MHz), sens (V/MPa), (std V/MPa if present)]
         for data in self.hydrophone_object.raw_data:
             arr = np.array(data).T  # shape (n_points, n_cols)
-            arr[:, 1] /= 1000.0     # mV→V
-            if arr.shape[1] >= 3:
-                arr[:, 2] /= 1000.0 # mV→V for STD if present
             converted.append(arr)
 
         # 2) single‐transducer? aggregate
