@@ -38,11 +38,7 @@ class HydrophoneAnalysisTab(QWidget):
         # 3) Set the placeholder *after* it’s editable
         self.combo_box.setPlaceholderText("Select CSV Format")
         le.setPlaceholderText("Select CSV Format")   # ensure the edit itself knows
-
-        # 4) Finally, reset to “no selection”
         self.combo_box.setCurrentIndex(-1)
-        self.onFormatChanged(self.combo_box.currentIndex())
-        
         # compare checkbox
         self.compare_label = QLabel("Compare multiple datasets:")
         self.compare_box = QCheckBox()
@@ -50,6 +46,7 @@ class HydrophoneAnalysisTab(QWidget):
         self.compare_box.setEnabled(False) # disable for now
         self.compare_box.setChecked(False)
         self.combo_box.currentIndexChanged.connect(self.onFormatChanged)
+        self.onFormatChanged(self.combo_box.currentIndex())
         # select file button
         self.select_file_btn = QPushButton("SELECT HYDROPHONE CSV FILE(S)")
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
@@ -128,7 +125,9 @@ class HydrophoneAnalysisTab(QWidget):
 
             # 2) Prepare file names
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            serial = self.hydrophone_object.tx_serial_no or "unknown"
+            # Always pick first unique serial number for file name
+            serials = list(dict.fromkeys(self.hydrophone_object.transducer_serials))
+            serial = serials[0] if serials else "unknown"
             svg_name = f"{serial}_sensitivity_vs_frequency_{timestamp}.svg"
             hydrophone_svg_path = os.path.join(self.file_save_location, svg_name)
 
@@ -186,29 +185,56 @@ class HydrophoneAnalysisTab(QWidget):
             fig.canvas.draw()
 
             # 7) Save TXT data files
-            for i, data in enumerate(self.hydrophone_object.raw_data):
-                serial_i = self.hydrophone_object.transducer_serials[i]
-                txt_name = f"{serial_i}_sensitivity_vs_frequency_{timestamp}.txt"
-                txt_path = os.path.join(self.file_save_location, txt_name)
+            serials = self.hydrophone_object.transducer_serials
+            unique_serials = list(dict.fromkeys(serials))
 
-                arr = np.array(data).T
-
-                if arr.shape[1] == 3 and not np.all(np.isnan(arr[:, 2])):
+            if len(unique_serials) == 1:
+                # Aggregate all datasets into one array
+                all_arr = np.vstack([np.array(d).T for d in self.hydrophone_object.raw_data])
+                # sort by frequency
+                all_arr = all_arr[np.argsort(all_arr[:, 0])]
+                # If STD column exists but is all NaN, drop it
+                if all_arr.shape[1] == 3 and np.all(np.isnan(all_arr[:, 2])):
+                    all_arr = all_arr[:, :2]
+                    fmt = ('%s', '%.5f')
+                elif all_arr.shape[1] == 3:
                     fmt = ('%s', '%.5f', '%.5f')
                 else:
-                    arr = arr[:, :2]
                     fmt = ('%s', '%.5f')
 
-                np.savetxt(txt_path, arr, delimiter=',', fmt=fmt)
+                txt_name = f"{unique_serials[0]}_sensitivity_vs_frequency_{timestamp}.txt"
+                txt_path = os.path.join(self.file_save_location, txt_name)
+                np.savetxt(txt_path, all_arr, delimiter=',', fmt=fmt)
+
+            else:
+                # One file per distinct serial
+                for i, data in enumerate(self.hydrophone_object.raw_data):
+                    serial_i = serials[i]
+                    txt_name = f"{serial_i}_sensitivity_vs_frequency_{timestamp}.txt"
+                    txt_path = os.path.join(self.file_save_location, txt_name)
+
+                    arr = np.array(data).T
+                    # sort by frequency
+                    arr = arr[arr[:, 0].argsort()]
+                    if arr.shape[1] == 3 and not np.all(np.isnan(arr[:, 2])):
+                        fmt = ('%s', '%.5f', '%.5f')
+                    else:
+                        arr = arr[:, :2]
+                        fmt = ('%s', '%.5f')
+
+                    np.savetxt(txt_path, arr, delimiter=',', fmt=fmt)
 
             # 8) Notify user
             self.text_display.append("The following files were saved:\n")
             self.text_display.append(f"• SVG: {hydrophone_svg_path}")
-            for i in range(len(self.hydrophone_object.raw_data)):
-                serial_i = self.hydrophone_object.transducer_serials[i]
-                txt_name = f"{serial_i}_sensitivity_vs_frequency_{timestamp}.txt"
-                txt_path = os.path.join(self.file_save_location, txt_name)
+            if len(unique_serials) == 1:
                 self.text_display.append(f"• DATA: {txt_path}")
+            else:
+                for i in range(len(self.hydrophone_object.raw_data)):
+                    serial_i = serials[i]
+                    txt_name = f"{serial_i}_sensitivity_vs_frequency_{timestamp}.txt"
+                    txt_path = os.path.join(self.file_save_location, txt_name)
+                    self.text_display.append(f"• DATA: {txt_path}")
             self.text_display.append("")  # extra newline
 
 
