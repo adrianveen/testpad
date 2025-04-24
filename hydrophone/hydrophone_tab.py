@@ -1,12 +1,11 @@
 from hydrophone.hydrophone_graph import HydrophoneGraph
 
 from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
+                                QLabel, QLineEdit, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 import numpy as np
 import os
-import yaml
 import re
 from datetime import datetime
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -18,6 +17,10 @@ class HydrophoneAnalysisTab(QWidget):
 
         self.hydrophone_scan_data = None
         self.file_save_location = None
+        self.graph = None
+        self.hydrophone_object = None
+        self.mode = None
+        self.serials = None
 
         # USER INTERACTION AREA
         buttons_groupbox = QGroupBox("File Selection")
@@ -25,7 +28,6 @@ class HydrophoneAnalysisTab(QWidget):
         self.combo_label = QLabel("Select CSV Format:")
         self.combo_box = QComboBox()
         self.combo_box.setToolTip("Select the type of hydrophone scan data file.")
-        self.combo_box.setPlaceholderText("Select CSV Format")
         self.combo_box.addItem("Multiple CSV files per transducer")
         self.combo_box.addItem("Single CSV file per transducer (legacy CSV format)")
         self.combo_box.setEditable(True)
@@ -39,6 +41,7 @@ class HydrophoneAnalysisTab(QWidget):
 
         # 4) Finally, reset to “no selection”
         self.combo_box.setCurrentIndex(-1)
+        self.onFormatChanged(self.combo_box.currentIndex())
         
         # compare checkbox
         self.compare_label = QLabel("Compare multiple datasets:")
@@ -77,11 +80,6 @@ class HydrophoneAnalysisTab(QWidget):
                 selections_layout.addWidget(cells[0], r, 0)
                 selections_layout.addWidget(cells[1], r, 1)
         selections_layout.setAlignment(self.compare_box, Qt.AlignmentFlag.AlignCenter)
-        # selections_layout.addWidget(self.compare_label, 0, 0)
-        # selections_layout.addWidget(self.compare_box, 0, 1)
-        # selections_layout.addWidget(self.select_file_btn, 1, 0, 1, 2)
-        # selections_layout.addWidget(self.print_graph_btn, 2, 0, 1, 2)
-        # selections_layout.addWidget(self.save_as_svg_btn, 3, 0, 1, 2)
         buttons_groupbox.setLayout(selections_layout)
 
         # TEXT CONSOLE
@@ -218,6 +216,11 @@ class HydrophoneAnalysisTab(QWidget):
 
     @Slot()
     def print_graphs_clicked(self):
+        # ensure we actually have data
+        if not self.hydrophone_scan_data:
+            self.text_display.append("Error: No hydrophone CSV file(s) selected.\n")
+            return
+
         # 1. create the object from whatever files the user picked
         self.hydrophone_object = HydrophoneGraph(self.hydrophone_scan_data)
 
