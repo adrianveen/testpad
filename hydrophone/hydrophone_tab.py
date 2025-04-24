@@ -118,92 +118,103 @@ class HydrophoneAnalysisTab(QWidget):
                 for file in self.hydrophone_scan_data:
                     self.text_display.append(file +"\n")
         
-        # file saving
         elif d_type == "save":
-                self.dialog = QFileDialog(self)
-                self.dialog.setWindowTitle("Graph Save Location")
-                self.dialog.setFileMode(QFileDialog.FileMode.Directory)
-                if self.dialog.exec():
-                    self.text_display.append("Save Location: ")
-                    self.file_save_location = self.dialog.selectedFiles()[0]
-                    self.text_display.append(self.file_save_location + "\n")
+            # 1) Show folder picker
+            self.dialog = QFileDialog(self)
+            self.dialog.setWindowTitle("Graph Save Location")
+            self.dialog.setFileMode(QFileDialog.FileMode.Directory)
+            if not self.dialog.exec():
+                return
+            self.file_save_location = self.dialog.selectedFiles()[0]
+            self.text_display.append(f"Save Location: {self.file_save_location}\n")
 
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    file_name = f"{self.hydrophone_object.tx_serial_no}_sensitivity_vs_frequency_{timestamp}.svg"
-                    hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
+            # 2) Prepare file names
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            serial = self.hydrophone_object.tx_serial_no or "unknown"
+            svg_name = f"{serial}_sensitivity_vs_frequency_{timestamp}.svg"
+            hydrophone_svg_path = os.path.join(self.file_save_location, svg_name)
 
-                    dpi = 96
-                    fig_width = 6.5
-                    fig_height = 3.5
+            # 3) Stash original state
+            fig      = self.graph.figure
+            axes     = fig.get_axes()          # all axes (first one is your main plot)
+            ax_main  = axes[0]                 # <-- grab the real plotting axes
+            orig_locator = ax_main.xaxis.get_major_locator()
+            orig_size    = fig.get_size_inches().copy()
 
-                    # Resize for export
-                    self.graph.figure.set_size_inches(fig_width, fig_height)
+            orig_marker_sizes      = {}
+            orig_marker_edge_width = {}
+            orig_line_widths       = {}
+            for ax in axes:
+                for line in ax.get_lines():
+                    orig_marker_sizes[line]      = line.get_markersize()
+                    orig_marker_edge_width[line] = line.get_markeredgewidth()
+                    orig_line_widths[line]       = line.get_linewidth()
 
-                    # ‹scale markers & lines to 70%›
-                    original_marker_sizes = {}
-                    original_marker_edge_widths = {}
-                    original_line_widths = {}
-                    for ax in self.graph.figure.get_axes():
-                        for line in ax.get_lines():
-                            original_marker_sizes[line] = line.get_markersize()
-                            original_marker_edge_widths[line] = line.get_markeredgewidth()
-                            original_line_widths[line] = line.get_linewidth()
-                            line.set_markersize(original_marker_sizes[line] * 0.7)
-                            line.set_markeredgewidth(original_marker_edge_widths[line] * 0.7)
-                            line.set_linewidth(original_line_widths[line] * 0.7)
+            # 4) Apply export tweaks
+            dpi        = 96
+            fig_width  = 6.5
+            fig_height = 3.5
+            fig.set_size_inches(fig_width, fig_height)
 
-                    # ─── NEW: adjust x-tick spacing for high-frequency data ───
-                    # grab the main axes and stash its original locator
-                    main_ax = self.graph.figure.get_axes()[0]
-                    orig_locator = main_ax.xaxis.get_major_locator()
+            for ax in axes:
+                for line in ax.get_lines():
+                    line.set_markersize(orig_marker_sizes[line] * 0.7)
+                    line.set_markeredgewidth(orig_marker_edge_width[line] * 0.7)
+                    line.set_linewidth(orig_line_widths[line] * 0.7)
 
-                    # compute overall max frequency across all datasets
-                    overall_max = max(ds[0].max() for ds in self.hydrophone_object.raw_data)
-                    if overall_max > 5.0:
-                        main_ax.xaxis.set_major_locator(MultipleLocator(0.4))
-                    # ────────────────────────────────────────────────────────────
+            # adjust tick spacing if max freq > 3 MHz
+            overall_max = max(ds[0].max() for ds in self.hydrophone_object.raw_data)
+            if overall_max > 3.0:
+                ax_main.xaxis.set_major_locator(MultipleLocator(0.4))
+                fig.canvas.draw()
 
-                    # save out the SVG
-                    self.graph.figure.savefig(
-                        hydrophone_svg_path,
-                        format="svg", dpi=dpi,
-                        bbox_inches="tight", pad_inches=0
-                    )
+            # 5) Save SVG
+            fig.savefig(
+                hydrophone_svg_path,
+                format="svg",
+                dpi=dpi,
+                bbox_inches="tight",
+                pad_inches=0
+            )
 
-                    # restore the original tick locator
-                    main_ax.xaxis.set_major_locator(orig_locator)
+            # 6) Restore original state
+            ax_main.xaxis.set_major_locator(orig_locator)
+            fig.set_size_inches(orig_size)
+            for ax in axes:
+                for line in ax.get_lines():
+                    line.set_markersize(orig_marker_sizes[line])
+                    line.set_markeredgewidth(orig_marker_edge_width[line])
+                    line.set_linewidth(orig_line_widths[line])
+            fig.canvas.draw()
 
-                    # ‹restore original marker sizes & save txt files›
-                    for ax in self.graph.figure.get_axes():
-                        for line in ax.get_lines():
-                            line.set_markersize(original_marker_sizes[line])
+            # 7) Save TXT data files
+            for i, data in enumerate(self.hydrophone_object.raw_data):
+                serial_i = self.hydrophone_object.transducer_serials[i]
+                txt_name = f"{serial_i}_sensitivity_vs_frequency_{timestamp}.txt"
+                txt_path = os.path.join(self.file_save_location, txt_name)
 
-                    for i, data in enumerate(self.hydrophone_object.raw_data):
-                        txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
-                        csv_file_path = os.path.join(self.file_save_location, txt_file_name)
+                arr = np.array(data).T
+                arr[:, 1] /= 1000.0  # convert sensitivity to V/MPa
 
-                        data_array = np.array(data)
-                        data_transposed = data_array.T
-                        data_transposed[:, 1] /= 1000.0
+                if arr.shape[1] == 3 and not np.all(np.isnan(arr[:, 2])):
+                    arr[:, 2] /= 1000.0
+                    fmt = ('%s', '%.5f', '%.5f')
+                else:
+                    arr = arr[:, :2]
+                    fmt = ('%s', '%.5f')
 
-                        if data_transposed.shape[1] == 3:
-                            if np.all(np.isnan(data_transposed[:, 2])):
-                                data_transposed = data_transposed[:, :2]
-                                fmt = ('%s', '%.5f')
-                            else:
-                                data_transposed[:, 2] /= 1000.0
-                                fmt = ('%s', '%.5f', '%.5f')
-                        else:
-                            fmt = ('%s', '%.5f')
+                np.savetxt(txt_path, arr, delimiter=',', fmt=fmt)
 
-                        np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt=fmt)
+            # 8) Notify user
+            self.text_display.append("The following files were saved:\n")
+            self.text_display.append(f"• SVG: {hydrophone_svg_path}")
+            for i in range(len(self.hydrophone_object.raw_data)):
+                serial_i = self.hydrophone_object.transducer_serials[i]
+                txt_name = f"{serial_i}_sensitivity_vs_frequency_{timestamp}.txt"
+                txt_path = os.path.join(self.file_save_location, txt_name)
+                self.text_display.append(f"• DATA: {txt_path}")
+            self.text_display.append("")  # extra newline
 
-                    # finished saving message
-                    self.text_display.append("The following files were saved:\n")
-                    self.text_display.append("Hydrophone Sensitivity Graph:")
-                    self.text_display.append(hydrophone_svg_path + "\n")
-                    self.text_display.append("Hydrophone Sensitivity Data:")
-                    self.text_display.append(csv_file_path + "\n")
 
     @Slot()
     def print_graphs_clicked(self):
@@ -223,16 +234,34 @@ class HydrophoneAnalysisTab(QWidget):
         canvas = self.hydrophone_object.get_graphs(mode=mode)
         self.create_graph(canvas)
 
-        if isinstance(self.hydrophone_object.transducer_serials, (list, np.ndarray)):
-            if len(self.hydrophone_object.transducer_serials) > 1:
-                self.text_display.append("Transducer Serial Numbers: ")
-                for i, serial in enumerate(self.hydrophone_object.transducer_serials):
-                        self.text_display.append(f"{i+1}. {serial}")
-                self.text_display.append("")
-            else:
-                self.text_display.append(f"Transducer Serial Number: {self.hydrophone_object.transducer_serials[0]}\n")
-        
+        # 4. show serial numbers (deduplicated)
+        serials = self.hydrophone_object.transducer_serials
+        # preserve order, remove duplicates
+        unique_serials = list(dict.fromkeys(serials))
+
+        if len(unique_serials) == 1:
+            # only one unique serial across all files
+            self.text_display.append(
+                f"Transducer Serial Number: {unique_serials[0]}\n"
+            )
+        else:
+            # multiple distinct serials
+            self.text_display.append("Transducer Serial Numbers:")
+            for i, serial in enumerate(unique_serials, start=1):
+                self.text_display.append(f"{i}. {serial}")
+            self.text_display.append("")  # blank line
+
         self.print_sensitivities()
+
+        # 5. append bandwidth value(s)
+        if mode == "overlaid":
+            for i, bw in enumerate(self.hydrophone_object.bandwidths, start=1):
+                self.text_display.append(f"Dataset {i} bandwidth @½-max: {bw:.2f} MHz\n")
+            self.text_display.append("")  # blank line
+        else:
+            # for both 'single' and 'append' modes
+            bw = self.hydrophone_object.bandwidth
+            self.text_display.append(f"Bandwidth @½-max: {bw:.2f} MHz\n")
    
     @Slot(int)
     def onFormatChanged(self, index: int):
@@ -242,73 +271,91 @@ class HydrophoneAnalysisTab(QWidget):
         self.compare_box.setEnabled(index == 1)
 
     def print_sensitivities(self):
-        if self.hydrophone_scan_data is not None and self.hydrophone_object.raw_data:
-            converted_data = []  # Store converted datasets here
+        if not (self.hydrophone_scan_data and self.hydrophone_object.raw_data):
+            return
 
-            for i, dataset in enumerate(self.hydrophone_object.raw_data):
-                # Retrieve the transducer serial number for this dataset
-                try:
-                    serial = self.hydrophone_object.transducer_serials[i]
-                except IndexError:
-                    serial = "Unknown"
+        # 1) gather & convert all datasets
+        serials = self.hydrophone_object.transducer_serials
+        unique_serials = list(dict.fromkeys(serials))  # preserve order, remove dupes
+        converted = []  # each entry is an Nx2 or Nx3 array: [freq, sens, (std)]
+        for data in self.hydrophone_object.raw_data:
+            arr = np.array(data).T  # shape (n_points, n_cols)
+            arr[:, 1] /= 1000.0     # mV→V
+            if arr.shape[1] >= 3:
+                arr[:, 2] /= 1000.0 # mV→V for STD if present
+            converted.append(arr)
 
-                # Convert dataset to a NumPy array and transpose it so each row is a data point
-                data_array = np.array(dataset)
-                data_transposed = data_array.T.copy()  # copy to leave raw_data unmodified
+        # 2) single‐transducer? aggregate
+        if len(unique_serials) == 1:
+            serial = unique_serials[0]
+            # stack only freq & sens columns
+            all_data = np.vstack([a[:, :2] for a in converted])
+            freq = all_data[:, 0]
+            sens = all_data[:, 1]
 
-                # Convert sensitivity (column 1) from mV/MPa to V/MPa
-                data_transposed[:, 1] /= 1000.0
+            # compute max sensitivity
+            idx_max = np.argmax(sens)
+            max_sens = sens[idx_max]
+            max_freq = freq[idx_max]
 
-                # Convert STD column if present (column 2)
-                if data_transposed.shape[1] >= 3:
-                    data_transposed[:, 2] /= 1000.0
+            # parse resonances from serial, e.g. “343-T1650H825”
+            m = re.search(r'T(\d+)H(\d+)', serial)
+            if m:
+                tx_res = int(m.group(1)) / 1000.0   # MHz
+                hp_res = int(m.group(2)) / 1000.0   # MHz
+                # find nearest points
+                idx_tx = np.argmin(np.abs(freq - tx_res))
+                idx_hp = np.argmin(np.abs(freq - hp_res))
+                sens_tx = sens[idx_tx]
+                sens_hp = sens[idx_hp]
+            else:
+                tx_res = hp_res = sens_tx = sens_hp = None
 
-                # Store the converted dataset (transpose back to original structure if needed)
-                converted_data.append(data_transposed.T.tolist())
+            # build & print
+            out = [
+                f"Transducer Serial: {serial} (aggregated over {len(converted)} files)",
+                f"Max Sensitivity: {max_sens:.3f} V/MPa at {max_freq:.3f} MHz"
+            ]
+            if tx_res is not None:
+                out.append(f"Sensitivity at transducer resonance ({tx_res:.3f} MHz): {sens_tx:.3f} V/MPa")
+            if hp_res is not None:
+                out.append(f"Sensitivity at hydrophone resonance ({hp_res:.3f} MHz): {sens_hp:.3f} V/MPa")
 
-                # Extract frequency and sensitivity arrays (assumed to be in MHz and V/MPa now)
-                freq = data_transposed[:, 0]
-                sensitivity = data_transposed[:, 1]
+            self.text_display.append("\n".join(out) + "\n")
 
-                # Find the maximum sensitivity and its corresponding frequency
-                max_index = np.argmax(sensitivity)
-                max_sensitivity = sensitivity[max_index]
-                max_freq = freq[max_index]
+        # 3) multiple‐transducer case: per‐dataset
+        else:
+            for i, arr in enumerate(converted):
+                serial = serials[i] or "Unknown"
+                freq = arr[:, 0]
+                sens = arr[:, 1]
 
-                # Parse the transducer serial number to extract resonant frequencies.
-                # Expected format: "343-T1650H825"
-                match = re.search(r'T(\d+)H(\d+)', serial)
-                if match:
-                    transducer_res_freq_khz = float(match.group(1))
-                    hydrophone_res_freq_khz = float(match.group(2))
-                    # Convert from kHz to MHz
-                    transducer_res_freq_mhz = transducer_res_freq_khz / 1000.0
-                    hydrophone_res_freq_mhz = hydrophone_res_freq_khz / 1000.0
+                idx_max = np.argmax(sens)
+                max_sens = sens[idx_max]
+                max_freq = freq[idx_max]
 
-                    # Find the sensitivity values at these resonant frequencies by finding the nearest value
-                    idx_transducer = np.argmin(np.abs(freq - transducer_res_freq_mhz))
-                    sens_at_transducer = sensitivity[idx_transducer]
-
-                    idx_hydrophone = np.argmin(np.abs(freq - hydrophone_res_freq_mhz))
-                    sens_at_hydrophone = sensitivity[idx_hydrophone]
+                m = re.search(r'T(\d+)H(\d+)', serial)
+                if m:
+                    tx_res = int(m.group(1)) / 1000.0
+                    hp_res = int(m.group(2)) / 1000.0
+                    idx_tx = np.argmin(np.abs(freq - tx_res))
+                    idx_hp = np.argmin(np.abs(freq - hp_res))
+                    sens_tx = sens[idx_tx]
+                    sens_hp = sens[idx_hp]
                 else:
-                    # If parsing fails, set these values to None
-                    transducer_res_freq_mhz = None
-                    hydrophone_res_freq_mhz = None
-                    sens_at_transducer = None
-                    sens_at_hydrophone = None
+                    tx_res = hp_res = sens_tx = sens_hp = None
 
-                # Build the output string to append to the text display widget
-                output_str = f"Transducer Serial: {serial}\n" \
-                            f"Max Sensitivity: {max_sensitivity:.3f} V/MPa at {max_freq:.3f} MHz\n"
-                if transducer_res_freq_mhz is not None and sens_at_transducer is not None:
-                    output_str += f"Sensitivity at transducer resonance ({transducer_res_freq_mhz:.3f} MHz): " \
-                                f"{sens_at_transducer:.3f} V/MPa\n"
-                if hydrophone_res_freq_mhz is not None and sens_at_hydrophone is not None:
-                    output_str += f"Sensitivity at hydrophone resonance ({hydrophone_res_freq_mhz:.3f} MHz): " \
-                                f"{sens_at_hydrophone:.3f} V/MPa\n"
+                out = [
+                    f"Transducer Serial: {serial}",
+                    f"Max Sensitivity: {max_sens:.3f} V/MPa at {max_freq:.3f} MHz"
+                ]
+                if tx_res is not None:
+                    out.append(f"Sensitivity at transducer resonance ({tx_res:.3f} MHz): {sens_tx:.3f} V/MPa")
+                if hp_res is not None:
+                    out.append(f"Sensitivity at hydrophone resonance ({hp_res:.3f} MHz): {sens_hp:.3f} V/MPa")
 
-                self.text_display.append(output_str)
+                self.text_display.append("\n".join(out) + "\n")
+
 
     def create_graph(self, canvas):
         # ensure we actually have data
