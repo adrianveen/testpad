@@ -123,7 +123,7 @@ class HydrophoneGraph():
         # Initialize the figure and canvas
     def _prepare_figure(self):
             # common figure/canvas setup
-            self.fig, self.ax = plt.subplots(figsize=(10, 6))
+            self.fig, self.ax = plt.subplots(constrained_layout=True, figsize=(10, 6))
             self.canvas = FigureCanvas(self.fig)
             # load logo
             img = Image.open(self.resource_path("images/fus_icon_transparent.png"))
@@ -134,6 +134,8 @@ class HydrophoneGraph():
             self.ax.ticklabel_format(style="plain", axis="x")
             self.ax.grid(True, color="#dddddd")
 
+            self.fig.subplots_adjust(top=0.88, right=0.94, left=0.08, bottom=0.10)
+
     def _finalize_plot(self, title: str):
         self.ax.set_title(title)
         self.ax.set_xlabel("Frequency (MHz)")
@@ -142,7 +144,6 @@ class HydrophoneGraph():
         ax_image = self.fig.add_axes([0.85, 0.75, 0.12, 0.12])
         ax_image.imshow(self.fus_icon)
         ax_image.axis("off")
-        self.fig.tight_layout()
 
     def _plot_single(self):
         freq, sens, *rest = self.raw_data[0]

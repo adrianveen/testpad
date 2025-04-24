@@ -10,6 +10,7 @@ import yaml
 import re
 from datetime import datetime
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.ticker import MultipleLocator
 
 class HydrophoneAnalysisTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -118,79 +119,91 @@ class HydrophoneAnalysisTab(QWidget):
                     self.text_display.append(file +"\n")
         
         # file saving
-        elif d_type == "save": # save graph SVG location 
-            self.dialog = QFileDialog(self)
-            self.dialog.setWindowTitle("Graph Save Location")
-            self.dialog.setFileMode(QFileDialog.FileMode.Directory)
-            if self.dialog.exec():
-                self.text_display.append("Save Location: ")
-                self.file_save_location = self.dialog.selectedFiles()[0]
-                self.text_display.append(self.file_save_location+"\n")
+        elif d_type == "save":
+                self.dialog = QFileDialog(self)
+                self.dialog.setWindowTitle("Graph Save Location")
+                self.dialog.setFileMode(QFileDialog.FileMode.Directory)
+                if self.dialog.exec():
+                    self.text_display.append("Save Location: ")
+                    self.file_save_location = self.dialog.selectedFiles()[0]
+                    self.text_display.append(self.file_save_location + "\n")
 
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                file_name = f"{self.hydrophone_object.tx_serial_no}_sensitivity_vs_frequency_{timestamp}.svg"
-                hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    file_name = f"{self.hydrophone_object.tx_serial_no}_sensitivity_vs_frequency_{timestamp}.svg"
+                    hydrophone_svg_path = os.path.join(self.file_save_location, file_name)
 
-                dpi = 96
-                fig_width = 6.5
-                fig_height = 3.5
+                    dpi = 96
+                    fig_width = 6.5
+                    fig_height = 3.5
 
-                self.graph.figure.set_size_inches(fig_width, fig_height)
-                
-                # Create dictionaries to hold the original properties
-                original_marker_sizes = {}
-                original_marker_edge_widths = {}
-                original_line_widths = {}
+                    # Resize for export
+                    self.graph.figure.set_size_inches(fig_width, fig_height)
 
-                # Temporarily reduce marker size, marker edge width, and line width to 70% for saving
-                for ax in self.graph.figure.get_axes():
-                    for line in ax.get_lines():
-                        # Save original values
-                        original_marker_sizes[line] = line.get_markersize()
-                        original_marker_edge_widths[line] = line.get_markeredgewidth()
-                        original_line_widths[line] = line.get_linewidth()
+                    # ‹scale markers & lines to 70%›
+                    original_marker_sizes = {}
+                    original_marker_edge_widths = {}
+                    original_line_widths = {}
+                    for ax in self.graph.figure.get_axes():
+                        for line in ax.get_lines():
+                            original_marker_sizes[line] = line.get_markersize()
+                            original_marker_edge_widths[line] = line.get_markeredgewidth()
+                            original_line_widths[line] = line.get_linewidth()
+                            line.set_markersize(original_marker_sizes[line] * 0.7)
+                            line.set_markeredgewidth(original_marker_edge_widths[line] * 0.7)
+                            line.set_linewidth(original_line_widths[line] * 0.7)
 
-                        # Scale plot properties to 70% of its original size for saving
-                        line.set_markersize(original_marker_sizes[line] * 0.7)
-                        line.set_markeredgewidth(original_marker_edge_widths[line] * 0.7)
-                        line.set_linewidth(original_line_widths[line] * 0.7)
+                    # ─── NEW: adjust x-tick spacing for high-frequency data ───
+                    # grab the main axes and stash its original locator
+                    main_ax = self.graph.figure.get_axes()[0]
+                    orig_locator = main_ax.xaxis.get_major_locator()
 
-                self.graph.figure.savefig(hydrophone_svg_path, format="svg", dpi=dpi, bbox_inches="tight", pad_inches=0)
+                    # compute overall max frequency across all datasets
+                    overall_max = max(ds[0].max() for ds in self.hydrophone_object.raw_data)
+                    if overall_max > 5.0:
+                        main_ax.xaxis.set_major_locator(MultipleLocator(0.4))
+                    # ────────────────────────────────────────────────────────────
 
-                for ax in self.graph.figure.get_axes():
-                    for line in ax.get_lines():
-                        line.set_markersize(original_marker_sizes[line])
-                        
-                for i, data in enumerate(self.hydrophone_object.raw_data):
-                    txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
-                    csv_file_path = os.path.join(self.file_save_location, txt_file_name)
+                    # save out the SVG
+                    self.graph.figure.savefig(
+                        hydrophone_svg_path,
+                        format="svg", dpi=dpi,
+                        bbox_inches="tight", pad_inches=0
+                    )
 
-                    data_array = np.array(data)
-                    data_transposed = data_array.T
+                    # restore the original tick locator
+                    main_ax.xaxis.set_major_locator(orig_locator)
 
-                    # Convert sensitivity (column 1) from mV/MPa to V/MPa
-                    data_transposed[:, 1] = data_transposed[:, 1] / 1000.0
+                    # ‹restore original marker sizes & save txt files›
+                    for ax in self.graph.figure.get_axes():
+                        for line in ax.get_lines():
+                            line.set_markersize(original_marker_sizes[line])
 
-                    # Check if a STD column is present
-                    if data_transposed.shape[1] == 3:
-                        # If STD values are all NaN, discard the column and use 2 columns only
-                        if np.all(np.isnan(data_transposed[:, 2])):
-                            data_transposed = data_transposed[:, :2]
-                            fmt = ('%s', '%.5f')
+                    for i, data in enumerate(self.hydrophone_object.raw_data):
+                        txt_file_name = f"{self.hydrophone_object.transducer_serials[i]}_sensitivity_vs_frequency_{timestamp}.txt"
+                        csv_file_path = os.path.join(self.file_save_location, txt_file_name)
+
+                        data_array = np.array(data)
+                        data_transposed = data_array.T
+                        data_transposed[:, 1] /= 1000.0
+
+                        if data_transposed.shape[1] == 3:
+                            if np.all(np.isnan(data_transposed[:, 2])):
+                                data_transposed = data_transposed[:, :2]
+                                fmt = ('%s', '%.5f')
+                            else:
+                                data_transposed[:, 2] /= 1000.0
+                                fmt = ('%s', '%.5f', '%.5f')
                         else:
-                            # Convert STD values from mV/MPa to V/MPa
-                            data_transposed[:, 2] = data_transposed[:, 2] / 1000.0
-                            fmt = ('%s', '%.5f', '%.5f')
-                    else:
-                        fmt = ('%s', '%.5f')
-                    
-                    np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt=fmt)
-                # finished saving message
-                self.text_display.append("The following files were saved:\n")
-                self.text_display.append(f"Hydrophone Sensitivity Graph:")
-                self.text_display.append(f"{hydrophone_svg_path}\n")
-                self.text_display.append(f"Hydrophone Sensitivity Data:")
-                self.text_display.append(f"{csv_file_path}\n")
+                            fmt = ('%s', '%.5f')
+
+                        np.savetxt(csv_file_path, data_transposed, delimiter=',', fmt=fmt)
+
+                    # finished saving message
+                    self.text_display.append("The following files were saved:\n")
+                    self.text_display.append("Hydrophone Sensitivity Graph:")
+                    self.text_display.append(hydrophone_svg_path + "\n")
+                    self.text_display.append("Hydrophone Sensitivity Data:")
+                    self.text_display.append(csv_file_path + "\n")
 
     @Slot()
     def print_graphs_clicked(self):
