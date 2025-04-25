@@ -65,7 +65,7 @@ class HydrophoneGraph:
             freq = df["Frequency (MHz)"]
             sens = df["Sensitivity (mV/MPa)"] / 1000
             if "Standard deviation (mV/MPa)" in df:
-                std = df["Standard deviation (mV/MPa)"]
+                std = df["Standard deviation (mV/MPa)"] /1000
                 datasets.append((freq, sens, std))
             else:
                 datasets.append((freq, sens))
