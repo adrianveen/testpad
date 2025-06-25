@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter, MultipleLocator
 from matplotlib.colors import to_rgb, to_hex
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class HydrophoneGraph:
     def __init__(self, hydrophone_csv) -> None:
