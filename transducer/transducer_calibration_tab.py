@@ -47,7 +47,7 @@ class TransducerCalibrationTab(QWidget):
         # add checkboxes to group
         for i in range(len(checkbox_list_col_1)): 
             # checkbox_list_col_1[i].setAlignment()
-            checkbox_layout.addWidget(checkbox_list_col_1[i], i, 1, Qt.AlignCenter)
+            checkbox_layout.addWidget(checkbox_list_col_1[i], i, 1, Qt.AlignmentFlag.AlignCenter)
 
         checkbox_group.setLayout(checkbox_layout)
 
@@ -131,7 +131,7 @@ class TransducerCalibrationTab(QWidget):
         # add buttons to group
         for i in range(len(text_fields_list_col_1)): 
             text_fields_list_col_1[i].setMaximumWidth(200)
-            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1, Qt.AlignCenter)
+            text_field_layout.addWidget(text_fields_list_col_1[i], i, 1, Qt.AlignmentFlag.AlignCenter)
         
         text_fields_group.setLayout(text_field_layout)
 
@@ -209,7 +209,7 @@ class TransducerCalibrationTab(QWidget):
         if type == "data": 
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Data Files")
-            self.dialog1.setFileMode(QFileDialog.ExistingFiles)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
             if self.dialog1.exec(): 
                 self.text_display_group.append("Data Files: ")
                 self.selected_data_files = self.dialog1.selectedFiles()
@@ -222,7 +222,7 @@ class TransducerCalibrationTab(QWidget):
         elif type == "save":
             self.dialog2 = QFileDialog(self)
             self.dialog2.setWindowTitle("Save Folder")
-            self.dialog2.setFileMode(QFileDialog.Directory)
+            self.dialog2.setFileMode(QFileDialog.FileMode.Directory)
             if self.dialog2.exec():
                 self.selected_save_folder = self.dialog2.selectedFiles()[0]
                 self.text_display_group.append("Save Folder: "+str(self.selected_save_folder)+"\n")
@@ -230,7 +230,7 @@ class TransducerCalibrationTab(QWidget):
         elif type == "eb50":
             self.dialog3 = QFileDialog(self)
             self.dialog3.setWindowTitle("EB-50 File")
-            self.dialog3.setFileMode(QFileDialog.ExistingFile)
+            self.dialog3.setFileMode(QFileDialog.FileMode.ExistingFile)
             if self.dialog3.exec():
                 self.selected_eb50_file = self.dialog3.selectedFiles()[0]
                 self.text_display_group.append("EB-50 File: "+str(self.selected_eb50_file)+"\n")
