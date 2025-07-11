@@ -3,7 +3,7 @@ import numpy as np
 import os
 import decimal
 from PySide6.QtWidgets import QTextBrowser
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class sweep_graph():
     def __init__(self, data_mtx, transducer, freq, save_folder, markersize, textbox: QTextBrowser,
