@@ -4,7 +4,7 @@ from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget, QSizePolicy)
+                               QVBoxLayout, QWidget, QSizePolicy, QDoubleSpinBox)
 import numpy as np
 import yaml
 import os
@@ -15,6 +15,7 @@ from matplotlib.colors import to_rgb, to_hex
 from datetime import datetime
 
 from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
+from lineedit_validators import ValidatedLineEdit, FixupDoubleValidator
 
 class Vol2PressTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -49,15 +50,15 @@ class Vol2PressTab(QWidget):
         transducer_label = QLabel("Transducer Serial No.")
         self.transducer_field = QLineEdit()
         self.transducer_field.setPlaceholderText("600")
-        impedance_label = QLabel("impedance_fund [\u03A9]")
+        impedance_label = QLabel("impedance_fund (\u03A9)")
         self.impedance_field = QLineEdit()
         self.impedance_field.setPlaceholderText("50")
-        phase_label = QLabel("phase_fund [\u00B0]")
+        phase_label = QLabel("phase_fund (\u00B0)")
         self.phase_field = QLineEdit()
         self.phase_field.setPlaceholderText("0")
-        pcd_label = QLabel("PCD_freq [Hz]")
+        pcd_label = QLabel("PCD_freq (Hz)")
         self.pcd_field = QLineEdit()
-        diameter_label = QLabel("txDiameter [mm]")
+        diameter_label = QLabel("txDiameter (mm)")
         self.diameter_field = QLineEdit()
         self.diameter_field.setPlaceholderText("35")
         focal_point_label = QLabel("txFocalPointFactor")
@@ -87,16 +88,16 @@ class Vol2PressTab(QWidget):
         freq_fields_group = QGroupBox("Info Per Frequency")
         sweep_btn = QPushButton("SELECT SWEEP TXT")
         sweep_btn.clicked.connect(lambda: self.openFileDialog("sweep"))
-        freq_label = QLabel("Frequency [MHz]")
+        freq_label = QLabel("Frequency (MHz)")
         self.freq_field = QLineEdit()
         self.freq_field.setPlaceholderText("0.550")
         freq_affix = QComboBox()
         freq_affix.addItems(["MHz, kHz"])
         freq_affix.setCurrentText("MHz")
-        axial_len_label = QLabel("TxAxialFocalDiameter [mm]")
+        axial_len_label = QLabel("TxAxialFocalDiameter (mm)")
         self.axial_field = QLineEdit()
         self.axial_field.setPlaceholderText("16.5")
-        lateral_len_label = QLabel("TxLateralFocalDiameter [mm]")
+        lateral_len_label = QLabel("TxLateralFocalDiameter (mm)")
         self.lateral_field = QLineEdit()
         self.lateral_field.setPlaceholderText("2.5")
         offset_label = QLabel("offset")
@@ -114,12 +115,20 @@ class Vol2PressTab(QWidget):
         offset_layout.addWidget(self.offset_field_2)
         offset_layout.addWidget(self.offset_field_3)
         offset_widget.setLayout(offset_layout)
-        uni_cali_label = QLabel("unified_vol2press [MPa/Vpp]")
+        uni_cali_label = QLabel("unified_vol2press (MPa/Vpp)")
         self.uni_cali_field = QLineEdit()
         self.uni_cali_field.setPlaceholderText("0.08")
 
+        acoustic_efficiency_label = QLabel("Acoustic Efficiency (%)")
+        self.acoustic_efficiency_field = ValidatedLineEdit()
+        # Limit to 2 decimal places, with a range from 0.00 to 100.00
+        validator = FixupDoubleValidator(0, 100, 2)
+        self.acoustic_efficiency_field.setValidator(validator)
+        self.acoustic_efficiency_field.setPlaceholderText("0.00")
+        self.acoustic_efficiency_field.setToolTip("Acoustic efficiency in percentage, from 0.00 to 100")
+
         self.fields_list = [self.freq_field, self.axial_field, self.lateral_field, self.offset_field_1, \
-                            self.offset_field_2, self.offset_field_3, self.uni_cali_field]
+                            self.offset_field_2, self.offset_field_3, self.uni_cali_field, self.acoustic_efficiency_field]
 
         for field in self.fields_list:
             field.textChanged.connect(lambda: self.enable_btn())
@@ -139,6 +148,8 @@ class Vol2PressTab(QWidget):
         fields_layout.addWidget(offset_widget, 4, 1)
         fields_layout.addWidget(uni_cali_label, 5, 0)
         fields_layout.addWidget(self.uni_cali_field, 5, 1)
+        fields_layout.addWidget(acoustic_efficiency_label, 6, 0)
+        fields_layout.addWidget(self.acoustic_efficiency_field, 6, 1)
         freq_fields_group.setLayout(fields_layout)
 
         # RESULTS BUTTONS
@@ -191,7 +202,7 @@ class Vol2PressTab(QWidget):
         main_layout.addWidget(self.save_svg_btn, 6, 0, 1, 2)
         main_layout.addWidget(clear_btn, 7, 0, 1, 2)
         main_layout.addWidget(console_box, 8, 0, 1, 2)
-        main_layout.addWidget(self.graph_display, 0, 2, 9, 2)
+        main_layout.addWidget(self.graph_display, 0, 2, 10, 2)
 
         self.setLayout(main_layout)
 
@@ -260,9 +271,9 @@ class Vol2PressTab(QWidget):
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("N Cycles Data")
             # Set the file mode to Directory so only folders can be selected
-            self.dialog1.setFileMode(QFileDialog.Directory)
+            self.dialog1.setFileMode(QFileDialog.FileMode.Directory)
             # Ensure that only directories are shown
-            self.dialog1.setOption(QFileDialog.ShowDirsOnly, True)
+            self.dialog1.setOption(QFileDialog.Option.ShowDirsOnly, True)
             
             if self.dialog1.exec():
                 selected_dir = self.dialog1.selectedFiles()[0]
@@ -405,6 +416,7 @@ class Vol2PressTab(QWidget):
         self.add_to_dict("TxLateralFocalDiameter", self.lateral_field.text(), spec_freq_dict)
         self.add_to_dict("offset", [self.offset_field_1.text(), self.offset_field_2.text(), self.offset_field_3.text()], spec_freq_dict)
         self.add_to_dict("unified_vol2press", self.uni_cali_field.text(), spec_freq_dict)
+        self.add_to_dict("acoustic_efficiency_percent", self.acoustic_efficiency_field.text(), spec_freq_dict)
 
         self.freq_dict[freq] = spec_freq_dict
 
@@ -448,7 +460,7 @@ class Vol2PressTab(QWidget):
         self.ax.set_xticks(np.arange(0, np.max(plot_data[0][1]) + 1, 5))
         self.ax.set_yticks(np.arange(0, 1.1, 0.1))
         self.ax.legend(title="Frequency")
-        self.ax.grid(True, color='#dddddd')
+        self.ax.grid(True, color="#dddddd")
         self.ax.set_title(f"Number of Cycles vs. Normalized Peak Negative Pressure")
         self.fig.set_canvas(self.pnp_plot)
         self.graph_display.addTab(self.pnp_plot, "N Cycles Data")
