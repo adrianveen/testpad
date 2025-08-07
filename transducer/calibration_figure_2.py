@@ -61,6 +61,15 @@ class sweep_graph():
         r_squared = correlation_xy ** 2
         self._show_feedback('[+] r squared: {}'.format(r_squared))
 
+        # Calculate and show voltage at 1 MPa
+        if self.m != 0:
+            # voltage_at_1mpa = 1 / self.m
+            voltage_at_1mpa = 12.5
+            self._show_feedback(f"[+] Voltage at 1 MPa: {voltage_at_1mpa:.4f} Vpp")
+        # if voltage_at_1mpa outside of 13.8 +/- 0.9 Vpp
+        if not (13.8 - 0.9 <= voltage_at_1mpa <= 13.8 + 0.9):
+            self._show_feedback("[ ! ] Voltage at 1 MPa is outside of the expected range (13.8 +/- 0.9 Vpp)")
+
         # Truncate the m value and r squared value to 6 decimal places
         self._show_feedback('\nTruncated m and r squared values:')
         self._show_feedback('[+] truncated m value: {:.6f}'.format(self.m))

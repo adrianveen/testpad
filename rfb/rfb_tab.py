@@ -37,7 +37,7 @@ class RFBTab(QWidget):
             controls_layout.addWidget(controls_list_col_0[i], i, 0)
         for i in range(len(controls_list_col_1)):
             if (i == 1):
-                controls_layout.addWidget(controls_list_col_1[i], i, 1, Qt.AlignCenter)
+                controls_layout.addWidget(controls_list_col_1[i], i, 1, Qt.AlignmentFlag.AlignCenter)
             else:
                 controls_layout.addWidget(controls_list_col_1[i], i, 1)
         controls_layout.addWidget(self.print_graph_button, 3, 0, 1, 2)
@@ -64,7 +64,7 @@ class RFBTab(QWidget):
         if type == "data":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Data Files")
-            self.dialog1.setFileMode(QFileDialog.ExistingFiles)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
             if self.dialog1.exec(): 
                 self.text_display.append("Data Files: ")
                 self.selected_data_files = self.dialog1.selectedFiles()
@@ -76,7 +76,7 @@ class RFBTab(QWidget):
         elif type == "save":
             self.dialog2 = QFileDialog(self)
             self.dialog2.setWindowTitle("Save Folder")
-            self.dialog2.setFileMode(QFileDialog.Directory)
+            self.dialog2.setFileMode(QFileDialog.FileMode.Directory)
             if self.dialog2.exec():
                 self.selected_save_folder = self.dialog2.selectedFiles()[0]
                 self.text_display.append("Save Folder: "+str(self.selected_save_folder)+"\n")
