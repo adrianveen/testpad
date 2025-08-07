@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QTextBrowser
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class sweep_graph():
-    def __init__(self, data_mtx, transducer, freq, save_folder, markersize, textbox: QTextBrowser,
+    def __init__(self, data_mtx, transducer, freq: str, save_folder, markersize, textbox: QTextBrowser,
                  generate_figure: bool = True, show_feedback: bool = True):
         self.data_mtx = data_mtx
         self.generate_figure = generate_figure
@@ -54,25 +54,27 @@ class sweep_graph():
 
         self.m = np.linalg.lstsq(A, y, rcond=None)[0][0]
 
-        self._show_feedback('[+] m value: {}'.format(self.m))
+        self._show_feedback(f'[+] m value: {self.m}')
 
         correlation_matrix = np.corrcoef(x, y)
         correlation_xy = correlation_matrix[0, 1]
         r_squared = correlation_xy ** 2
-        self._show_feedback('[+] r squared: {}'.format(r_squared))
+        self._show_feedback(f'[+] r squared: {r_squared}')
 
         # Calculate and show voltage at 1 MPa
         if self.m != 0:
-            # voltage_at_1mpa = 1 / self.m
-            voltage_at_1mpa = 12.5
+            voltage_at_1mpa = 1 / self.m
             self._show_feedback(f"[+] Voltage at 1 MPa: {voltage_at_1mpa:.4f} Vpp")
-        # if voltage_at_1mpa outside of 13.8 +/- 0.9 Vpp
-        if not (13.8 - 0.9 <= voltage_at_1mpa <= 13.8 + 0.9):
+        # for 1.65 MHz transducers, check if voltage at 1 MPa is within acceptable range
+        v_range_min = 13.8 - 0.9
+        v_range_max = 13.8 + 0.9
+        if not (v_range_min <= voltage_at_1mpa <= v_range_max) and float(self.freq.partition(' ')[0]) == 1.65:
             self._show_feedback("[ ! ] Voltage at 1 MPa is outside of the expected range (13.8 +/- 0.9 Vpp)")
+            self._show_feedback(f"Outside acceptable range for {self.freq} transducer")
 
         # Truncate the m value and r squared value to 6 decimal places
         self._show_feedback('\nTruncated m and r squared values:')
-        self._show_feedback('[+] truncated m value: {:.6f}'.format(self.m))
+        self._show_feedback(f'[+] truncated m value: {self.m:.6f}')
         r_trunc = decimal.Decimal(r_squared)
         self.r_trunc_out = float(round(r_trunc, 6))
         self._show_feedback(f"[+] truncated r squared: {self.r_trunc_out}")
