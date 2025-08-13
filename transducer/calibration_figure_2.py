@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import decimal
-from PySide6.QtWidgets import QTextBrowser
+from PySide6.QtWidgets import QTextBrowser, QMessageBox
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class sweep_graph():
@@ -64,13 +64,30 @@ class sweep_graph():
         # Calculate and show voltage at 1 MPa
         if self.m != 0:
             voltage_at_1mpa = 1 / self.m
-            self._show_feedback(f"[+] Voltage at 1 MPa: {voltage_at_1mpa:.4f} Vpp")
+            self._show_feedback(f"[+] Voltage at 1 MPa: {voltage_at_1mpa:.2f} Vpp")
         # for 1.65 MHz transducers, check if voltage at 1 MPa is within acceptable range
         v_range_min = 13.8 - 0.9
         v_range_max = 13.8 + 0.9
-        if not (v_range_min <= voltage_at_1mpa <= v_range_max) and float(self.freq.partition(' ')[0]) == 1.65:
+        # Safely parse frequency in MHz for numeric comparisons/formatting
+        freq_mhz_val = None
+        try:
+            if isinstance(self.freq, str):
+                # Expect formats like "1.65 MHz" or "1.65"
+                freq_mhz_val = float(self.freq.partition(' ')[0])
+            else:
+                freq_mhz_val = float(self.freq)
+        except Exception:
+            freq_mhz_val = None
+        freq_label = f"{freq_mhz_val:.3f} MHz" if freq_mhz_val is not None else str(self.freq)
+        # test voltage outside range
+        voltage_at_1mpa = 12.5
+        if not (v_range_min <= voltage_at_1mpa <= v_range_max) and (freq_mhz_val == 1.65):
             self._show_feedback("[ ! ] Voltage at 1 MPa is outside of the expected range (13.8 +/- 0.9 Vpp)")
-            self._show_feedback(f"Outside acceptable range for {self.freq} transducer")
+            QMessageBox.warning(None, "Warning",
+            f"Voltage at 1 MPa is outside of the expected range (13.8 +/- 0.9 Vpp) for {freq_label} transducer\n\n"
+            "Ensure that the transducer has been properly aligned.\n\n"
+            "If this warning persists, please contact Marc Santos or Rajiv Chopra for guidance on how to proceed."
+            )
 
         # Truncate the m value and r squared value to 6 decimal places
         self._show_feedback('\nTruncated m and r squared values:')
