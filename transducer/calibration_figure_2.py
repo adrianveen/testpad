@@ -79,8 +79,7 @@ class sweep_graph():
         except Exception:
             freq_mhz_val = None
         freq_label = f"{freq_mhz_val:.3f} MHz" if freq_mhz_val is not None else str(self.freq)
-        # test voltage outside range
-        voltage_at_1mpa = 12.5
+
         if not (v_range_min <= voltage_at_1mpa <= v_range_max) and (freq_mhz_val == 1.65):
             self._show_feedback("[ ! ] Voltage at 1 MPa is outside of the expected range (13.8 +/- 0.9 Vpp)")
             QMessageBox.warning(None, "Warning",
