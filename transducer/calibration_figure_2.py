@@ -90,12 +90,12 @@ class sweep_graph():
         # Hampel median/MAD outlier screen: compute robust z=|x-median|/MAD* and flag OK (<=3.0)
         # SUSPECT (3.0-4.5), OUTLIER (>4.5)
         # Thresholds in Vpp for 1.65 MHz transducer:
-        #   OK band: ± (3 * 0.7413) = ± 2.2239 → 11.4761 to 15.9239 Vpp
+        #   OK band: ± (3 * 0.7413) = ± 2.2239 → 11.4761 to 15.9238 Vpp
         #   SUSPECT band: 11.4761 > value ≥ 10.3642 OR 15.9239 < value ≤ 17.0359 Vpp
         #   OUTLIER band: value < 10.3642 OR value > 17.0359 Vpp
         #   where 0.7413 is the MAD scaled value
         ####
-        # voltage_at_1mpa = 11.4  # test value only -- see above for expected ranges
+        voltage_at_1mpa = 15.9238  # test value only -- see above for expected ranges
 
         # Classify the voltage at 1 MPa using the Hampel method
         # classification is taken from dict{} returned by classify_vpp()

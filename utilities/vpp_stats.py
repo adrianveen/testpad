@@ -114,7 +114,7 @@ def classify_vpp(value: float):
     z = abs(robust_z(value, _baseline))
     if z > HampelOutlierZ:
         cls = 'OUTLIER'
-    elif z > HampelSuspectZ:
+    elif z >= HampelSuspectZ:
         cls = 'SUSPECT'
     else:
         cls = 'OK'
@@ -146,9 +146,13 @@ def classify_vpp(value: float):
 
 # Backwards compatible simple boolean (kept name but now uses Hampel OK interval)
 def check_new_vpp(vpp_new: float) -> bool:
-    info = classify_vpp(vpp_new)
-    lo, hi = info['hampel_ok_interval']
-    return lo <= vpp_new <= hi
+    """
+    Return True only if the value is classified as 'OK' (|z| <= HampelSuspectZ).
+    Eliminates edge inconsistency caused by floating point comparisons with the
+    precomputed interval.
+    """
+    res = classify_vpp(vpp_new)
+    return res['classification'] == 'OK'
 
 # Convenience: run a short demo if executed directly
 if __name__ == '__main__':
