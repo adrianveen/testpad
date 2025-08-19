@@ -1,4 +1,4 @@
-# VPP Statistics & Outlier Detection Utility (n≈36 small-sample oriented)
+# VPP Statistics & Outlier Detection Utility (n≈33 small-sample oriented)
 import numpy as np
 from scipy import stats
 
@@ -87,6 +87,7 @@ HampelSuspectZ = 3.0
 HampelOutlierZ = 4.5
 
 def robust_z(value: float, stats_dict: dict):
+    """Compute robust standardized distance (z) for a new value."""
     mad_s = stats_dict['mad_scaled']
     if mad_s == 0:  # Fallback to sd if MAD degenerates
         if stats_dict['sd'] == 0:
