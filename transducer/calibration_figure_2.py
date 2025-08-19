@@ -2,11 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import decimal
-from PySide6.QtWidgets import QTextBrowser
+from PySide6.QtWidgets import QTextBrowser, QMessageBox
+from utilities.vpp_stats import classify_vpp, check_new_vpp
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class sweep_graph():
-    def __init__(self, data_mtx, transducer, freq, save_folder, markersize, textbox: QTextBrowser,
+    def __init__(self, data_mtx, transducer, freq: str, save_folder, markersize, textbox: QTextBrowser,
                  generate_figure: bool = True, show_feedback: bool = True):
         self.data_mtx = data_mtx
         self.generate_figure = generate_figure
@@ -54,16 +55,67 @@ class sweep_graph():
 
         self.m = np.linalg.lstsq(A, y, rcond=None)[0][0]
 
-        self._show_feedback('[+] m value: {}'.format(self.m))
+        self._show_feedback(f'[+] m value: {self.m}')
 
         correlation_matrix = np.corrcoef(x, y)
         correlation_xy = correlation_matrix[0, 1]
         r_squared = correlation_xy ** 2
-        self._show_feedback('[+] r squared: {}'.format(r_squared))
+        self._show_feedback(f'[+] r squared: {r_squared}')
+
+        # Safely parse frequency in MHz for numeric comparisons/formatting
+        freq_mhz_val = None
+        try:
+            if isinstance(self.freq, str):
+                # Expect formats like "1.65 MHz" or "1.65"
+                freq_mhz_val = float(self.freq.partition(' ')[0])
+            else:
+                freq_mhz_val = float(self.freq)
+        except Exception:
+            freq_mhz_val = None
+        freq_label = f"{freq_mhz_val:.3f} MHz" if freq_mhz_val is not None else str(self.freq)
+
+        # Calculate and show voltage at 1 MPa
+        if self.m != 0:
+            voltage_at_1mpa = 1 / self.m
+            self._show_feedback(f"[+] Voltage at 1 MPa: {voltage_at_1mpa:.2f} Vpp")
+
+        # for 1.65 MHz transducers, check if voltage at 1 MPa is within acceptable range
+
+        # Basic STD calculations if we want to revert to simpler method
+        # v_range_min = 13.8 - 0.9
+        # v_range_max = 13.8 + 0.9
+        # is_ok_std = v_range_min <= voltage_at_1mpa <= v_range_max
+
+        ####
+        # Hampel median/MAD outlier screen: compute robust z=|x-median|/MAD* and flag OK (<=3.0)
+        # SUSPECT (3.0-4.5), OUTLIER (>4.5)
+        # Thresholds in Vpp for 1.65 MHz transducer:
+        #   OK band: ± (3 * 0.7413) = ± 2.2239 → 11.4761 to 15.9238 Vpp
+        #   SUSPECT band: 11.4761 > value ≥ 10.3642 OR 15.9239 ≤ value < 17.0359 Vpp
+        #   OUTLIER band: value < 10.3642 OR value > 17.0358 Vpp
+        #   where 0.7413 is the MAD scaled value
+        ####
+        # voltage_at_1mpa = 17.0358  # test value only -- see above for expected ranges
+
+        # Classify the voltage at 1 MPa using the Hampel method
+        # classification is taken from dict{} returned by classify_vpp()
+        # check_new_vpp returns a boolean if dict['classification'] == 'OK'
+        vpp_info = classify_vpp(voltage_at_1mpa)
+        is_ok = check_new_vpp(voltage_at_1mpa)
+
+        if (freq_mhz_val is not None) and abs(freq_mhz_val - 1.65) < 1e-6 and not is_ok:
+            self._show_feedback(f"[ ! ] Voltage at 1 MPa is outside of the expected range. Classification: '{vpp_info['classification']}'")
+            QMessageBox.warning(None, "Warning",
+            f"Voltage at 1 MPa ({voltage_at_1mpa:.2f} Vpp) is outside of the expected range for {freq_label} transducer. Classification: '{vpp_info['classification']}'\n\n"
+            "Ensure that the transducer has been properly aligned.\n\n"
+            "If this warning persists, please contact Marc Santos or Rajiv Chopra for guidance on how to proceed."
+            )
+        elif (freq_mhz_val is not None) and abs(freq_mhz_val - 1.65) < 1e-6 and is_ok:
+            self._show_feedback(f"[+] Voltage at 1 MPa is within the expected range for {freq_label} transducer. Classification: '{vpp_info['classification']}'")
 
         # Truncate the m value and r squared value to 6 decimal places
         self._show_feedback('\nTruncated m and r squared values:')
-        self._show_feedback('[+] truncated m value: {:.6f}'.format(self.m))
+        self._show_feedback(f'[+] truncated m value: {self.m:.6f}')
         r_trunc = decimal.Decimal(r_squared)
         self.r_trunc_out = float(round(r_trunc, 6))
         self._show_feedback(f"[+] truncated r squared: {self.r_trunc_out}")
