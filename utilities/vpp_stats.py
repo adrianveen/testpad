@@ -151,8 +151,8 @@ def check_new_vpp(vpp_new: float) -> bool:
     Eliminates edge inconsistency caused by floating point comparisons with the
     precomputed interval.
     """
-    res = classify_vpp(vpp_new)
-    return res['classification'] == 'OK'
+    classification_result = classify_vpp(vpp_new)
+    return classification_result['classification'] == 'OK'
 
 # Convenience: run a short demo if executed directly
 if __name__ == '__main__':
