@@ -1,6 +1,5 @@
 import sys
 import os
-from definitions import SRC_DIR
 # from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtGui import QIcon
@@ -9,7 +8,6 @@ from matching_box.matching_box_tab import MatchingBoxTab
 from rfb.rfb_tab import RFBTab
 from transducer.transducer_calibration_tab import TransducerCalibrationTab
 from transducer.transducer_linear_tab import TransducerLinearTab
-from eb50.eb50_tab import EboxTab
 from vol2press.vol2press_tab import Vol2PressTab
 from burnin.burnin_tab import BurninTab
 from nanobubbles.nanobubbles_tab import NanobubblesTab
