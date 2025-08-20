@@ -27,7 +27,7 @@ class HydrophoneAnalysisTab(QWidget):
         # combo box for single CSV or multiple CSV per transducer
         self.combo_label = QLabel("Select CSV Format:")
         self.combo_box = QComboBox()
-        self.combo_box.setToolTip("Select the type of hydrophone scan data file.")
+        self.combo_box.setToolTip("Select the box_type of hydrophone scan data file.")
         self.combo_box.addItem("Multiple CSV files per transducer")
         self.combo_box.addItem("Single CSV file per transducer (legacy CSV format)")
         self.combo_box.setEditable(True)

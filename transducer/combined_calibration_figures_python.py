@@ -293,7 +293,7 @@ class combined_calibration:
 #     # function for the button
 #     # files, save_folder, eb50_file, sweep_data, axial_field, axial_line, lateral_field, lateral_line, axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step, save
 #     @Slot(list, result=None)
-#     def printGraph(self, param_list):
+#     def print_graph(self, param_list):
 #         # plt.ion()
 #         # map values to dictionary? 
 #         main(param_list)
@@ -303,9 +303,9 @@ class combined_calibration:
 #     def closeAll(self): 
 #         plt.close('all')
 #     @Slot(str, str, result=None)
-#     def showFile(self, type, file):
+#     def showFile(self, box_type, file):
 #         file = file.split(",")
-#         print(type)
+#         print(box_type)
 #         for i in file: 
 #             print(i)
 #         print("")

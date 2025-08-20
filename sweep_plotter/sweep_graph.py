@@ -103,7 +103,7 @@ class SweepGraph():
         
         Args:
             trace_no (int): The trace number to plot.
-            graph_type (str): The type of graph to plot. Options are 'time' or 'fft'.
+            graph_type (str): The box_type of graph to plot. Options are 'time' or 'fft'.
             
         Returns:
             tuple: A tuple containing the time domain and frequency domain graphs as FigureCanvas objects.

@@ -209,7 +209,7 @@ class Vol2PressTab(QWidget):
     # file dialog boxes to select sweep/calibration eb-50/customer eb-50 files/a save location
     def openFileDialog(self, d_type):
         """
-        Open a file dialog to select a file or directory based on the type specified.
+        Open a file dialog to select a file or directory based on the box_type specified.
         The selected file or directory is stored in the corresponding attribute of the class.
         """
         if d_type == "sweep":

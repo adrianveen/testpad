@@ -1,6 +1,3 @@
-# from matplotlib.backends.backend_qtagg import FigureCanvas
-# from matplotlib.figure import Figure
-# from mpl_toolkits.mplot3d import axes3d
 from PySide6.QtCore import Slot, Qt
 # from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
@@ -14,6 +11,9 @@ class TransducerCalibrationTab(QWidget):
 
         # need to initialise these so that saving can happen 
         self.selected_data_files, self.selected_save_folder, self.selected_eb50_file = [], "", ""
+        self.dialog1 = None
+        self.dialog2 = None
+        self.dialog3 = None
 
         # CHECKBOX GROUP
         checkbox_group = QGroupBox("Selections")
@@ -52,11 +52,11 @@ class TransducerCalibrationTab(QWidget):
         checkbox_group.setLayout(checkbox_layout)
 
         # CHANGING THE TEXT BASED ON WHICH CHECKBOX IS CHECKED 
-        self.ax_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.ax_field_graphs_box, "ax_field"))
-        self.ax_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.ax_line_graphs_box, "ax_line"))
-        self.lat_field_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.lat_field_graphs_box, "lat_field"))
-        self.lat_line_graphs_box.checkStateChanged.connect(lambda: self.changeText(self.lat_line_graphs_box, "lat_line"))
-        self.save_box.checkStateChanged.connect(lambda: self.changeText(self.save_box, "save"))
+        self.ax_field_graphs_box.checkStateChanged.connect(lambda: self.change_text(self.ax_field_graphs_box, "ax_field"))
+        self.ax_line_graphs_box.checkStateChanged.connect(lambda: self.change_text(self.ax_line_graphs_box, "ax_line"))
+        self.lat_field_graphs_box.checkStateChanged.connect(lambda: self.change_text(self.lat_field_graphs_box, "lat_field"))
+        self.lat_line_graphs_box.checkStateChanged.connect(lambda: self.change_text(self.lat_line_graphs_box, "lat_line"))
+        self.save_box.checkStateChanged.connect(lambda: self.change_text(self.save_box, "save"))
 
         # CHOOSE FILES GROUP
         choose_file_group = QGroupBox("File Selection")
@@ -83,9 +83,9 @@ class TransducerCalibrationTab(QWidget):
         choose_file_group.setLayout(choose_file_layout)
 
         # connecting buttons
-        self.data_files_button.clicked.connect(lambda: self.openFileDialog("data"))
-        self.save_folder_button.clicked.connect(lambda: self.openFileDialog("save"))
-        self.eb50_file_button.clicked.connect(lambda: self.openFileDialog("eb50"))
+        self.data_files_button.clicked.connect(lambda: self.open_file_dialog("data"))
+        self.save_folder_button.clicked.connect(lambda: self.open_file_dialog("save"))
+        self.eb50_file_button.clicked.connect(lambda: self.open_file_dialog("eb50"))
 
         # TEXT DISPLAY GROUP 
         self.text_display_group = QTextBrowser()
@@ -138,7 +138,7 @@ class TransducerCalibrationTab(QWidget):
         # PRINT GRAPH BUTTON 
         print_graph = QPushButton("PRINT GRAPHS")
         print_graph.setStyleSheet("background-color: #74BEA3")
-        print_graph.clicked.connect(lambda: self.printGraph())
+        print_graph.clicked.connect(lambda: self.print_graph())
 
         # text fields/print button layout 
         text_print_layout = QVBoxLayout()
@@ -167,8 +167,8 @@ class TransducerCalibrationTab(QWidget):
         self.setLayout(main_layout)
 
     @Slot()
-    def changeText(self, box: QCheckBox, type: str):
-        if type == "ax_field":
+    def change_text(self, box: QCheckBox, box_type: str):
+        if box_type == "ax_field":
             if box.isChecked():
                 self.ax_left_field_length.setText("Axial Left Field Length*")
                 self.ax_right_field_length.setText("Axial Right Field Length*")
@@ -179,34 +179,34 @@ class TransducerCalibrationTab(QWidget):
                 self.ax_right_field_length.setText("Axial Right Field Length")
                 self.ax_field_height.setText("Axial Field Height")
                 self.interp_step.setText("Interpolation Step")
-        elif type == "ax_line": 
+        elif box_type == "ax_line":
             if box.isChecked():
                 self.ax_left_line_length.setText("Axial Left Line Plot Length*")
                 self.ax_right_line_length.setText("Axial Right Line Plot Length*")
             else: 
                 self.ax_left_line_length.setText("Axial Left Line Plot Length")
                 self.ax_right_line_length.setText("Axial Right Line Plot Length")
-        elif type == "lat_field":
+        elif box_type == "lat_field":
             if box.isChecked():
                 self.lat_field_length.setText("Lateral Field Length*")
                 self.interp_step.setText("Interpolation Step*")
             else: 
                 self.lat_field_length.setText("Lateral Field Length")
                 self.interp_step.setText("Interpolation Step")
-        elif type == "lat_line":
+        elif box_type == "lat_line":
             if box.isChecked():
                 self.lat_field_length.setText("Lateral Field Length*")
             else: 
                 self.lat_field_length.setText("Lateral Field Length")
-        elif type == "save":
+        elif box_type == "save":
             if box.isChecked():
                 self.save_folder.setText("Save Folder*")
             else: 
                 self.save_folder.setText("Save Folder")
 
     @Slot()
-    def openFileDialog(self, type: str):
-        if type == "data": 
+    def open_file_dialog(self, dialog_type: str):
+        if dialog_type == "data":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Data Files")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
@@ -219,7 +219,7 @@ class TransducerCalibrationTab(QWidget):
                 else: 
                     self.text_display_group.append(i)
             # print(self.selected_data_files)
-        elif type == "save":
+        elif dialog_type == "save":
             self.dialog2 = QFileDialog(self)
             self.dialog2.setWindowTitle("Save Folder")
             self.dialog2.setFileMode(QFileDialog.FileMode.Directory)
@@ -227,7 +227,7 @@ class TransducerCalibrationTab(QWidget):
                 self.selected_save_folder = self.dialog2.selectedFiles()[0]
                 self.text_display_group.append("Save Folder: "+str(self.selected_save_folder)+"\n")
             # print(self.selected_save_folder)
-        elif type == "eb50":
+        elif dialog_type == "eb50":
             self.dialog3 = QFileDialog(self)
             self.dialog3.setWindowTitle("EB-50 File")
             self.dialog3.setFileMode(QFileDialog.FileMode.ExistingFile)
@@ -236,9 +236,9 @@ class TransducerCalibrationTab(QWidget):
                 self.text_display_group.append("EB-50 File: "+str(self.selected_eb50_file)+"\n")
             # print(self.selected_eb50_file)
 
+    # placeholder function
     @Slot()
-    # placeholder function 
-    def printGraph(self): 
+    def print_graph(self):
         # clear all tabs
         self.graph_group.clear()
         # print(self.ax_left)
