@@ -61,13 +61,25 @@ class TransducerCalibrationTab(QWidget):
         choose_file_group = QGroupBox("File Selection")
         # Column 0
         self.data_files = QLabel("Data Files*")
+        data_files_tooltip = "Select scan data from the transducer's calibration folder.\n" \
+                             "Select the 5 voltage sweep files, and all 8 directional scan files."
+        self.data_files.setToolTip(data_files_tooltip)
         self.save_folder = QLabel("Save Folder")
+        save_folder_tooltip = "Select the folder where you want to save the output files."
+        self.save_folder.setToolTip(save_folder_tooltip)
         self.eb50_file = QLabel("EB-50 File")
+        eb50_file_tooltip = "Select the EB-50 calibration .yaml file."
+        self.eb50_file.setToolTip(eb50_file_tooltip)
+
         choose_file_col_0 = [self.data_files, self.save_folder, self.eb50_file]
         # Column 1
         self.data_files_button = QPushButton("Choose Files")
+        self.data_files_button.setToolTip(data_files_tooltip)
         self.save_folder_button = QPushButton("Choose Folder")
+        self.save_folder_button.setToolTip(save_folder_tooltip)
         self.eb50_file_button = QPushButton("Choose File")
+        self.eb50_file_button.setToolTip(eb50_file_tooltip)
+        
         choose_file_col_1 = [self.data_files_button, self.save_folder_button, self.eb50_file_button]
 
         # layout for choose files 
