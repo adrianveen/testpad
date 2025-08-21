@@ -1,18 +1,19 @@
-from vol2press.vol2press_calcs import Vol2Press
+import numpy as np
+import yaml
+import os
+from datetime import datetime
 
 from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox,
                                QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
                                QWidget, QSizePolicy)
-import numpy as np
-import yaml
-import os
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import to_rgb, to_hex
-from datetime import datetime
+
 
 from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
+from vol2press.vol2press_calcs import Vol2Press
 from utilities.lineedit_validators import ValidatedLineEdit, FixupDoubleValidator
 
 # Class for the "Sweep Analysis" tab in the FUS Testpad application.

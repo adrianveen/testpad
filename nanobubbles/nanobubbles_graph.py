@@ -9,7 +9,7 @@ from io import StringIO
 import matplotlib.pyplot as plt 
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.colors import to_rgb, to_hex
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 def gaussian_kernel(size, sigma=1.0):
     """

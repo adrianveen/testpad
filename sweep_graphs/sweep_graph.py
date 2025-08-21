@@ -3,13 +3,12 @@ import numpy as np
 import os
 import sys
 import re
+import pandas as pd
 from pathlib import Path
 from numpy import fft as fft
-from pprint import pprint
-import pandas as pd
+
 from PIL import Image
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvas
 

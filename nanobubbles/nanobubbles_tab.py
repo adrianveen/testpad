@@ -1,15 +1,10 @@
-# from vol2press.vol2press_calcs import Vol2Press
-from nanobubbles.nanobubbles_graph import NanobubblesGraph
-
-from PySide6.QtCore import Slot, Qt
-# from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QSpinBox, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget, QSizePolicy)
-import numpy as np
 import os
-import yaml
+from PySide6.QtCore import Slot, Qt
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
+                                QLabel, QLineEdit, QSpinBox, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+
+from nanobubbles.nanobubbles_graph import NanobubblesGraph
 
 class NanobubblesTab(QWidget):
     def __init__(self, parent=None) -> None:

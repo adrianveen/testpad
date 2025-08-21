@@ -1,21 +1,21 @@
-from typing import Union, Tuple
+import re
+import os
+import yaml
 import numpy as np
 import h5py
+from typing import Union, Tuple
+
+from PySide6.QtWidgets import QTextBrowser
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from scipy.interpolate import RegularGridInterpolator, interp1d
-import re
-import os
-import decimal
-import yaml
+
 from transducer.cm_data import cm_data
 from transducer.calibration_figure_2 import sweep_graph
-from PySide6.QtWidgets import QTextBrowser, QWidget
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
-# import matplotlib.backends.backend_svg
 
 # PARULA MAP! (list of colormap data is in separate file)
 parula_map = LinearSegmentedColormap.from_list('parula', cm_data)

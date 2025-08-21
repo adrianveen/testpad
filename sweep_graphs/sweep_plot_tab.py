@@ -1,13 +1,11 @@
 import os
-import numpy as np
 import h5py
-
 from datetime import datetime
+
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import (QComboBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
+                                QLabel, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 
 from sweep_graphs.sweep_graph import SweepGraph
 

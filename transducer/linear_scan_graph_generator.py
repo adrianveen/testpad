@@ -1,13 +1,6 @@
-# import sys 
 from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames
-import tkinter as tk
-import tkinter.ttk as ttk
-import matplotlib as mpl 
-# mpl.use('TkAgg')
-from transducer.calibration_resources import line_graph, plt, fetch_data, np
-import sys
-
 from PySide6.QtWidgets import QTextBrowser
+from transducer.calibration_resources import line_graph, plt, fetch_data, np
 
 """
 A script to create linear graphs for analysis during transducer calibration. 

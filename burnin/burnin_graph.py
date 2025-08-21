@@ -1,16 +1,9 @@
-from PySide6.QtCore import Slot, Qt
-# from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
 import numpy as np
-import yaml
-import decimal
-import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.backends.backend_qtagg import FigureCanvas
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 import h5py
+
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class BurninGraph():
     def __init__(self, burnin_file, separate_errors_flags=None) -> None:

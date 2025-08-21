@@ -1,10 +1,12 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import decimal
+
 from PySide6.QtWidgets import QTextBrowser, QMessageBox
-from utilities.vpp_stats import classify_vpp, check_new_vpp
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+
+from utilities.vpp_stats import classify_vpp, check_new_vpp
 
 class sweep_graph():
     def __init__(self, data_mtx, transducer, freq: str, save_folder, markersize, textbox: QTextBrowser,

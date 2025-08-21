@@ -1,8 +1,6 @@
 import h5py
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import linregress
 from scipy.signal import find_peaks
 from PySide6.QtWidgets import QTextBrowser
 

@@ -1,10 +1,8 @@
 
 from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
+                                QLabel, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from temp_analysis.temperature_graph import TemperatureGraph
 
