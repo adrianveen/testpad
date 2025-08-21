@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
                                 QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 
-from sweep_plotter.sweep_graph import SweepGraph
+from sweep_graphs.sweep_graph import SweepGraph
 
 class SweepGraphTab(QWidget):
     def __init__(self, parent=None) -> None:

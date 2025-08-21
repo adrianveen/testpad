@@ -5,15 +5,15 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayou
 from PySide6.QtGui import QIcon
 
 from matching_box.matching_box_tab import MatchingBoxTab
-from rfb.rfb_tab import RFBTab
 from transducer.transducer_calibration_tab import TransducerCalibrationTab
 from transducer.transducer_linear_tab import TransducerLinearTab
+from rfb.rfb_tab import RFBTab
 from vol2press.vol2press_tab import Vol2PressTab
 from burnin.burnin_tab import BurninTab
 from nanobubbles.nanobubbles_tab import NanobubblesTab
 from temp_analysis.temp_analysis_tab import TempAnalysisTab
 from hydrophone.hydrophone_tab import HydrophoneAnalysisTab
-from sweep_plotter.sweep_plot_tab import SweepGraphTab
+from sweep_graphs.sweep_plot_tab import SweepGraphTab
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
