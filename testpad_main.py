@@ -54,7 +54,8 @@ if __name__ == "__main__":
     # tab_dialog.setFixedSize(False)
     # tab_dialog.setMaximumSize()
     # tab_dialog.setFixedSize(700, 500)
-    # tab_dialog.showMaximized() # full screen 
+    tab_dialog.resize(1200, 800)
+    tab_dialog.show() 
     
     # tab_dialog.raise_() # look up what this does
 

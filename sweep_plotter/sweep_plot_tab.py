@@ -1,15 +1,15 @@
-from sweep_plotter.sweep_graph import SweepGraph
+import os
+import numpy as np
+import h5py
 
+from datetime import datetime
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
-import numpy as np
-import os
-import yaml
-from datetime import datetime
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
-import h5py
+
+from sweep_plotter.sweep_graph import SweepGraph
 
 class SweepGraphTab(QWidget):
     def __init__(self, parent=None) -> None:

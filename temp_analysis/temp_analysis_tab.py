@@ -1,14 +1,13 @@
-from temp_analysis.temperature_graph import TemperatureGraph
 
 from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
-import numpy as np
-import os
-import yaml
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
+from temp_analysis.temperature_graph import TemperatureGraph
+
 
 class TempAnalysisTab(QWidget):
     def __init__(self, parent=None) -> None:
