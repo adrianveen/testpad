@@ -154,6 +154,8 @@ class Calculations():
         self.text += ('capacitance = %.2f pF\n' % C)
         self.text += ('inductance = %.2f µH\n' % L)
         self.text += ('number of turns = %.1f\n' % N)
+        self.text += ('Hold Left-Click and drag to pan the image\n')
+        self.text += ('Use CTRL+Mouse Wheel to zoom in/out\n')
         # print(self.text)
         return(self.text + "\n")
 

@@ -440,7 +440,7 @@ class Vol2PressTab(QWidget):
             full_path = os.path.join(self.save_location, self.config_filename)
             self.text_display.append(f"Writing dictionary to {full_path}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
-            self.text_display.append("Writing to dictionary complete.")
+            self.text_display.append("Writing to dictionary complete. YAML file created.")
 
         if not hasattr(self, 'n_cycles_dir'):
             return
