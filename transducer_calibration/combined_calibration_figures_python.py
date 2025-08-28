@@ -1,319 +1,520 @@
-import os
-import numpy as np
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Sequence, Tuple
 
+import numpy as np
 import matplotlib.pyplot as plt
 from PySide6.QtWidgets import QTextBrowser
 
-from transducer_common.calibration_resources import create_sweep_file, fetch_data, field_graph, line_graph, fwhmx
+from transducer_common.calibration_resources import (
+    create_sweep_file,
+    fetch_data,
+    field_graph,
+    line_graph,
+    fwhmx,
+)
 
 """
-A script to write voltage sweep txts and to generate axial and lateral field/line plots as svgs. 
+A script to write voltage sweep txts and to generate axial and lateral field/line plots as SVGs.
+
+- Cheap construction; heavy work done in run()
+- Strong typing via a small config dataclass
+- Pathlib and regex-based filename parsing
+- Safer file selection and validation
+- Stable natural sorting of filenames
+- Centralized logging helper
+
+Legacy compatibility is preserved via a thin wrapper class 'combined_calibration'.
 """
 
+@dataclass
+class CombinedCalibrationConfig:
+    files: Sequence[Path]
+    save_folder: Optional[Path]
+    eb50_file: Optional[Path]
+    sweep_data: bool
+    axial_field: bool
+    axial_line: bool
+    lateral_field: bool
+    lateral_line: bool
+    save: bool
+    ax_left_field_length: float
+    ax_right_field_length: float
+    ax_field_height: float
+    ax_left_line_length: float
+    ax_right_line_length: float
+    lat_field_length: float
+    interp_step: float
 
-# main class, runs all the relevant methods from calibration_resources and prints to the terminal
-class combined_calibration:
-    def __init__(self, variables_dict: list, textbox: QTextBrowser):
+
+def _natural_key(p: Path) -> List[object]:
+    name = p.name if isinstance(p, Path) else str(p)
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", name)]
+
+
+def _parse_transducer_and_freq(filename: Path) -> Tuple[Optional[str], Optional[str], Optional[float]]:
+    """Return (transducer_label, freq_label_str, freq_mhz_float).
+
+    - transducer_label like '320-T1500H750'
+    - freq_label_str like '500kHz' or '1.65MHz' (for display/legacy downstream use)
+    - freq_mhz_float is the numeric frequency in MHz (for internal computations)
+    """
+    stem = filename.name
+    # Transducer pattern: 320_T1500H750 or 320-T1500H750
+    m_tx = re.search(r"(?P<num>\d+)[-_](?P<spec>T\d+H\d+)", stem)
+    transducer = None
+    if m_tx:
+        transducer = f"{m_tx.group('num')}-{m_tx.group('spec')}"
+
+    # Frequency patterns
+    m_k = re.search(r"(?P<k>\d+(?:\.\d+)?)\s*kHz", stem, re.IGNORECASE)
+    m_m = re.search(r"(?P<m>\d+(?:\.\d+)?)\s*MHz", stem, re.IGNORECASE)
+    freq_label = None
+    freq_mhz = None
+    if m_k:
+        val = float(m_k.group('k'))
+        freq_label = f"{val:g}kHz"
+        freq_mhz = val / 1000.0
+    if m_m:
+        valm = float(m_m.group('m'))
+        # Prefer explicit MHz if present
+        freq_label = f"{valm:g}MHz"
+        freq_mhz = valm
+
+    return transducer, freq_label, freq_mhz
+
+
+class CombinedCalibration:
+    """Generates sweep/field/line graphs from calibration files.
+
+    Construction is cheap; call run() to perform the work. getGraphs() lazily calls run() if needed,
+    preserving legacy call sites that instantiate then immediately request graphs.
+    """
+
+    def __init__(self, config: CombinedCalibrationConfig, textbox: Optional[QTextBrowser] = None):
+        self.config = config
+        self.textbox = textbox
+        self.graph_list: List[Optional[object]] = [None] * 9
+        self._ran = False
+
+    # Logging helper for easy future swap to a logger
+    def _log(self, msg: str) -> None:
+        if self.textbox is not None:
+            self.textbox.append(msg)
+        else:
+            print(msg)
+
+    def run(self) -> None:
+        if self._ran:
+            return
+
         plt.close("all")  # closes previous graphs
+        self._log("\n*******************GENERATING GRAPHS***********************\n")
 
-        # display graphs as they are created 
-        # plt.ion()
-        # print(variables_dict)
+        cfg = self.config
 
-        textbox.append("\n*******************GENERATING GRAPHS***********************\n")  # divider
+        # Normalize and sort files
+        files_list: List[Path] = [Path(f) for f in cfg.files]
+        files_list = sorted(files_list, key=_natural_key)
 
-        # assigns dictionary values to variables (probably wildly inefficient, might need reworking)
-        # files, save_folder, eb50_file, sweep_data, axial_field, axial_line, lateral_field, lateral_line, axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step, save = map(variables_dict.get, ('Data Files*', 'Save Folder', 'EB-50 File', 'Write sweep file and graph?', 'Print axial field graphs?', 'Print axial line graphs?', 'Print lateral field graphs?', 'Print lateral line graphs?', 'Axial Left Field Length', 'Axial Right Field Length', 'Axial Field Height', 'Axial Left Line Plot Length', 'Axial Right Line Plot Length','Lateral Field Length', 'Interpolation Step', 'Save file?'))
-        files, save_folder, eb50_file = [i for i in variables_dict[:3]]
-        sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [bool(i) for i in variables_dict[3:9]]
-        axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step = [
-            float(i) if i != '' else 0 for i in variables_dict[9:]]
-        # assign tabs 
-        # sweep_tab, ax_field_tab, lat_field_tab, ax_line_tab, lat_line_tab = [i for i in graph_tabs_list]
+        offsets = [0.0, 0.0, 0.0]
+        sweep_list: List[Path] = []
+        axial_filename: Optional[Path] = None
+        lateral_filename: Optional[Path] = None
+        x_line_scan: Optional[Path] = None
+        y_line_scan: Optional[Path] = None
+        z_line_scan: Optional[Path] = None
 
-        """
-        MANUAL PARAMETER OVERRIDE (THE MANUAL FILE OVERRIDE IS BELOW)
-        """
-        # folder = r"C:\Users\RKPC\Documents\transducer_calibrations\103-T479.5H750\1432kHz\scan_data" # data folder
-        # save_folder = r"C:\Users\RKPC\Documents\transducer_calibrations\103-T479.5H750\1432kHz\report" # save folder 
-        # eb50_file = r"C:\Users\RKPC\Documents\summer_2022\fn_generator\eb50_data\2244-eb50\2244-eb50.txt" # eb50 txt file
-
-        # # below parameters are for graph appearances 
-        # axial_left_field_length = -8 # yz field & line graph left x-axis limit 
-        # axial_right_field_length = 8 # yz field & line graph right x-axis limit 
-        # axial_field_height = 3 # yz field & line plot height (from -axial_field_height to +axial_field_height)
-        # lateral_field_length = 3 # xz field & line plot width and height (from -lateral_field_length to +lateral_field_length)
-        # interp_step = 0.1 # interpolation step, affects all field plots
-
-        # # Toggle which graphs you'd like to print below (if True, the graph is printed and potentially saved, if False, it is not)
-        # sweep_data = True 
-        # axial_field = True
-        # axial_line = False
-        # lateral_field = False
-        # lateral_line = False
-
-        # # Toggle the save (if True, graphs are saved, if False, graphs aren't saved)
-        # save = False
-
-        """ 
-        FILE STUFF 
-        """
-        # files_list = [f for f in os.listdir(folder) if f.endswith('.hdf5')] # include only hdf5 files
-        # files_list = sorted(files_list, key=lambda x: int((x.split('.')[0]).split('_')[-1])) # sort so that the latest scan is used 
-        files_list = sorted(files, key=lambda x: int((x[x.rfind('.') - 1])))  # sort so that the latest scan is used
-        offsets = [0, 0, 0]
-        sweep_list = []
-
-        self.graph_list = [None] * 9  # supposed to be a list of graphs to return to the GUI for display
-
-        """
-        AUTOMATIC FILE DETECTION FOR LOOP 
-        """
-        for i in range(len(files_list)):
-            f = files_list[i]
-            if "_sweep_" in f:
-                sweep_filename = f
-                sweep_list.append(sweep_filename)
-            elif "_yz_" in f:
+        # AUTOMATIC FILE DETECTION
+        for f in files_list:
+            n = f.name
+            if "_sweep_" in n:
+                sweep_list.append(f)
+            elif "_yz_" in n:
                 axial_filename = f
-            elif "_xz_" in f:
+            elif "_xz_" in n:
                 lateral_filename = f
-            elif "_x_" in f:
+            elif "_x_" in n:
                 x_line_scan = f
-            elif "_y_" in f:
+            elif "_y_" in n:
                 y_line_scan = f
-            elif "_z_" in f:
+            elif "_z_" in n:
                 z_line_scan = f
 
-        """
-        MANUAL FILE OVERRIDE
-        """
-        # sweep_filename = r"518_T1000H550_sweep_1000kHz_01.hdf5" # voltage sweep filename
-        # axial_filename = r"532_T500H750_yz_500kHz_2000mVpp_08.hdf5" # yz field & line plot 
-        # lateral_filename = r"526_T1570H750_xz_1570kHz_1000mVpp_04.hdf5" # xz field & line plot 
-        # x_line_scan = r"317_T1150H550_x_3450kHz_1500mVpp_01.hdf5" # x linear scan 
-        # y_line_scan = (r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\s"
-        #                r"can_data\532_T500H750_y_500kHz_2000mVpp_02.hdf5") # y linear scan
-        # z_line_scan = r"317_T1150H550_z_3450kHz_1500mVpp_01.hdf5" # z linear scan 
-        # save_folder = r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\report_PYTHON"
-
-        # Do the files exist? If not, exit (could probably be reworked into more specific error messages)
+        # Validate required files based on toggles
         try:
-            if sweep_data or axial_field or axial_line or lateral_field or lateral_line:
-                if sweep_data:
-                    textbox.append("Sweeps: " + str(sweep_list))
-                    # trans_freq_filename is only so the name of the transducer can be grabbed
-                    trans_freq_filename = sweep_filename
-                if axial_field:
-                    textbox.append("Axial: " + axial_filename)
-                    trans_freq_filename = axial_filename
-                if axial_line:
-                    textbox.append("y linear: " + y_line_scan)
-                    trans_freq_filename = y_line_scan
-                if lateral_field:
-                    textbox.append("Lateral: " + lateral_filename)
-                    trans_freq_filename = lateral_filename
-                if lateral_line:
-                    textbox.append("x linear: " + x_line_scan)
-                    textbox.append("z linear: " + z_line_scan)
-                    trans_freq_filename = x_line_scan
-            else:
-                raise NameError
+            trans_freq_filename: Optional[Path] = None
+            if cfg.sweep_data:
+                self._log(f"Sweeps: {[p.name for p in sweep_list]}")
+                if sweep_list:
+                    trans_freq_filename = sweep_list[-1]
+                else:
+                    raise NameError("No sweep files found among selections.")
+            if cfg.axial_field:
+                if axial_filename is None:
+                    raise NameError("Missing axial (yz) field scan file.")
+                self._log(f"Axial: {axial_filename}")
+                trans_freq_filename = axial_filename
+            if cfg.axial_line:
+                if y_line_scan is None:
+                    raise NameError("Missing y-axis linear scan file.")
+                self._log(f"y linear: {y_line_scan}")
+                trans_freq_filename = y_line_scan
+            if cfg.lateral_field:
+                if lateral_filename is None:
+                    raise NameError("Missing lateral (xz) field scan file.")
+                self._log(f"Lateral: {lateral_filename}")
+                trans_freq_filename = lateral_filename
+            if cfg.lateral_line:
+                if x_line_scan is None or z_line_scan is None:
+                    raise NameError("Missing x or z linear scan files.")
+                self._log(f"x linear: {x_line_scan}")
+                self._log(f"z linear: {z_line_scan}")
+                trans_freq_filename = x_line_scan
+            if not any([cfg.sweep_data, cfg.axial_field, cfg.axial_line, cfg.lateral_field, cfg.lateral_line]):
+                raise NameError("No outputs requested. Toggle at least one graph.")
         except NameError as e:
-            textbox.append("\nNameError: " + str(e) + "\nOops! One or more of the scan files does not exist. \
-                  \nDid you input the right folder?\nAre there scans missing?\nDid you select the correct checkboxes?\n")
+            self._log(
+                f"\nNameError: {e}\nOops! One or more of the scan files does not exist. \
+                  \nDid you input the right folder?\nAre there scans missing?\nDid you select the correct checkboxes?\n"
+            )
+            self._ran = True
             return
 
         # TXT FILE OF FILES USED
-        if save:
+        if cfg.save and cfg.save_folder:
             counter = 1
-
+            save_dir = Path(cfg.save_folder)
             while True:
                 try:
-                    full_filename1 = os.path.join(save_folder, "files_used_" + str(counter) + ".txt")
+                    full_filename1 = save_dir / f"files_used_{counter}.txt"
                     with open(full_filename1, "x") as f:
-                        textbox.append(f"\nSaving files used to {full_filename1}...")
+                        self._log(f"\nSaving files used to {full_filename1}...")
                         for file in files_list:
-                            f.write(file + "\n")
+                            f.write(str(file) + "\n")
                     break
                 except FileExistsError:
                     counter += 1
 
-        """
-        TRANSDUCER AND FREQUENCY DETAILS 
-        """
-        details = (trans_freq_filename.split("/")[-1]).split("_")
-        for word in details:
-            if "Hz" in word:
-                freq = word  # frequency
-            elif "T" in word and "H" in word:
-                transducer = word
-        if details[0] != transducer:  # for dealing with files like '320_T1500H750' instead of '320-T1500H750'
-            transducer = details[0] + "-" + transducer
-        textbox.append("\nTransducer: " + transducer)
-        textbox.append("Frequency: " + freq + "\n")
+        # TRANSDUCER AND FREQUENCY DETAILS
+        transducer = None
+        freq_label = None
+        freq_mhz = None
+        if trans_freq_filename is not None:
+            transducer, freq_label, freq_mhz = _parse_transducer_and_freq(trans_freq_filename)
+        if transducer:
+            self._log(f"\nTransducer: {transducer}")
+        if freq_label:
+            self._log(f"Frequency: {freq_label}\n")
 
-        """
-        VOLTAGE SWEEP 
-        """
-        if sweep_data:
-            sweep_graph = create_sweep_file(sweep_list, save_folder, transducer, freq, save, eb50_file, textbox)
+        # VOLTAGE SWEEP
+        if cfg.sweep_data and sweep_list:
+            sweep_graph = create_sweep_file(
+                [str(p) for p in sweep_list],
+                str(cfg.save_folder) if cfg.save_folder else "",
+                transducer if transducer else "",
+                freq_label if freq_label else "",
+                cfg.save,
+                str(cfg.eb50_file) if cfg.eb50_file else "",
+                self.textbox,
+            )
             self.graph_list[0] = sweep_graph
 
-        """
-        FIELD GRAPHS
-        """
-        if axial_field:
-            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(axial_filename, "axial")
-            # Pressure field 
-            ax_pressure_field_graph = field_graph(y_data, z_data, pressure, axial_left_field_length,
-                                                  axial_right_field_length, axial_field_height,
-                                                  transducer + "_" + freq + "_pressure_axial_", 'Axial ', 'Pressure',
-                                                  interp_step, save, save_folder, textbox)
+        # FIELD GRAPHS
+        if cfg.axial_field and axial_filename is not None:
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(str(axial_filename), "axial")
+            # Pressure field
+            ax_pressure_field_graph = field_graph(
+                y_data,
+                z_data,
+                pressure,
+                cfg.ax_left_field_length,
+                cfg.ax_right_field_length,
+                cfg.ax_field_height,
+                f"{transducer}_{freq_label}_pressure_axial_",
+                "Axial ",
+                "Pressure",
+                cfg.interp_step,
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[1] = ax_pressure_field_graph
-            # Intensity field 
-            ax_intensity_field_graph = field_graph(y_data, z_data, intensity, axial_left_field_length,
-                                                   axial_right_field_length, axial_field_height,
-                                                   transducer + "_" + freq + "_intensity_axial_", 'Axial ', 'Intensity',
-                                                   interp_step, save, save_folder, textbox)
+            # Intensity field
+            ax_intensity_field_graph = field_graph(
+                y_data,
+                z_data,
+                intensity,
+                cfg.ax_left_field_length,
+                cfg.ax_right_field_length,
+                cfg.ax_field_height,
+                f"{transducer}_{freq_label}_intensity_axial_",
+                "Axial ",
+                "Intensity",
+                cfg.interp_step,
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[2] = ax_intensity_field_graph
 
-        if lateral_field:
-            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(lateral_filename, "lateral")
-            # Pressure field 
-            lat_pressure_field_graph = field_graph(x_data, z_data, pressure, lateral_field_length, lateral_field_length,
-                                                   lateral_field_length, transducer + "_" + freq + "_pressure_lateral_",
-                                                   'Lateral ', 'Pressure', interp_step, save, save_folder, textbox)
+        if cfg.lateral_field and lateral_filename is not None:
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(str(lateral_filename), "lateral")
+            # Pressure field
+            lat_pressure_field_graph = field_graph(
+                x_data,
+                z_data,
+                pressure,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                f"{transducer}_{freq_label}_pressure_lateral_",
+                "Lateral ",
+                "Pressure",
+                cfg.interp_step,
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[3] = lat_pressure_field_graph
-            # Intensity field 
-            lat_intensity_field_graph = field_graph(x_data, z_data, intensity, lateral_field_length,
-                                                    lateral_field_length, lateral_field_length,
-                                                    transducer + "_" + freq + "_intensity_lateral_", 'Lateral ',
-                                                    'Intensity', interp_step, save, save_folder, textbox)
+            # Intensity field
+            lat_intensity_field_graph = field_graph(
+                x_data,
+                z_data,
+                intensity,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                f"{transducer}_{freq_label}_intensity_lateral_",
+                "Lateral ",
+                "Intensity",
+                cfg.interp_step,
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[4] = lat_intensity_field_graph
 
-        """
-        LINEAR GRAPHS 
-        """
-
+        # LINEAR GRAPHS
         # Y LINE SCAN LINE GRAPH
-        if axial_line:
-            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(y_line_scan, "axial")
+        if cfg.axial_line and y_line_scan is not None:
+            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(str(y_line_scan), "axial")
             # Pressure line
-            y_pressure_line_graph = line_graph(y_data, pressure, axial_left_line_length, axial_right_line_length,
-                                               transducer + "_" + freq + "_pressure_axial_", 'Axial ', 'Pressure', save,
-                                               save_folder, textbox)
+            y_pressure_line_graph = line_graph(
+                y_data,
+                pressure,
+                cfg.ax_left_line_length,
+                cfg.ax_right_line_length,
+                f"{transducer}_{freq_label}_pressure_axial_",
+                "Axial ",
+                "Pressure",
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[5] = y_pressure_line_graph
-            y_pressure_fwhmx, y_pressure_offset = fwhmx(y_data, pressure, axial_left_line_length,
-                                                        axial_right_line_length, 'Y', 'Axial ', 'Pressure', textbox)
-            if pointer_location is not None:
-                offsets[1] = -1 * (pointer_location[1] - y_pressure_offset)
+            y_pressure_fwhmx, y_pressure_offset = fwhmx(
+                y_data,
+                pressure,
+                cfg.ax_left_line_length,
+                cfg.ax_right_line_length,
+                "Y",
+                "Axial ",
+                "Pressure",
+                self.textbox,
+            )
+            if pointer_location is not None and not isinstance(y_pressure_offset, str):
+                offsets[1] = -1.0 * (pointer_location[1] - y_pressure_offset)
             # Intensity line
-            y_intensity_line_graph = line_graph(y_data, intensity, axial_left_line_length, axial_right_line_length,
-                                                transducer + "_" + freq + "_intensity_axial_", 'Axial ', 'Intensity',
-                                                save, save_folder, textbox)
+            y_intensity_line_graph = line_graph(
+                y_data,
+                intensity,
+                cfg.ax_left_line_length,
+                cfg.ax_right_line_length,
+                f"{transducer}_{freq_label}_intensity_axial_",
+                "Axial ",
+                "Intensity",
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[6] = y_intensity_line_graph
-            y_intensity_fwhmx, _ = fwhmx(y_data, intensity, axial_left_line_length, axial_right_line_length, 'Y', 'Axial ',
-                                      'Intensity', textbox)
+            y_intensity_fwhmx, _ = fwhmx(
+                y_data,
+                intensity,
+                cfg.ax_left_line_length,
+                cfg.ax_right_line_length,
+                "Y",
+                "Axial ",
+                "Intensity",
+                self.textbox,
+            )
 
             # PRINT AXIAL FWHMX
-            if type(y_pressure_fwhmx) is not str and type(y_intensity_fwhmx) is not str:
-                textbox.append(f"Axial FWHMX:")
-                textbox.append(f"Pressure Axial Diameter: {y_pressure_fwhmx:0.1f} mm")
-                textbox.append(f"Intensity Axial Diameter: {y_intensity_fwhmx:0.1f} mm")
+            if not isinstance(y_pressure_fwhmx, str) and not isinstance(y_intensity_fwhmx, str):
+                self._log("Axial FWHMX:")
+                self._log(f"Pressure Axial Diameter: {y_pressure_fwhmx:0.1f} mm")
+                self._log(f"Intensity Axial Diameter: {y_intensity_fwhmx:0.1f} mm")
             else:
-                textbox.append("Couldn't output FWHMX for y-axis. Your data may be faulty.")
+                self._log("Couldn't output FWHMX for y-axis. Your data may be faulty.")
 
-        if lateral_line:
-            # X LINE SCAN 
-            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(x_line_scan, "lateral")
-            # Pressure line plot 
-            x_pressure_line_graph = line_graph(x_data, pressure, lateral_field_length, lateral_field_length,
-                                               transducer + "_" + freq + "_pressure_lateral_", 'Lateral ', 'Pressure',
-                                               save, save_folder, textbox)
+        if cfg.lateral_line and x_line_scan is not None and z_line_scan is not None:
+            # X LINE SCAN
+            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(str(x_line_scan), "lateral")
+            # Pressure line plot
+            x_pressure_line_graph = line_graph(
+                x_data,
+                pressure,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                f"{transducer}_{freq_label}_pressure_lateral_",
+                "Lateral ",
+                "Pressure",
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[7] = x_pressure_line_graph
-            x_pressure_fwhmx, x_pressure_offset = fwhmx(x_data, pressure, lateral_field_length,
-                                                        lateral_field_length, 'X', 'Lateral ', 'Pressure', textbox)
-            if pointer_location is not None:
+            x_pressure_fwhmx, x_pressure_offset = fwhmx(
+                x_data,
+                pressure,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                "X",
+                "Lateral ",
+                "Pressure",
+                self.textbox,
+            )
+            if pointer_location is not None and not isinstance(x_pressure_offset, str):
                 offsets[0] = pointer_location[0] - x_pressure_offset
-            # Intensity line plot 
-            x_intensity_line_graph = line_graph(x_data, intensity, lateral_field_length, lateral_field_length,
-                                                transducer + "_" + freq + "_intensity_lateral_", 'Lateral ',
-                                                'Intensity', save, save_folder, textbox)
+            # Intensity line plot
+            x_intensity_line_graph = line_graph(
+                x_data,
+                intensity,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                f"{transducer}_{freq_label}_intensity_lateral_",
+                "Lateral ",
+                "Intensity",
+                cfg.save,
+                str(cfg.save_folder) if cfg.save_folder else "",
+                self.textbox,
+            )
             self.graph_list[8] = x_intensity_line_graph
-            x_intensity_fwhmx, _ = fwhmx(x_data, intensity, lateral_field_length, lateral_field_length, 'X', 'Lateral ',
-                                      'Intensity', textbox)
+            x_intensity_fwhmx, _ = fwhmx(
+                x_data,
+                intensity,
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                "X",
+                "Lateral ",
+                "Intensity",
+                self.textbox,
+            )
 
-            # # Z LINE SCAN 
-            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(z_line_scan, "lateral")
-            z_pressure_fwhmx, z_pressure_offset = fwhmx(z_data, np.transpose(pressure), lateral_field_length,
-                                                        lateral_field_length, 'Z', 'Lateral ', 'Pressure', textbox)
-            if pointer_location is not None:
+            # Z LINE SCAN
+            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(str(z_line_scan), "lateral")
+            z_pressure_fwhmx, z_pressure_offset = fwhmx(
+                z_data,
+                np.transpose(pressure),
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                "Z",
+                "Lateral ",
+                "Pressure",
+                self.textbox,
+            )
+            if pointer_location is not None and not isinstance(z_pressure_offset, str):
                 offsets[2] = pointer_location[2] - z_pressure_offset
 
-            z_intensity_fwhmx, _ = fwhmx(z_data, np.transpose(intensity), lateral_field_length,
-                                         lateral_field_length, 'Z', 'Lateral ', 'Intensity', textbox)
+            z_intensity_fwhmx, _ = fwhmx(
+                z_data,
+                np.transpose(intensity),
+                cfg.lat_field_length,
+                cfg.lat_field_length,
+                "Z",
+                "Lateral ",
+                "Intensity",
+                self.textbox,
+            )
 
             # LATERAL FWHMX (AVERAGE OF X AND Z)
-            if type(x_pressure_fwhmx) is not str and type(x_intensity_fwhmx) is not str and type(
-                    z_pressure_fwhmx) is not str and type(z_intensity_fwhmx) is not str:
+            if (
+                not isinstance(x_pressure_fwhmx, str)
+                and not isinstance(x_intensity_fwhmx, str)
+                and not isinstance(z_pressure_fwhmx, str)
+                and not isinstance(z_intensity_fwhmx, str)
+            ):
                 averaged_pressure_fwhmx = (x_pressure_fwhmx + z_pressure_fwhmx) / 2.0
                 averaged_intensity_fwhmx = (x_intensity_fwhmx + z_intensity_fwhmx) / 2.0
-                textbox.append(f"\nLateral FWHMX (averaged):")
-                textbox.append(f"Pressure Lateral Diameter: {averaged_pressure_fwhmx:0.1f} mm")
-                textbox.append(f"Intensity Lateral Diameter: {averaged_intensity_fwhmx:0.1f} mm")
+                self._log("\nLateral FWHMX (averaged):")
+                self._log(f"Pressure Lateral Diameter: {averaged_pressure_fwhmx:0.1f} mm")
+                self._log(f"Intensity Lateral Diameter: {averaged_intensity_fwhmx:0.1f} mm")
             else:
-                textbox.append("Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty.")
+                self._log("Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty.")
 
             offsets_str = [f"{i:0.2f}" for i in offsets]
-            textbox.append(f"Offsets: [{','.join(offsets_str)}]")
+            self._log(f"Offsets: [{','.join(offsets_str)}]")
+
+        self._ran = True
 
     def getGraphs(self):
-        # plt.show()
-        return (self.graph_list)
+        # Preserve legacy behavior: compute on first request
+        if not self._ran:
+            self.run()
+        return self.graph_list
 
-# """
-# QML Connection Section 
-# """
-# @QmlElement
-# class TextBox(QObject): 
-#     # function for the button
-#     # files, save_folder, eb50_file, sweep_data, axial_field, axial_line, lateral_field, lateral_line, axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step, save
-#     @Slot(list, result=None)
-#     def print_graph(self, param_list):
-#         # plt.ion()
-#         # map values to dictionary? 
-#         main(param_list)
-#         # plt.show()
-#     # close all open graphs upon termination of program 
-#     @Slot(None, result=None)
-#     def closeAll(self): 
-#         plt.close('all')
-#     @Slot(str, str, result=None)
-#     def showFile(self, box_type, file):
-#         file = file.split(",")
-#         print(box_type)
-#         for i in file: 
-#             print(i)
-#         print("")
 
-# """
-# Init section 
-# """
-# if __name__ == '__main__':
+# Backwards-compatible wrapper for existing call sites
+class combined_calibration:
+    """Legacy-compatible wrapper that accepts the original list-of-args signature.
 
-#     plt.ion()
+    Existing code does: combined_calibration(var_dict, text_browser).getGraphs()
+    This wrapper converts to CombinedCalibrationConfig and delegates.
+    """
 
-#     app = QApplication(sys.argv)
-#     engine = QQmlApplicationEngine()
-#     engine.quit.connect(app.quit)
+    def __init__(self, variables_dict: list, textbox: QTextBrowser):
+        # Parse legacy variables list into config with typing
+        files, save_folder, eb50_file = [i for i in variables_dict[:3]]
+        sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [
+            bool(i) for i in variables_dict[3:9]
+        ]
+        (
+            ax_left_field_length,
+            ax_right_field_length,
+            ax_field_height,
+            ax_left_line_length,
+            ax_right_line_length,
+            lat_field_length,
+            interp_step,
+        ) = [float(i) if i != "" else 0.0 for i in variables_dict[9:]]
 
-#     #Load the QML file
-#     qml_file = Path(__file__).parent / "widget_reports.qml"
-#     engine.load(qml_file)
+        cfg = CombinedCalibrationConfig(
+            files=[Path(p) for p in files],
+            save_folder=Path(save_folder) if save_folder else None,
+            eb50_file=Path(eb50_file) if eb50_file else None,
+            sweep_data=sweep_data,
+            axial_field=axial_field,
+            axial_line=axial_line,
+            lateral_field=lateral_field,
+            lateral_line=lateral_line,
+            save=save,
+            ax_left_field_length=ax_left_field_length,
+            ax_right_field_length=ax_right_field_length,
+            ax_field_height=ax_field_height,
+            ax_left_line_length=ax_left_line_length,
+            ax_right_line_length=ax_right_line_length,
+            lat_field_length=lat_field_length,
+            interp_step=interp_step,
+        )
 
-#     # #Show the window
-#     if not engine.rootObjects():
-#         sys.exit(-1)
+        self._impl = CombinedCalibration(cfg, textbox)
 
-#     sys.exit(app.exec())
+    def getGraphs(self):
+        return self._impl.getGraphs()
+
+
+# (Legacy commented QML/init sections intentionally retained in original file were removed for clarity
+# in this refactor. If needed, those sections can be restored without affecting current functionality.)
+
