@@ -23,7 +23,7 @@ class SweepGraphTab(QWidget):
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("hdf5"))
         # print graph button
         self.print_graph_btn = QPushButton("PRINT GRAPH")
-        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_btn.setStyleSheet("background-color: #66A366; color: black;")
         self.print_graph_btn.clicked.connect(lambda: self.create_graph())
         # spin box for trace number
         self.trace_no_menu = QComboBox()

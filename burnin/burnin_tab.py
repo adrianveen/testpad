@@ -38,7 +38,7 @@ class BurninTab(QWidget):
         self.moving_avg_box.setChecked(False)      # default for adding moving avg is unchecked
         # button to print graphs (this prints all selected graphs)
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
-        self.print_graph_btn.setStyleSheet("background-color: #73A89E")
+        self.print_graph_btn.setStyleSheet("background-color: #66A366; color: black;")
         self.print_graph_btn.clicked.connect(self.printGraphs)
 
         #layout for user interaction area

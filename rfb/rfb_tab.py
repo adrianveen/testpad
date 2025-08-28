@@ -19,7 +19,7 @@ class RFBTab(QWidget):
         controls_list_col_0 = [file_label, save_label, save_folder_label]
         # print graph button 
         self.print_graph_button = QPushButton("PRINT GRAPHS")
-        self.print_graph_button.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_button.setStyleSheet("background-color: #66A366; color: black;")
         self.print_graph_button.clicked.connect(lambda: self.createGraphs())
         # Text display 
         self.text_display = QTextBrowser()

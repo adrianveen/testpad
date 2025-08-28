@@ -20,7 +20,7 @@ class TransducerLinearTab(QWidget):
         z_graph_label = QLabel("Z Graph?")
         save_label = QLabel("Save file?")
         print_graph_button = QPushButton("PRINT GRAPHS")
-        print_graph_button.setStyleSheet("background-color: #74BEA3")
+        print_graph_button.setStyleSheet("background-color: #66A366; color: black;")
         print_graph_button.clicked.connect(lambda: self.printGraphs())
         self.text_display = QTextBrowser()
         linear_col_0 = [files_label, save_folder_label, x_graph_label, y_graph_label, z_graph_label, save_label]

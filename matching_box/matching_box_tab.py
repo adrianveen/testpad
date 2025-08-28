@@ -45,7 +45,7 @@ class MatchingBoxTab(QWidget):
         # when custom value is set, enable the text box
         self.toroid_box.currentIndexChanged.connect(self.update_toroid_textbox)
         get_val = QPushButton("GET VALUES") 
-        get_val.setStyleSheet("background-color: #74BEA3")
+        get_val.setStyleSheet("background-color: #66A366; color: black;")
         get_val.clicked.connect(lambda: self.getValues())
         matching_list_col_1 = [self.freq_textbox, self.z_textbox, self.phase_textbox, self.toroid_box]
         # column 2 
@@ -108,7 +108,7 @@ class MatchingBoxTab(QWidget):
         save_label = QLabel("Save graphs?")
         save_folder_label = QLabel("Save folder: ")
         print_graphs_button = QPushButton("PRINT GRAPHS")
-        print_graphs_button.setStyleSheet("background-color: #74BEA3")
+        print_graphs_button.setStyleSheet("background-color: #66A366; color: black;")
         print_graphs_button.clicked.connect(lambda: self.printCSVGraphs())
         csv_list_col_0 = [freq_csv_label, file_label, save_label, save_folder_label]
         # Column 1 

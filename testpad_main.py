@@ -3,6 +3,7 @@ import os
 # from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtGui import QIcon
+from PySide6.QtCore import QCoreApplication
 
 from matching_box.matching_box_tab import MatchingBoxTab
 from transducer_calibration.transducer_calibration_tab import TransducerCalibrationTab
@@ -14,6 +15,7 @@ from nanobubbles.nanobubbles_tab import NanobubblesTab
 from temp_analysis.temp_analysis_tab import TempAnalysisTab
 from hydrophone.hydrophone_tab import HydrophoneAnalysisTab
 from sweep_graphs.sweep_plot_tab import SweepGraphTab
+from src.testpad.resources.palette.custom_palette import load_custom_palette
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -48,7 +50,17 @@ class ApplicationWindow(QMainWindow):
     
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    QCoreApplication.setOrganizationName("FUS Instruments")
+    QCoreApplication.setOrganizationDomain("fusinstruments.com")
+    QCoreApplication.setApplicationName("FilterMeasurements")
+    
     app.setStyleSheet("QLabel{font-size: 11pt;}") # increase font size slightly of QLabels
+    app.setStyle("Fusion")
+    dark_palette, palette_tooltip = load_custom_palette(palette_name="dark_palette")
+
+    app.setPalette(dark_palette)
+    app.setStyleSheet(palette_tooltip)
 
     tab_dialog = ApplicationWindow()
     # tab_dialog.setFixedSize(False)

@@ -148,7 +148,7 @@ class TransducerCalibrationTab(QWidget):
 
         # PRINT GRAPH BUTTON 
         print_graph = QPushButton("PRINT GRAPHS")
-        print_graph.setStyleSheet("background-color: #74BEA3")
+        print_graph.setStyleSheet("background-color: #66A366; color: black;")
         print_graph.clicked.connect(lambda: self.print_graph())
 
         # text fields/print button layout 

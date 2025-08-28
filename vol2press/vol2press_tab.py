@@ -168,7 +168,7 @@ class Vol2PressTab(QWidget):
         cycles_checkbox.toggled.connect(self.browse_ncycles_data.setEnabled)
 
         self.results_btn = QPushButton("PRINT TO YAML")
-        self.results_btn.setStyleSheet("background-color: #74BEA3")
+        self.results_btn.setStyleSheet("background-color: #66A366; color: black;")
         self.results_btn.clicked.connect(lambda: self.create_yaml())
 
         self.save_svg_btn = QPushButton("SAVE PNP AS SVG")

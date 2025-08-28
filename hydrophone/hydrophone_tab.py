@@ -52,7 +52,7 @@ class HydrophoneAnalysisTab(QWidget):
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
         # print graph button
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
-        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_btn.setStyleSheet("background-color: #66A366; color: black;")
         self.print_graph_btn.clicked.connect(lambda: self.print_graphs_clicked())
         # save graphs as SVG button
         self.save_as_svg_btn = QPushButton("SAVE GRAPH AS SVG")
