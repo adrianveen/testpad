@@ -59,7 +59,7 @@ class csv_graph():
 
         if self.save:
             graph_type = (self.filename.split("/")[-1]).split(".")[0]
-            # save_filename = PurePath(self.save_folder, graph_type+'_'+type+'.svg')
+            # save_filename = PurePath(self.save_folder, graph_type+'_'+box_type+'.svg')
             # save_filename = str(save_filename).replace('\\\\', '\\')
             # save_filename = os.path.normpath(str(save_filename))
             save_filename = os.path.join(self.save_folder, graph_type+'_'+type+'.svg')

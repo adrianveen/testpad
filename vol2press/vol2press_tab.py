@@ -1,22 +1,22 @@
-from vol2press.vol2press_calcs import Vol2Press
-
-from PySide6.QtCore import Slot, Qt
-# from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget, QSizePolicy, QDoubleSpinBox)
 import numpy as np
 import yaml
 import os
-import decimal
+from datetime import datetime
+
+from PySide6.QtCore import Slot, Qt
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox,
+                               QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
+                               QWidget, QSizePolicy)
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import to_rgb, to_hex
-from datetime import datetime
 
-from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
-from lineedit_validators import ValidatedLineEdit, FixupDoubleValidator
 
+from utilities.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
+from vol2press.vol2press_calcs import Vol2Press
+from utilities.lineedit_validators import ValidatedLineEdit, FixupDoubleValidator
+
+# Class for the "Sweep Analysis" tab in the FUS Testpad application.
 class Vol2PressTab(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -168,7 +168,7 @@ class Vol2PressTab(QWidget):
         cycles_checkbox.toggled.connect(self.browse_ncycles_data.setEnabled)
 
         self.results_btn = QPushButton("PRINT TO YAML")
-        self.results_btn.setStyleSheet("background-color: #74BEA3")
+        self.results_btn.setStyleSheet("background-color: #66A366; color: black;")
         self.results_btn.clicked.connect(lambda: self.create_yaml())
 
         self.save_svg_btn = QPushButton("SAVE PNP AS SVG")
@@ -210,7 +210,7 @@ class Vol2PressTab(QWidget):
     # file dialog boxes to select sweep/calibration eb-50/customer eb-50 files/a save location
     def openFileDialog(self, d_type):
         """
-        Open a file dialog to select a file or directory based on the type specified.
+        Open a file dialog to select a file or directory based on the box_type specified.
         The selected file or directory is stored in the corresponding attribute of the class.
         """
         if d_type == "sweep":
@@ -440,7 +440,7 @@ class Vol2PressTab(QWidget):
             full_path = os.path.join(self.save_location, self.config_filename)
             self.text_display.append(f"Writing dictionary to {full_path}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
-            self.text_display.append("Writing to dictionary complete.")
+            self.text_display.append("Writing to dictionary complete. YAML file created.")
 
         if not hasattr(self, 'n_cycles_dir'):
             return

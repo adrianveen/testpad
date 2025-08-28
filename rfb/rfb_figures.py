@@ -1,23 +1,12 @@
 """
 Script for generating radiation force balance figures. 
 """
-
-# import pandas as pd 
+import os
 import numpy as np 
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.ticker import FormatStrFormatter
-# from tkinter.filedialog import askopenfilenames, askdirectory
-import sys
-import os
-from pathlib import Path
-
 from PySide6.QtWidgets import QTextBrowser
-
-# from PySide6.QtCore import QObject, Slot
-# from PySide6.QtWidgets import QApplication
-# # from PySide6.QtGui import QGuiApplication DO NOT USE BECAUSE CLOSING THE GRAPH WILL CLOSE THE PROGRAM
-# from PySide6.QtQml import QQmlApplicationEngine, QmlElement
 
 # QML_IMPORT_NAME = "rfb_figures"
 # QML_IMPORT_MAJOR_VERSION = 1

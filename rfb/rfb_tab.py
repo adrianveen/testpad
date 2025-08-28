@@ -1,8 +1,7 @@
 from PySide6.QtCore import Slot, Qt
-# from PySide6.QtGui import QPixmap
-# from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QTabWidget, QTextBrowser, QWidget)
+
 from rfb.rfb_figures import create_rfb_graph
 
 class RFBTab(QWidget):
@@ -20,7 +19,7 @@ class RFBTab(QWidget):
         controls_list_col_0 = [file_label, save_label, save_folder_label]
         # print graph button 
         self.print_graph_button = QPushButton("PRINT GRAPHS")
-        self.print_graph_button.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_button.setStyleSheet("background-color: #66A366; color: black;")
         self.print_graph_button.clicked.connect(lambda: self.createGraphs())
         # Text display 
         self.text_display = QTextBrowser()
@@ -36,7 +35,7 @@ class RFBTab(QWidget):
         for i in range(len(controls_list_col_0)):
             controls_layout.addWidget(controls_list_col_0[i], i, 0)
         for i in range(len(controls_list_col_1)):
-            if (i == 1):
+            if i == 1:
                 controls_layout.addWidget(controls_list_col_1[i], i, 1, Qt.AlignmentFlag.AlignCenter)
             else:
                 controls_layout.addWidget(controls_list_col_1[i], i, 1)
@@ -60,8 +59,8 @@ class RFBTab(QWidget):
         self.setLayout(main_layout)
 
     @Slot()
-    def openFileDialog(self, type):
-        if type == "data":
+    def openFileDialog(self, dialog_type):
+        if dialog_type == "data":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Data Files")
             self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
@@ -73,7 +72,7 @@ class RFBTab(QWidget):
                     self.text_display.append(i+"\n")
                 else: 
                     self.text_display.append(i)
-        elif type == "save":
+        elif dialog_type == "save":
             self.dialog2 = QFileDialog(self)
             self.dialog2.setWindowTitle("Save Folder")
             self.dialog2.setFileMode(QFileDialog.FileMode.Directory)

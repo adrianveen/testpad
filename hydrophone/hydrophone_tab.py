@@ -1,15 +1,15 @@
-from hydrophone.hydrophone_graph import HydrophoneGraph
-
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
 import numpy as np
 import os
 import re
 from datetime import datetime
+
+from PySide6.QtCore import Slot, Qt
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
+                                QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.ticker import MultipleLocator
+
+from hydrophone.hydrophone_graph import HydrophoneGraph
 
 class HydrophoneAnalysisTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -27,7 +27,7 @@ class HydrophoneAnalysisTab(QWidget):
         # combo box for single CSV or multiple CSV per transducer
         self.combo_label = QLabel("Select CSV Format:")
         self.combo_box = QComboBox()
-        self.combo_box.setToolTip("Select the type of hydrophone scan data file.")
+        self.combo_box.setToolTip("Select the box_type of hydrophone scan data file.")
         self.combo_box.addItem("Multiple CSV files per transducer")
         self.combo_box.addItem("Single CSV file per transducer (legacy CSV format)")
         self.combo_box.setEditable(True)
@@ -52,7 +52,7 @@ class HydrophoneAnalysisTab(QWidget):
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
         # print graph button
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
-        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_btn.setStyleSheet("background-color: #66A366; color: black;")
         self.print_graph_btn.clicked.connect(lambda: self.print_graphs_clicked())
         # save graphs as SVG button
         self.save_as_svg_btn = QPushButton("SAVE GRAPH AS SVG")

@@ -1,13 +1,8 @@
-# from matplotlib.backends.backend_qtagg import FigureCanvas
-# from matplotlib.figure import Figure
-# from mpl_toolkits.mplot3d import axes3d
-from PySide6.QtCore import Slot, Qt
+from PySide6.QtCore import Slot, Qt, QEvent, QPoint
 from PySide6.QtGui import QPixmap, QResizeEvent, QDoubleValidator
-# from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QComboBox, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout,
+                                QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout, QScrollArea,
                                QWidget)
-# from calibration_reports.combined_calibration_figures_python import combined_calibration
 from matching_box.lc_circuit_matching import Calculations
 from matching_box.csv_graphs_hioki import csv_graph
 
@@ -45,7 +40,7 @@ class MatchingBoxTab(QWidget):
         # when custom value is set, enable the text box
         self.toroid_box.currentIndexChanged.connect(self.update_toroid_textbox)
         get_val = QPushButton("GET VALUES") 
-        get_val.setStyleSheet("background-color: #74BEA3")
+        get_val.setStyleSheet("background-color: #66A366; color: black;")
         get_val.clicked.connect(lambda: self.getValues())
         matching_list_col_1 = [self.freq_textbox, self.z_textbox, self.phase_textbox, self.toroid_box]
         # column 2 
@@ -59,14 +54,22 @@ class MatchingBoxTab(QWidget):
         # text box which displays text 
         self.text_display = QTextBrowser() 
         # self.text_display.
-        # text box which displays image 
-        self.image_display = QLabel(self) 
-        self.image_display.resize(self.text_display.size())
-        self.image_display.setScaledContents(True)
-        self.pixmap = QPixmap() 
+        # image viewer in a scroll area so it can remain large and scroll when needed
+        self.image_display = QLabel(self)
+        self.image_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_scroll = QScrollArea(self)
+        self.image_scroll.setWidget(self.image_display)
+        self.image_scroll.setWidgetResizable(False)
+        self.pixmap = QPixmap()
+        self._source_pixmap = None
+        self._scale_factor = 0.15  # default to at least 15% of original size
+        self._panning = False
+        self._pan_start = QPoint()
+        # Enable panning and zooming via event filter on viewport
+        self.image_scroll.viewport().installEventFilter(self)
         # add to layout 
         text_image_layout.addWidget(self.text_display)
-        text_image_layout.addWidget(self.image_display)
+        text_image_layout.addWidget(self.image_scroll)
 
         matching_vals_layout = QGridLayout()
         # add all widgets to grid layout 
@@ -100,7 +103,7 @@ class MatchingBoxTab(QWidget):
         save_label = QLabel("Save graphs?")
         save_folder_label = QLabel("Save folder: ")
         print_graphs_button = QPushButton("PRINT GRAPHS")
-        print_graphs_button.setStyleSheet("background-color: #74BEA3")
+        print_graphs_button.setStyleSheet("background-color: #66A366; color: black;")
         print_graphs_button.clicked.connect(lambda: self.printCSVGraphs())
         csv_list_col_0 = [freq_csv_label, file_label, save_label, save_folder_label]
         # Column 1 
@@ -154,27 +157,13 @@ class MatchingBoxTab(QWidget):
             else:
                 self.toroid_textbox.setEnabled(False)
 
-    # when resized, resize image (CURRENTLY A BIT JANKY)
+    # keep current image scale across resizes; scroll area handles overflow
     def resizeEvent(self, event: QResizeEvent) -> None:
-        if self.new_match is not None: 
-            # print("resized")
-            # wipe the previous pixmap
-            # self.pixmap = QPixmap()
-            # self.image_display.setPixmap(self.pixmap)
-            self.text_display.adjustSize()
-            self.text_display.update()
-            # self.image_display.adjustSize()
-            # self.image_display.update()
-            # self.pixmap = QPixmap(self.new_match.image_file)
-            self.pixmap = self.pixmap.scaled(self.text_display.width(), self.text_display.height()*1.75, mode=Qt.SmoothTransformation)
-            self.image_display.setPixmap(self.pixmap)
-            
         return super().resizeEvent(event)
 
     # execute matching box program 
     @Slot()
     def getValues(self):
-        self.text_display.adjustSize()
         self.text_display.clear()
         freq = 0
         if self.freq_textbox.text():
@@ -192,8 +181,9 @@ class MatchingBoxTab(QWidget):
 
         text = self.new_match.calculations(freq, float(self.z_textbox.text()), float(self.phase_textbox.text()), AL_value)
         self.text_display.append(text)
-        self.pixmap = QPixmap(self.new_match.image_file)
-        self.image_display.setPixmap(self.pixmap.scaledToWidth(self.csv_graphs_group.width()))
+        # Load original image and display at least 60% of original size
+        self._source_pixmap = QPixmap(self.new_match.image_file)
+        self._apply_scale(self._scale_factor)
         # print(new_match.image_file)
         # self.pixmap.load(new_match.image_file)
         # # self.text_display.append(QTextBrowser.searchPaths(new_match.image_file))
@@ -234,3 +224,66 @@ class MatchingBoxTab(QWidget):
         self.graph_display.addTab(impedance_graph, "Impedance Graph")
         self.graph_display.addTab(phase_graph, "Phase Graph")
         # self.graph_display.adjustSize()
+
+    def _apply_scale(self, factor: float):
+        """Apply scale to the original image and set it on the label.
+        Ensures a minimum of 15% of the original size. Scrollbars appear if it exceeds the viewport.
+        """
+        if self._source_pixmap is None or self._source_pixmap.isNull():
+            return
+        factor = max(0.15, factor)
+        w = int(self._source_pixmap.width() * factor)
+        h = int(self._source_pixmap.height() * factor)
+        self.pixmap = self._source_pixmap.scaled(w, h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.image_display.setPixmap(self.pixmap)
+        self.image_display.adjustSize()
+
+    def eventFilter(self, obj, event):
+        # Panning with left click-drag; zoom with Ctrl+scroll
+        if obj is self.image_scroll.viewport():
+            if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+                self._panning = True
+                self._pan_start = event.pos()
+                self.image_scroll.setCursor(Qt.ClosedHandCursor)
+                return True
+            elif event.type() == QEvent.MouseMove and self._panning:
+                delta = event.pos() - self._pan_start
+                self._pan_start = event.pos()
+                h = self.image_scroll.horizontalScrollBar()
+                v = self.image_scroll.verticalScrollBar()
+                h.setValue(h.value() - delta.x())
+                v.setValue(v.value() - delta.y())
+                return True
+            elif event.type() == QEvent.MouseButtonRelease and event.button() == Qt.LeftButton:
+                self._panning = False
+                self.image_scroll.setCursor(Qt.ArrowCursor)
+                return True
+            elif event.type() == QEvent.Wheel and (event.modifiers() & Qt.ControlModifier):
+                # Zoom in/out keeping the cursor position roughly stable
+                if self._source_pixmap is None or self._source_pixmap.isNull():
+                    return True
+                dy = event.angleDelta().y()
+                if dy == 0:
+                    return True
+                step = 1.1 if dy > 0 else 1/1.1
+
+                h = self.image_scroll.horizontalScrollBar()
+                v = self.image_scroll.verticalScrollBar()
+                posf = event.position() if hasattr(event, 'position') else event.pos()
+                cx = posf.x()
+                cy = posf.y()
+
+                pre_w = max(1, self.image_display.width())
+                pre_h = max(1, self.image_display.height())
+                cx_ratio = (h.value() + cx) / pre_w
+                cy_ratio = (v.value() + cy) / pre_h
+
+                self._scale_factor = max(0.15, min(5.0, self._scale_factor * step))
+                self._apply_scale(self._scale_factor)
+
+                new_w = max(1, self.image_display.width())
+                new_h = max(1, self.image_display.height())
+                h.setValue(int(cx_ratio * new_w - cx))
+                v.setValue(int(cy_ratio * new_h - cy))
+                return True
+        return super().eventFilter(obj, event)

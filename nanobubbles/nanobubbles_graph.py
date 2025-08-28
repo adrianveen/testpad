@@ -1,18 +1,15 @@
 import numpy as np
 import os
 import sys
-import yaml
-import decimal
 from pathlib import Path
 import pandas as pd
-from definitions import SRC_DIR
 from PIL import Image
-from io import BytesIO, StringIO
+from io import StringIO
 
 import matplotlib.pyplot as plt 
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.colors import to_rgb, to_hex
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 def gaussian_kernel(size, sigma=1.0):
     """

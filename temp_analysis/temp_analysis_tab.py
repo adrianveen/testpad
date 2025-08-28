@@ -1,14 +1,11 @@
-from temp_analysis.temperature_graph import TemperatureGraph
 
 from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QMessageBox, QTabWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
-import numpy as np
-import os
-import yaml
+from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
+                                QLabel, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
+from temp_analysis.temperature_graph import TemperatureGraph
+
 
 class TempAnalysisTab(QWidget):
     def __init__(self, parent=None) -> None:
@@ -31,7 +28,7 @@ class TempAnalysisTab(QWidget):
         self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
         # print graph button
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
-        self.print_graph_btn.setStyleSheet("background-color: #74BEA3")
+        self.print_graph_btn.setStyleSheet("background-color: #66A366; color: black;")
         self.print_graph_btn.clicked.connect(lambda: self.create_graph())
 
         # Layout for user interaction area

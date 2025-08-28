@@ -1,21 +1,21 @@
 import sys
 import os
-from definitions import SRC_DIR
 # from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtGui import QIcon
+from PySide6.QtCore import QCoreApplication
 
 from matching_box.matching_box_tab import MatchingBoxTab
+from transducer_calibration.transducer_calibration_tab import TransducerCalibrationTab
+from transducer_linear.transducer_linear_tab import TransducerLinearTab
 from rfb.rfb_tab import RFBTab
-from transducer.transducer_calibration_tab import TransducerCalibrationTab
-from transducer.transducer_linear_tab import TransducerLinearTab
-from eb50.eb50_tab import EboxTab
 from vol2press.vol2press_tab import Vol2PressTab
 from burnin.burnin_tab import BurninTab
 from nanobubbles.nanobubbles_tab import NanobubblesTab
 from temp_analysis.temp_analysis_tab import TempAnalysisTab
 from hydrophone.hydrophone_tab import HydrophoneAnalysisTab
-from sweep_plotter.sweep_plot_tab import SweepGraphTab
+from sweep_graphs.sweep_plot_tab import SweepGraphTab
+from src.testpad.resources.palette.custom_palette import load_custom_palette
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -31,20 +31,8 @@ class ApplicationWindow(QMainWindow):
         self.resize(800, 600)        
         
         tab_widget = QTabWidget()
-        # tab_pal = tab_widget.palette()
-        # tab_widget.setAutoFillBackground(True)
-        # tab_pal.setColor(QPalette.NoRole, "#74BEA3")
-        # tab_widget.setPalette(tab_pal)
-        # tab_widget.update()
-        # tab_widget.setStyleSheet("QTabBar::tab:selected {background: #74BEA3;}")
-        # sp = tab_widget.sizePolicy()
-        # sp.Policy = QSizePolicy.Expanding
-        
-        # tab_widget.setMinimumSize(QMainWindow.sizeHint())
-        # tab_widget.showFullScreen()
-        # self.matching_tab = MatchingBoxTab(self) # declare as separate object to resize image?
-        tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs 
-        tab_widget.addTab(EboxTab(self), "Siglent/EB-50 Calibration") # calibrating siglent & EB-50 (CURRENTLY EMPTY)
+
+        tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs
         tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
         tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
         tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 
@@ -59,20 +47,27 @@ class ApplicationWindow(QMainWindow):
         main_layout.addWidget(tab_widget)
         self.setLayout(main_layout)
         self.setCentralWidget(tab_widget)
-
-    # def resizeEvent(self, event: QResizeEvent) -> None:
-    #     # super().resizeEvent(event)
-    #     self.matching_tab.resizeImage()
     
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    QCoreApplication.setOrganizationName("FUS Instruments")
+    QCoreApplication.setOrganizationDomain("fusinstruments.com")
+    QCoreApplication.setApplicationName("Testpad")
+    
     app.setStyleSheet("QLabel{font-size: 11pt;}") # increase font size slightly of QLabels
+    app.setStyle("Fusion")
+    dark_palette, palette_tooltip = load_custom_palette(palette_name="dark_palette")
+
+    app.setPalette(dark_palette)
+    app.setStyleSheet(palette_tooltip)
 
     tab_dialog = ApplicationWindow()
     # tab_dialog.setFixedSize(False)
     # tab_dialog.setMaximumSize()
     # tab_dialog.setFixedSize(700, 500)
-    tab_dialog.showMaximized() # full screen 
+    tab_dialog.resize(1200, 800)
+    tab_dialog.show() 
     
     # tab_dialog.raise_() # look up what this does
 

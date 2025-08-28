@@ -3,20 +3,14 @@ import pandas as pd
 import os
 import sys
 import math
-import yaml
-import decimal
-from pathlib import Path
 
-from definitions import SRC_DIR
 from PIL import Image
-from io import BytesIO
 
 import matplotlib.pyplot as plt 
-from matplotlib.ticker import ScalarFormatter, FuncFormatter, MultipleLocator, MaxNLocator, FormatStrFormatter
+from matplotlib.ticker import MultipleLocator, MaxNLocator, FormatStrFormatter
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox, HPacker, AnchoredOffsetbox
-from matplotlib.legend import Legend
+
 
 class TemperatureGraph():
     def __init__(self, temperature_csv) -> None:

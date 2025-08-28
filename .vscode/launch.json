@@ -9,14 +9,14 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         },
         {
-            "name": "testpad_main.py - ext Console",
+            "name": "testpad_main.py - integrated Console",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/testpad_main.py",
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         }
     ]
 }

@@ -1,0 +1,14 @@
+name: testpad-release
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pyside6=6.7.2
+  - numpy>=1.26
+  - matplotlib>=3.8
+  - scipy>=1.11
+  - h5py>=3.10
+  - pandas>=2.1
+  - pillow>=10
+  - pyyaml>=6
+  - pip
