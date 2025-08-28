@@ -4,13 +4,6 @@ import numpy as np
 import math
 import os
 
-# from PySide6.QtCore import QObject, Slot
-# from PySide6.QtGui import QGuiApplication
-# from PySide6.QtQml import QQmlApplicationEngine, QmlElement
-
-# QML_IMPORT_NAME = "print_text"
-# QML_IMPORT_MAJOR_VERSION = 1
-
 class Calculations():
     def __init__(self):
         self.text = ""
@@ -126,8 +119,6 @@ class Calculations():
             else:
                 type = 'r'
 
-            # textbox.insert(tk.END, f"Switching to Type {box_type}.\n", "italic")
-
             X12 = self.lmatch(ZG, ZL, type)  # either 'r' or 'n'
 
             L = X12[1, 1] / omega * 1e6  # inductance in micro Henry
@@ -156,53 +147,5 @@ class Calculations():
         self.text += ('number of turns = %.1f\n' % N)
         self.text += ('Hold Left-Click and drag to pan the image\n')
         self.text += ('Use CTRL+Mouse Wheel to zoom in/out\n')
-        # print(self.text)
+
         return(self.text + "\n")
-
-# @QmlElement
-# class TextBox(QObject): 
-
-#     # @Slot(str, result=str)
-#     # def printThing(self, s):
-#     #     return(s)
-    
-#     @Slot(None, result=str) 
-#     def getImg(self):
-#         return(self.new_calc.image_file)
-    
-#     @Slot(float, float, float, float, str, result=str)
-#     def returnCalc(self, frequency, absZ, phase, toroid, kHz_or_MHz):
-#         if kHz_or_MHz == "kHz":
-#             frequency *= 1e3
-#         else:
-#             frequency *= 1e6
-#         self.new_calc= Calculations()
-
-#         # print(new_calc)
-#         return(self.new_calc.calculations(frequency, absZ, phase, toroid))
-
-
-# if __name__ == '__main__':
-#     #Set up the application window
-#     app = QGuiApplication(sys.argv)
-#     # view = QQuickView()
-#     # view.setResizeMode(QQuickView.SizeRootObjectToView)
-#     engine = QQmlApplicationEngine()
-#     engine.quit.connect(app.quit)
-
-#     #Load the QML file
-#     qml_file = Path(__file__).parent / "widget.qml"
-#     engine.load(qml_file)
-#     # view.setSource(QUrl.fromLocalFile(qml_file.resolve()))
-
-#     # #Show the window
-#     if not engine.rootObjects():
-#         sys.exit(-1)
-#     # if view.status() == QQuickView.Error:
-#     #     sys.exit(-1)
-#     # view.show()
-
-#     # #execute and cleanup
-#     # app.exec()
-#     sys.exit(app.exec())
-#     # del view
