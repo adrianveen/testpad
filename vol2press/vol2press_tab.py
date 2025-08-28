@@ -12,7 +12,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import to_rgb, to_hex
 
 
-from transducer.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
+from utilities.add_ncycle_sweep_data_to_config_file import add_ncycle_sweep_to_transducer_file
 from vol2press.vol2press_calcs import Vol2Press
 from utilities.lineedit_validators import ValidatedLineEdit, FixupDoubleValidator
 

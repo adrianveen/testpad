@@ -13,8 +13,8 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from scipy.interpolate import RegularGridInterpolator, interp1d
 
-from transducer.cm_data import cm_data
-from transducer.calibration_figure_2 import sweep_graph
+from transducer_common.cm_data import cm_data
+from transducer_common.calibration_figure_2 import sweep_graph
 
 
 # PARULA MAP! (list of colormap data is in separate file)

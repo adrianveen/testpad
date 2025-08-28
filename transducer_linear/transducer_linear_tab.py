@@ -2,7 +2,7 @@ from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
-from transducer.linear_scan_graph_generator import linear_scan
+from transducer_linear.linear_scan_graph_generator import linear_scan
 
 class TransducerLinearTab(QWidget):
     def __init__(self, parent: QWidget):

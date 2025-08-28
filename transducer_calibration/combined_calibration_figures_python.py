@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PySide6.QtWidgets import QTextBrowser
 
-from transducer.calibration_resources import create_sweep_file, fetch_data, field_graph, line_graph, fwhmx
+from transducer_common.calibration_resources import create_sweep_file, fetch_data, field_graph, line_graph, fwhmx
 
 """
 A script to write voltage sweep txts and to generate axial and lateral field/line plots as svgs. 

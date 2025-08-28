@@ -163,3 +163,4 @@ class sweep_graph():
         if self.fig is not None:
             self.fig.savefig(os.path.join(self.save_folder, save_filename), dpi=96, bbox_inches='tight',
                              format='svg', pad_inches=0, transparent=True)
+

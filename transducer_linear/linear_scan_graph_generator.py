@@ -1,6 +1,6 @@
 from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames
 from PySide6.QtWidgets import QTextBrowser
-from transducer.calibration_resources import line_graph, plt, fetch_data, np
+from transducer_common.calibration_resources import line_graph, plt, fetch_data, np
 
 """
 A script to create linear graphs for analysis during transducer calibration. 

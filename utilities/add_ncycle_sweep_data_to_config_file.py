@@ -201,9 +201,9 @@ def add_ncycle_sweep_to_transducer_file(results_directory: str, transducer_confi
 
 def run_example():
     # Example usage. Ncycle adjustment data will be added to the transducer config file.
-    results_dir = (r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB\612-T550H825_DUAL_FREQUENCY\Scan Data\Cycle_sweeps_Feb_20")
-    tx_config = (r"G:\Shared drives\FUS_Team\Transducers Calibration and "
-                r"RFB\612-T550H825_DUAL_FREQUENCY\612-T550H825_DUAL_FREQUENCY - Copy.yaml")
+    results_dir = (r"G:\\Shared drives\\FUS_Team\\Transducers Calibration and RFB\\612-T550H825_DUAL_FREQUENCY\\Scan Data\\Cycle_sweeps_Feb_20")
+    tx_config = (r"G:\\Shared drives\\FUS_Team\\Transducers Calibration and "
+                r"RFB\\612-T550H825_DUAL_FREQUENCY\\612-T550H825_DUAL_FREQUENCY - Copy.yaml")
     plot_data = add_ncycle_sweep_to_transducer_file(results_dir, tx_config)
     for (frequency_Hz, ncycle_axis, normalized_PNP_MPa_by_cycle) in plot_data:
         print(f"Frequency: {frequency_Hz}")
@@ -213,3 +213,4 @@ def run_example():
 
 if __name__ == '__main__':
     run_example()
+
