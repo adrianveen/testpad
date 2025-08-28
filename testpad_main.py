@@ -53,7 +53,7 @@ if __name__ == "__main__":
     
     QCoreApplication.setOrganizationName("FUS Instruments")
     QCoreApplication.setOrganizationDomain("fusinstruments.com")
-    QCoreApplication.setApplicationName("FilterMeasurements")
+    QCoreApplication.setApplicationName("Testpad")
     
     app.setStyleSheet("QLabel{font-size: 11pt;}") # increase font size slightly of QLabels
     app.setStyle("Fusion")
