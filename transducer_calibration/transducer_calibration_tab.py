@@ -258,23 +258,23 @@ class TransducerCalibrationTab(QWidget):
         # sweep_data, axial_field, axial_line, lateral_field, lateral_line
         # axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step
         cfg = CombinedCalibrationConfig(
-        files=[Path(p) for p in self.selected_data_files],
-        save_folder=Path(self.selected_save_folder) if self.selected_save_folder else None,
-        eb50_file=Path(self.selected_eb50_file) if self.selected_eb50_file else None,
-        sweep_data=self.sweep_box.isChecked(),
-        axial_field=self.ax_field_graphs_box.isChecked(),
-        axial_line=self.ax_line_graphs_box.isChecked(),
-        lateral_field=self.lat_field_graphs_box.isChecked(),
-        lateral_line=self.lat_line_graphs_box.isChecked(),
-        save=self.save_box.isChecked(),
-        ax_left_field_length=float(self.ax_left_field_length_field.text() or 0),
-        ax_right_field_length=float(self.ax_right_field_length_field.text() or 0),
-        ax_field_height=float(self.ax_field_height_field.text() or 0),
-        ax_left_line_length=float(self.ax_left_line_length_field.text() or 0),
-        ax_right_line_length=float(self.ax_right_line_length_field.text() or 0),
-        lat_field_length=float(self.lat_field_length_field.text() or 0),
-        interp_step=float(self.interp_step_field.text() or 0),
-        )
+            files=[Path(p) for p in self.selected_data_files],
+            save_folder=Path(self.selected_save_folder) if self.selected_save_folder else None,
+            eb50_file=Path(self.selected_eb50_file) if self.selected_eb50_file else None,
+            sweep_data=self.sweep_box.isChecked(),
+            axial_field=self.ax_field_graphs_box.isChecked(),
+            axial_line=self.ax_line_graphs_box.isChecked(),
+            lateral_field=self.lat_field_graphs_box.isChecked(),
+            lateral_line=self.lat_line_graphs_box.isChecked(),
+            save=self.save_box.isChecked(),
+            ax_left_field_length=float(self.ax_left_field_length_field.text() or 0),
+            ax_right_field_length=float(self.ax_right_field_length_field.text() or 0),
+            ax_field_height=float(self.ax_field_height_field.text() or 0),
+            ax_left_line_length=float(self.ax_left_line_length_field.text() or 0),
+            ax_right_line_length=float(self.ax_right_line_length_field.text() or 0),
+            lat_field_length=float(self.lat_field_length_field.text() or 0),
+            interp_step=float(self.interp_step_field.text() or 0),
+            )
         graphs = CombinedCalibration(cfg, self.text_display_group).getGraphs()
 
         # add graphs to tabs
