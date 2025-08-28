@@ -15,7 +15,8 @@
             "name": "testpad_main.py - integrated Console",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/testpad_main.py",
+            "module": "testpad.testpad_main",
+            "cwd": "${workspaceFolder}/src",
             "console": "integratedTerminal"
         }
     ]

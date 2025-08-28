@@ -4,13 +4,13 @@ import os
 base_dir = os.getcwd()
 
 a = Analysis(
-    ['testpad_main.py'],
+    ['src/testpad/testpad_main.py'],
     pathex=[],
     binaries=[],
     datas=[
-        (os.path.join(base_dir, "matching_box", "cap_across_load.jpg"), "matching_box"),
-        (os.path.join(base_dir, "matching_box", "cap_across_source.jpg"), "matching_box"),
-        (os.path.join(base_dir, "images"), "images"),  # Add the entire images directory
+        (os.path.join(base_dir, "src", "testpad", "core", "matching_box", "cap_across_load.jpg"), "matching_box"),
+        (os.path.join(base_dir, "src", "testpad", "core", "matching_box", "cap_across_source.jpg"), "matching_box"),
+        (os.path.join(base_dir, "src", "testpad", "resources"), "resources"),  # Add the entire resources directory
     ],
     hiddenimports=[],
     hookspath=[],
@@ -42,7 +42,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(base_dir, 'images', 'fus_icon_transparent.ico'),
+    icon=os.path.join(base_dir, 'src', 'testpad', 'resources', 'fus_icon_transparent.ico'),
 )
 coll = COLLECT(
     exe,
