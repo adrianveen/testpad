@@ -94,9 +94,9 @@ class sweep_graph():
         ####
         # voltage_at_1mpa = 17.0358  # test value only -- see above for expected ranges
 
-        # Classify the voltage at 1 MPa using the Hampel method
-        # classification is taken from dict{} returned by classify_vpp()
-        # check_new_vpp returns a boolean if dict['classification'] == 'OK'
+        # 1. Classify the voltage at 1 MPa using the Hampel method
+        # 2. classification is taken from dict{} returned by classify_vpp()
+        # 3. check_new_vpp returns a boolean if dict['classification'] == 'OK'
         vpp_info = classify_vpp(voltage_at_1mpa)
         is_ok = check_new_vpp(voltage_at_1mpa)
 

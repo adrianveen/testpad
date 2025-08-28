@@ -39,7 +39,6 @@ style_1 = {
 EB-50 METHODS COPIED FROM UNIFIED CALIBRATION RESOURCES 
 """
 
-
 # find the closest frequency to the requested frequency (parsing YAML file)
 def closest_frequency(frequency, filename, textbox: QTextBrowser):
     # requested frequency 
@@ -78,7 +77,7 @@ def fmt(freq):
     for factor, name in SI_Frequency:
         if freq >= factor:
             useFactor, useName = factor, name
-    return (freq / useFactor, useName)
+    return freq / useFactor, useName
 
 
 def split_array(data_mtx, col1):
@@ -88,7 +87,7 @@ def split_array(data_mtx, col1):
         line = data_mtx[i].split(" ")
         array1 = np.append(array1, float(line[col1]))
 
-    return (array1)
+    return array1
 
 
 # extracts eb50 data, returns eb50 dictionary
