@@ -1,7 +1,7 @@
 Param(
     [string]$EnvName = 'testpad-release',
     [string]$LockFile = 'build_config/conda-lock-release.yml',
-    [string]$FallbackEnvFile = 'environment.yml',
+    [string]$FallbackEnvFile = 'environment-release.yml',
     [switch]$WithPyInstaller = $true
 )
 
@@ -35,30 +35,44 @@ function Remove-Env([string]$name) {
 
 Assert-Conda
 
-$shouldCreate = Remove-Env -name $EnvName
-if ($shouldCreate) {
-    if (Test-Path $LockFile -PathType Leaf -ErrorAction SilentlyContinue) {
-        if (Get-Command conda-lock -ErrorAction SilentlyContinue) {
-            Write-Host "Creating environment '$EnvName' from lockfile '$LockFile'..." -ForegroundColor Cyan
-            conda-lock install -n $EnvName $LockFile | Out-Null
+# Operate from repo root so relative paths resolve reliably
+Push-Location (Join-Path $PSScriptRoot '..')
+try {
+    $shouldCreate = Remove-Env -name $EnvName
+    if ($shouldCreate) {
+        if (Test-Path $LockFile -PathType Leaf -ErrorAction SilentlyContinue) {
+            if (Get-Command conda-lock -ErrorAction SilentlyContinue) {
+                Write-Host "Creating environment '$EnvName' from lockfile '$LockFile'..." -ForegroundColor Cyan
+                conda-lock install -n $EnvName $LockFile | Out-Null
+            } else {
+                Write-Host "conda-lock is not installed. Installing into base to use lockfile..." -ForegroundColor Yellow
+                conda install -n base -c conda-forge conda-lock -y | Out-Null
+                Write-Host "Creating environment '$EnvName' from lockfile '$LockFile'..." -ForegroundColor Cyan
+                conda-lock install -n $EnvName $LockFile | Out-Null
+            }
         } else {
-            Write-Host "conda-lock is not installed. Installing into base to use lockfile..." -ForegroundColor Yellow
-            conda install -n base -c conda-forge conda-lock -y | Out-Null
-            Write-Host "Creating environment '$EnvName' from lockfile '$LockFile'..." -ForegroundColor Cyan
-            conda-lock install -n $EnvName $LockFile | Out-Null
+            # Resolve fallback env file: prefer provided, then environment-release.yml, then environment.yml
+            if (-not (Test-Path $FallbackEnvFile)) {
+                if (Test-Path 'environment-release.yml') {
+                    $FallbackEnvFile = 'environment-release.yml'
+                } elseif (Test-Path 'environment.yml') {
+                    $FallbackEnvFile = 'environment.yml'
+                } else {
+                    throw "No lockfile or fallback environment file found (looked for $LockFile, environment-release.yml, environment.yml)."
+                }
+            }
+            Write-Host "Lockfile not found. Creating from '$FallbackEnvFile'..." -ForegroundColor Cyan
+            conda env create -n $EnvName -f $FallbackEnvFile -y | Out-Null
         }
-    } elseif (Test-Path $FallbackEnvFile) {
-        Write-Host "Lockfile not found. Creating from '$FallbackEnvFile'..." -ForegroundColor Cyan
-        conda env create -n $EnvName -f $FallbackEnvFile -y | Out-Null
-    } else {
-        throw "No lockfile or fallback environment file found."
     }
-}
 
-if ($WithPyInstaller) {
-    Write-Host "Installing build tooling (pip, pyinstaller) into '$EnvName'..." -ForegroundColor Cyan
-    conda run -n $EnvName python -m pip install --upgrade pip | Out-Null
-    conda run -n $EnvName python -m pip install --upgrade pyinstaller | Out-Null
-}
+    if ($WithPyInstaller) {
+        Write-Host "Installing build tooling (pip, pyinstaller) into '$EnvName'..." -ForegroundColor Cyan
+        conda run -n $EnvName python -m pip install --upgrade pip | Out-Null
+        conda run -n $EnvName python -m pip install --upgrade pyinstaller | Out-Null
+    }
 
-Write-Host "Done. Activate with: conda activate $EnvName" -ForegroundColor Green
+    Write-Host "Done. Activate with: conda activate $EnvName" -ForegroundColor Green
+} finally {
+    Pop-Location
+}

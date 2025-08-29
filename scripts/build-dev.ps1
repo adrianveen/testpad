@@ -25,9 +25,8 @@ try {
     if (-not (Test-Path $Spec)) { throw "Spec not found: $Spec" }
 
     Write-Host "Building [dev] with env '$EnvName' and spec '$Spec'..." -ForegroundColor Cyan
-    conda run -n $EnvName pyinstaller $Spec --noconfirm
+    conda run -n $EnvName python -m PyInstaller $Spec --noconfirm
     Write-Host "Dev build complete. See 'dist/' and 'build/' folders." -ForegroundColor Green
 } finally {
     Pop-Location
 }
-

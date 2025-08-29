@@ -16,6 +16,7 @@ from testpad.ui.tabs.temp_analysis_tab import TempAnalysisTab
 from testpad.ui.tabs.hydrophone_tab import HydrophoneAnalysisTab
 from testpad.ui.tabs.sweep_plot_tab import SweepGraphTab
 from testpad.resources.palette.custom_palette import load_custom_palette
+from testpad.version import __version__ 
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
@@ -34,7 +35,7 @@ class ApplicationWindow(QMainWindow):
         else:
             icon_path = os.path.join(os.getcwd(), 'src', 'testpad', 'resources', 'fus_icon_transparent.ico')
         self.setWindowIcon(QIcon(icon_path))
-        self.setWindowTitle("FUS Testpad v1.9.5")
+        self.setWindowTitle(f"FUS Testpad v{__version__}")
         self.resize(800, 600)        
         
         tab_widget = QTabWidget()

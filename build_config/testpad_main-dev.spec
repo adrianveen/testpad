@@ -7,8 +7,8 @@ from testpad.version import __version__ as VERSION
 
 # Developer build (one-dir, console enabled for debugging)
 a = Analysis(
-    ['src/testpad/testpad_main.py'],
-    pathex=[],
+    [os.path.join(base_dir, 'src', 'testpad', 'testpad_main.py')],
+    pathex=[os.path.join(base_dir, 'src')],
     binaries=[],
     datas=[
         (os.path.join(base_dir, 'src', 'testpad', 'core', 'matching_box', 'cap_across_load.jpg'), 'matching_box'),
@@ -34,7 +34,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name=f'testpad_dev_{VERSION}',
+    name=f'testpad_dev_v{VERSION}',
     debug=True,
     bootloader_ignore_signals=False,
     strip=False,
@@ -54,5 +54,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name=f'testpad_dev_{VERSION}',
+    name=f'testpad_dev_v{VERSION}',
 )

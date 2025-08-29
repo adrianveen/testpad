@@ -1,6 +1,6 @@
 Param(
     [string]$EnvName = 'testpad-dev',
-    [string]$EnvironmentFile = 'environment.yml',
+    [string]$EnvironmentFile = 'environment-dev.yml',
     [switch]$WithPyInstaller = $true
 )
 
@@ -38,11 +38,32 @@ function New-Or-Recreate-Env {
 
 Assert-Conda
 
-if (-not (Test-Path $EnvironmentFile)) {
-    throw "Environment file not found: $EnvironmentFile"
-}
+# Operate from repo root so relative paths resolve reliably
+Push-Location (Join-Path $PSScriptRoot '..')
+try {
+    # Resolve environment file: prefer provided, otherwise fall back to common names
+    if (-not (Test-Path $EnvironmentFile)) {
+        if (Test-Path 'environment-dev.yml') {
+            $EnvironmentFile = 'environment-dev.yml'
+        } elseif (Test-Path 'environment.yml') {
+            $EnvironmentFile = 'environment.yml'
+        } else {
+            throw "Environment file not found: $EnvironmentFile (also tried environment-dev.yml, environment.yml)"
+        }
+    }
 
-New-Or-Recreate-Env -name $EnvName -file $EnvironmentFile
+    New-Or-Recreate-Env -name $EnvName -file $EnvironmentFile
+
+    if ($WithPyInstaller) {
+        Write-Host "Installing build tooling (pip, pyinstaller) into '$EnvName'..." -ForegroundColor Cyan
+        conda run -n $EnvName python -m pip install --upgrade pip | Out-Null
+        conda run -n $EnvName python -m pip install --upgrade pyinstaller | Out-Null
+    }
+
+    Write-Host "Done. Activate with: conda activate $EnvName" -ForegroundColor Green
+} finally {
+    Pop-Location
+}
 
 if ($WithPyInstaller) {
     Write-Host "Installing build tooling (pip, pyinstaller) into '$EnvName'..." -ForegroundColor Cyan

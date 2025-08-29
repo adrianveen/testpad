@@ -7,8 +7,8 @@ from testpad.version import __version__ as VERSION
 
 # Release (portable) build: single-file executable (onefile), windowed.
 a = Analysis(
-    ['src/testpad/testpad_main.py'],
-    pathex=[],
+    [os.path.join(base_dir, 'src', 'testpad', 'testpad_main.py')],
+    pathex=[os.path.join(base_dir, 'src')],
     binaries=[],
     datas=[
         (os.path.join(base_dir, 'src', 'testpad', 'core', 'matching_box', 'cap_across_load.jpg'), 'matching_box'),
@@ -36,7 +36,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name=f'testpad_portable_{VERSION}',
+    name=f'testpad_portable_v{VERSION}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

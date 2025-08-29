@@ -25,9 +25,9 @@ try {
     if (-not (Test-Path $Spec)) { throw "Spec not found: $Spec" }
 
     Write-Host "Building [portable] with env '$EnvName' and spec '$Spec'..." -ForegroundColor Cyan
-    conda run -n $EnvName pyinstaller $Spec --noconfirm
+    # Use python -m PyInstaller to ensure the interpreter from the env is used
+    conda run -n $EnvName python -m PyInstaller $Spec --noconfirm
     Write-Host "Portable build complete. See 'dist/' folder for single .exe." -ForegroundColor Green
 } finally {
     Pop-Location
 }
-

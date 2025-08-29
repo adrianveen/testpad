@@ -2,14 +2,14 @@ import os
 import sys
 
 # Get the current working directory (where PyInstaller is run)
-base_dir = os.getcwd()
+base_dir = os.getcwd()  # repo root (build scripts set CWD to repo root)
 sys.path.insert(0, os.path.join(base_dir, 'src'))
 from testpad.version import __version__ as VERSION
 
 # Release build (one-dir, windowed). Suitable for zipping or packaging into an installer.
 a = Analysis(
-    ['src/testpad/testpad_main.py'],
-    pathex=[],
+    [os.path.join(base_dir, 'src', 'testpad', 'testpad_main.py')],
+    pathex=[os.path.join(base_dir, 'src')],
     binaries=[],
     datas=[
         (os.path.join(base_dir, 'src', 'testpad', 'core', 'matching_box', 'cap_across_load.jpg'), 'matching_box'),
@@ -35,7 +35,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name=f'testpad_{VERSION}',
+    name=f'testpad_v{VERSION}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -55,5 +55,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name=f'testpad_{VERSION}',
+    name=f'testpad_v{VERSION}',
 )
