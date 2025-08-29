@@ -5,7 +5,7 @@ from typing import Callable, List, Tuple
 # from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtGui import QIcon
-from PySide6.QtCore import QCoreApplication
+from PySide6.QtCore import QCoreApplication, QTimer
 
 from testpad.resources.palette.custom_palette import load_custom_palette
 from testpad.ui.splash import SplashScreen
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     tab_dialog.resize(1200, 800)
 
     progress_step("Finalizing UI…")
-    splash.close()
-
+    # Show main window immediately, keep splash for ~1s at 100%
     tab_dialog.show()
+    QTimer.singleShot(750, splash.close)
     sys.exit(app.exec())
