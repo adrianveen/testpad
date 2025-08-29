@@ -12,6 +12,5 @@ dependencies:
   - pillow>=10
   - pyyaml>=6
   - pyinstaller>=6.15.0
-  - conda-lock>=3.0.4
   - pip
 
