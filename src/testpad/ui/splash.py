@@ -153,7 +153,7 @@ class SplashScreen(QWidget):
 
         # Color the app name to match progress fill; version stays black
         self.app_label.setStyleSheet("color: #69b19b;")
-        self.version_label.setStyleSheet("color: black;")
+        self.version_label.setStyleSheet("color: #69b19b;")
 
         # Place them side-by-side and center as a group
         self.name_row_wrap = QWidget()
