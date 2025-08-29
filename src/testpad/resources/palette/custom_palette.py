@@ -49,7 +49,12 @@ def load_custom_palette(palette_name: str) -> Tuple[QtGui.QPalette, str]:
             '}'
         )
     else:
-        palette = QtWidgets.QApplication.style().standardPalette()
+        # Ensure fallback uses Fusion style's standard palette
+        style = QtWidgets.QStyleFactory.create('Fusion')
+        if style is not None:
+            palette = style.standardPalette()
+        else:
+            palette = QtWidgets.QApplication.style().standardPalette()
         palette_style = ''
 
     return palette, palette_style
