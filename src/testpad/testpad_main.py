@@ -13,7 +13,7 @@ from testpad.version import __version__
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
-    def __init__(self, parent: QWidget=None, *,
+    def __init__(self, parent: QWidget, *,
                  progress_cb: Callable[[str], None] | None = None,
                  tabs_spec: List[Tuple[str, str, str]] | None = None): 
 

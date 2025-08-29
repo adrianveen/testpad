@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from PySide6.QtCore import Qt, QSize, QRect, QTimer
+from PySide6.QtCore import Qt, QSize, QRect, QRectF, QTimer
 from PySide6.QtGui import QPixmap, QPainter, QGuiApplication, QFontMetrics, QColor, QPen
 from PySide6.QtWidgets import (
     QWidget,
@@ -50,7 +50,7 @@ def _render_svg_to_pixmap(svg_path: str, size: QSize) -> Optional[QPixmap]:
     if not renderer.isValid():
         return None
     pm = QPixmap(size)
-    pm.fill(Qt.transparent)
+    pm.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pm)
     # Preserve aspect ratio within given size
     view_box = renderer.viewBoxF()
@@ -93,7 +93,7 @@ class SplashScreen(QWidget):
                 border-radius: 16px;
             }
             QLabel#versionLabel { color: #555; }
-            QLabel#messageLabel { color: #333; }
+            QLabel#messageLabel { color: black; }
             QProgressBar {
                 /* Rounded pill track */
                 background: #f5f5f5;
@@ -116,7 +116,7 @@ class SplashScreen(QWidget):
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(24)
         shadow.setOffset(0, 4)
-        shadow.setColor(Qt.black)
+        shadow.setColor(Qt.GlobalColor.black)
         self._frame.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(self._frame)
@@ -135,11 +135,35 @@ class SplashScreen(QWidget):
         logo_row.addWidget(self.logo_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addLayout(logo_row)
 
-        # Version
+        # App name + Version row
+        self.app_label = QLabel("Testpad")
+        self.app_label.setObjectName("appLabel")
         self.version_label = QLabel(version_text)
         self.version_label.setObjectName("versionLabel")
-        self.version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.version_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # Increase sizes
+        app_font = self.app_label.font()
+        app_font.setPointSize(20)
+        app_font.setBold(True)
+        self.app_label.setFont(app_font)
+
+        ver_font = self.version_label.font()
+        ver_font.setPointSize(18)
+        self.version_label.setFont(ver_font)
+
+        # Color the app name to match progress fill; version stays black
+        self.app_label.setStyleSheet("color: #69b19b;")
+        self.version_label.setStyleSheet("color: black;")
+
+        # Place them side-by-side and center as a group
+        self.name_row_wrap = QWidget()
+        name_row = QHBoxLayout(self.name_row_wrap)
+        name_row.setContentsMargins(0, 0, 0, 0)
+        name_row.setSpacing(8)
+        name_row.addWidget(self.app_label)
+        name_row.addWidget(self.version_label)
+        name_row.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(self.name_row_wrap, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # Progress bar (custom rounded painter to ensure curved fill caps)
         self.progress = RoundedProgressBar()
@@ -173,8 +197,9 @@ class SplashScreen(QWidget):
             bar_width = int(pm.size().width() * 0.9)
             self.progress.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             self.progress.setFixedWidth(bar_width)
+            # Keep app/version row to the same width for alignment
+            self.name_row_wrap.setFixedWidth(bar_width)
             # Constrain labels to the same width for consistent centering
-            self.version_label.setFixedWidth(bar_width)
             self.message_label.setFixedWidth(bar_width)
         else:
             # Fallback to text if rendering fails
@@ -228,10 +253,13 @@ class RoundedProgressBar(QWidget):
         self._value = 0
         self._text_visible = True
         self._format = "%p%"
-        # Colors to match prior stylesheet
-        self._track_bg = QColor("#f5f5f5")
-        self._track_border = QColor("#dddddd")
+        # Make track seamless with splash background (white) and no border
+        self._track_bg = QColor("#ffffff")
+        self._track_border = QColor(0, 0, 0, 0)  # unused; kept for compatibility
         self._fill = QColor("#69b19b")
+        # Ensure the parent background shows through with no widget background
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAutoFillBackground(False)
 
     def setRange(self, minimum: int, maximum: int) -> None:
         self._minimum = minimum
@@ -266,31 +294,46 @@ class RoundedProgressBar(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
         # Geometry and radius (half height for a pill)
-        w = max(0, self.width())
-        h = max(0, self.height())
-        if w == 0 or h == 0:
+        w = self.width()
+        h = self.height()
+        if w <= 0 or h <= 0:
             return
-        rect = self.rect().adjusted(1, 1, -1, -1)  # account for 1px border
-        radius = rect.height() / 2.0
 
-        # Track: background + 1px border
-        p.setPen(QPen(self._track_border, 1))
-        p.setBrush(self._track_bg)
-        p.drawRoundedRect(rect, radius, radius)
+        # Use integer-aligned rect (no half-pixel offset) to avoid fringe
+        outer = QRectF(self.rect())
+        radius = outer.height() / 2.0
+
+        # We'll render a full-length rounded green pill, then mask the right side
+        # with a hard-edged white rectangle (AA off) for a crisp flat head.
+        inner = QRectF(outer)
 
         # Fill amount (clamped)
-        percent = self._percent() / 100.0
+        percent = max(0.0, min(1.0, self._percent() / 100.0))
         if percent > 0.0:
-            fill_w = int(rect.width() * percent)
-            fill_rect = rect.adjusted(0, 0, -(rect.width() - fill_w), 0)
-            # Draw fill with same radius so ends are always curved
+            # Draw full rounded green pill first
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(self._fill)
-            # Ensure a minimum width for visible rounded cap at very low values
-            if fill_w <= 0:
-                pass
-            else:
-                p.drawRoundedRect(fill_rect, radius, radius)
+            p.drawRoundedRect(inner, inner.height() / 2.0, inner.height() / 2.0)
+            # Mask the right side for a crisp flat head when not 100%
+            if percent < 1.0:
+                cutoff = inner.left() + inner.width() * percent
+                # Disable AA for razor-sharp vertical edge
+                p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+                p.setBrush(QColor("#ffffff"))
+                p.setPen(Qt.PenStyle.NoPen)
+                # Use integer-aligned rect to avoid subpixel blending
+                cutoff_int = int(round(cutoff))
+                mask_rect = QRectF(cutoff_int, inner.top() - 1, inner.right() - cutoff_int + 1, inner.height() + 2)
+                p.drawRect(mask_rect)
+                # Re-enable AA for the outline and text
+                p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+
+        # Optional white outline on top to mask any AA fringe
+        pen = QPen(QColor("#ffffff"))
+        pen.setWidthF(1.0)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawRoundedRect(outer, radius, radius)
 
         # Text overlay (centered)
         if self._text_visible:
