@@ -1,28 +1,21 @@
 import sys
 import os
+from importlib import import_module
+from typing import Callable, List, Tuple
 # from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QCoreApplication
 
-from testpad.ui.tabs.matching_box_tab import MatchingBoxTab
-from testpad.ui.tabs.transducer_calibration_tab import TransducerCalibrationTab
-from testpad.ui.tabs.transducer_linear_tab import TransducerLinearTab
-from testpad.ui.tabs.rfb_tab import RFBTab
-from testpad.ui.tabs.vol2press_tab import Vol2PressTab
-from testpad.ui.tabs.burnin_tab import BurninTab
-from testpad.ui.tabs.nanobubbles_tab import NanobubblesTab
-from testpad.ui.tabs.temp_analysis_tab import TempAnalysisTab
-from testpad.ui.tabs.hydrophone_tab import HydrophoneAnalysisTab
-from testpad.ui.tabs.sweep_plot_tab import SweepGraphTab
 from testpad.resources.palette.custom_palette import load_custom_palette
+from testpad.ui.splash import SplashScreen
 from testpad.version import __version__ 
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
-    def __init__(self, parent: QWidget=None): 
-
-        # QMainWindow.__init__(self, parent)
+    def __init__(self, parent: QWidget=None, *,
+                 progress_cb: Callable[[str], None] | None = None,
+                 tabs_spec: List[Tuple[str, str, str]] | None = None): 
 
         super().__init__(parent)
         pkg_dir = os.path.dirname(__file__)
@@ -36,47 +29,100 @@ class ApplicationWindow(QMainWindow):
             icon_path = os.path.join(os.getcwd(), 'src', 'testpad', 'resources', 'fus_icon_transparent.ico')
         self.setWindowIcon(QIcon(icon_path))
         self.setWindowTitle(f"FUS Testpad v{__version__}")
-        self.resize(800, 600)        
-        
-        tab_widget = QTabWidget()
+        self.resize(800, 600)
 
-        tab_widget.addTab(MatchingBoxTab(self), "Matching Box") # matching calculations & CSV graphs
-        tab_widget.addTab(TransducerCalibrationTab(self), "Transducer Calibration Report") # calibration report graphs 
-        tab_widget.addTab(TransducerLinearTab(self), "Transducer Linear Graphs") # linear graphs made during calibration 
-        tab_widget.addTab(RFBTab(self), "Radiation Force Balance") # rfb graphs 
-        tab_widget.addTab(Vol2PressTab(self), "Sweep Analysis") # linear regression of sweep line using two different gains
-        tab_widget.addTab(BurninTab(self), "Burn-in Graph Viewer") # graphs HDF5 files from burn-in for user manipulation 
-        tab_widget.addTab(NanobubblesTab(self), "Nanobubbles Tab") # graphs nanobubbles size vs. count
-        tab_widget.addTab(TempAnalysisTab(self), "Temperature Analysis") # graphs temperature vs. time
-        tab_widget.addTab(HydrophoneAnalysisTab(self), "Hydrophone Analysis") # graphs hydrophone data
-        tab_widget.addTab(SweepGraphTab(), "Sweep Graphs") # placeholder tab for future use
+        self._tab_widget = QTabWidget()
 
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(tab_widget)
-        self.setLayout(main_layout)
-        self.setCentralWidget(tab_widget)
+        # Build tabs dynamically to allow progress reporting
+        self._build_tabs(progress_cb, tabs_spec)
+
+        # Set as central widget
+        self.setCentralWidget(self._tab_widget)
+
+    def _build_tabs(self, progress_cb: Callable[[str], None] | None,
+                    tabs_spec: List[Tuple[str, str, str]] | None) -> None:
+        # tabs_spec: list of (module_path, class_name, label)
+        if tabs_spec is None:
+            tabs_spec = [
+                ("testpad.ui.tabs.matching_box_tab", "MatchingBoxTab", "Matching Box"),
+                ("testpad.ui.tabs.transducer_calibration_tab", "TransducerCalibrationTab", "Transducer Calibration Report"),
+                ("testpad.ui.tabs.transducer_linear_tab", "TransducerLinearTab", "Transducer Linear Graphs"),
+                ("testpad.ui.tabs.rfb_tab", "RFBTab", "Radiation Force Balance"),
+                ("testpad.ui.tabs.vol2press_tab", "Vol2PressTab", "Sweep Analysis"),
+                ("testpad.ui.tabs.burnin_tab", "BurninTab", "Burn-in Graph Viewer"),
+                ("testpad.ui.tabs.nanobubbles_tab", "NanobubblesTab", "Nanobubbles Tab"),
+                ("testpad.ui.tabs.temp_analysis_tab", "TempAnalysisTab", "Temperature Analysis"),
+                ("testpad.ui.tabs.hydrophone_tab", "HydrophoneAnalysisTab", "Hydrophone Analysis"),
+                ("testpad.ui.tabs.sweep_plot_tab", "SweepGraphTab", "Sweep Graphs"),
+            ]
+
+        for module_path, class_name, label in tabs_spec:
+            try:
+                mod = import_module(module_path)
+                cls = getattr(mod, class_name)
+                module_file = getattr(mod, "__file__", module_path)
+                if progress_cb:
+                    progress_cb(f"Loading tab: {label} ({module_file})")
+                if label == "Sweep Graphs":
+                    # original ctor took no parent
+                    widget = cls()
+                else:
+                    widget = cls(self)
+                self._tab_widget.addTab(widget, label)
+            except Exception as e:  # keep app loading if one tab fails
+                if progress_cb:
+                    progress_cb(f"Failed to load: {label} — {e}")
+                # Add a placeholder error tab
+                from PySide6.QtWidgets import QLabel
+                err = QLabel(f"Failed to load '{label}': {e}")
+                self._tab_widget.addTab(err, label)
     
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    
+
     QCoreApplication.setOrganizationName("FUS Instruments")
     QCoreApplication.setOrganizationDomain("fusinstruments.com")
     QCoreApplication.setApplicationName("Testpad")
-    
-    app.setStyleSheet("QLabel{font-size: 11pt;}") # increase font size slightly of QLabels
+
+    app.setStyleSheet("QLabel{font-size: 11pt;}")  # increase font size slightly of QLabels
     app.setStyle("Fusion")
     dark_palette, palette_tooltip = load_custom_palette(palette_name="dark_palette")
-
     app.setPalette(dark_palette)
     app.setStyleSheet(palette_tooltip)
 
-    tab_dialog = ApplicationWindow()
-    # tab_dialog.setFixedSize(False)
-    # tab_dialog.setMaximumSize()
-    # tab_dialog.setFixedSize(700, 500)
-    tab_dialog.resize(1200, 800)
-    tab_dialog.show() 
-    
-    # tab_dialog.raise_() # look up what this does
+    # Splash screen setup
+    splash = SplashScreen(version_text=f"v{__version__}")
+    splash.show_centered()
+    splash.update_progress(2, "Starting Testpad…")
 
+    # Define tabs spec here so we can compute progress based on real work
+    tabs_spec = [
+        ("testpad.ui.tabs.matching_box_tab", "MatchingBoxTab", "Matching Box"),
+        ("testpad.ui.tabs.transducer_calibration_tab", "TransducerCalibrationTab", "Transducer Calibration Report"),
+        ("testpad.ui.tabs.transducer_linear_tab", "TransducerLinearTab", "Transducer Linear Graphs"),
+        ("testpad.ui.tabs.rfb_tab", "RFBTab", "Radiation Force Balance"),
+        ("testpad.ui.tabs.vol2press_tab", "Vol2PressTab", "Sweep Analysis"),
+        ("testpad.ui.tabs.burnin_tab", "BurninTab", "Burn-in Graph Viewer"),
+        ("testpad.ui.tabs.nanobubbles_tab", "NanobubblesTab", "Nanobubbles Tab"),
+        ("testpad.ui.tabs.temp_analysis_tab", "TempAnalysisTab", "Temperature Analysis"),
+        ("testpad.ui.tabs.hydrophone_tab", "HydrophoneAnalysisTab", "Hydrophone Analysis"),
+        ("testpad.ui.tabs.sweep_plot_tab", "SweepGraphTab", "Sweep Graphs"),
+    ]
+
+    total_steps = len(tabs_spec) + 2  # init + finalize
+    progress_state = {"step": 0}
+
+    def progress_step(message: str) -> None:
+        progress_state["step"] += 1
+        percent = int(progress_state["step"] / total_steps * 100)
+        splash.update_progress(percent, message)
+
+    progress_step("Initializing main window…")
+    tab_dialog = ApplicationWindow(progress_cb=progress_step, tabs_spec=tabs_spec)
+    tab_dialog.resize(1200, 800)
+
+    progress_step("Finalizing UI…")
+    splash.close()
+
+    tab_dialog.show()
     sys.exit(app.exec())
