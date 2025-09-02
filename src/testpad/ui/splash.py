@@ -67,6 +67,24 @@ def _render_svg_to_pixmap(svg_path: str, size: QSize) -> Optional[QPixmap]:
     return pm
 
 
+def _load_logo_pixmap(preferred_png: str, fallback_png: str, fallback_svg: str, size: QSize) -> Optional[QPixmap]:
+    # Try preferred PNG
+    p_png = resolve_resource_path(preferred_png)
+    if os.path.exists(p_png):
+        pm = QPixmap(p_png)
+        if not pm.isNull():
+            return pm.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    # Fallback PNG
+    f_png = resolve_resource_path(fallback_png)
+    if os.path.exists(f_png):
+        pm = QPixmap(f_png)
+        if not pm.isNull():
+            return pm.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    # Fallback SVG render if available
+    f_svg = resolve_resource_path(fallback_svg)
+    return _render_svg_to_pixmap(f_svg, size)
+
+
 class SplashScreen(QWidget):
     """
     Simple, rounded, white splash window with a progress bar.
@@ -86,31 +104,12 @@ class SplashScreen(QWidget):
 
         self._frame = QFrame()
         self._frame.setObjectName("splashFrame")
+        # Keep default widget styles; only basic label colors.
         self._frame.setStyleSheet(
             """
-            QFrame#splashFrame {
-                background: white;
-                border-radius: 16px;
-            }
+            QFrame#splashFrame { background: white; border-radius: 16px; }
             QLabel#versionLabel { color: #555; }
             QLabel#messageLabel { color: black; }
-            QProgressBar {
-                /* Rounded pill track */
-                background: #f5f5f5;
-                border: 1px solid #ddd;
-                border-radius: 18px; /* half of height for fully rounded ends */
-                height: 36px;
-                padding: 0px;       /* no padding so the chunk can meet the curve */
-                text-align: center;
-                font: 14pt;
-                color: black;
-            }
-            QProgressBar::chunk {
-                /* Green fill with matching rounded caps */
-                background-color: #69b19b;
-                border-radius: 18px; /* match track radius for seamless ends */
-                margin: 0px;         /* ensure fill touches the rounded edge */
-            }
             """
         )
         shadow = QGraphicsDropShadowEffect(self)
@@ -165,13 +164,13 @@ class SplashScreen(QWidget):
         name_row.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self.name_row_wrap, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        # Progress bar (custom rounded painter to ensure curved fill caps)
+        # Progress bar — custom, with default-like background and green fill
         self.progress = RoundedProgressBar()
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.progress.setTextVisible(True)
         self.progress.setFormat("%p%")
-        self.progress.setFixedHeight(36)
+        self.progress.setFixedHeight(24)
         layout.addWidget(self.progress, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # Message (below progress, reduces gap under logo)
@@ -185,10 +184,14 @@ class SplashScreen(QWidget):
 
         outer_layout.addWidget(self._frame)
 
-        # Load logo from SVG
-        svg_path = resolve_resource_path(logo_svg_relative)
-        # Render a larger logo for better visual weight
-        pm = _render_svg_to_pixmap(svg_path, QSize(760, 220))
+        # Load logo from PNG first (preferred), fall back to SVG
+        target_size = QSize(760, 220)
+        pm = _load_logo_pixmap(
+            preferred_png='FUS_logo_text_icon_ms_v3.png',
+            fallback_png='fus_icon_transparent.png',
+            fallback_svg=logo_svg_relative,
+            size=target_size,
+        )
         if isinstance(pm, QPixmap):
             self.logo_label.setPixmap(pm)
             # Fix label to pixmap size so Qt does not stretch it
@@ -203,7 +206,7 @@ class SplashScreen(QWidget):
             self.message_label.setFixedWidth(bar_width)
         else:
             # Fallback to text if rendering fails
-            base_name = os.path.basename(svg_path)
+            base_name = 'splash_logo.png'
             self.logo_label.setText(base_name)
 
         # Wider splash, slightly taller than the logo aspect ratio
@@ -224,7 +227,7 @@ class SplashScreen(QWidget):
             elided = fm.elidedText(self._full_message, Qt.TextElideMode.ElideRight, available)
             self.message_label.setText(elided)
             self.message_label.setToolTip(self._full_message)
-        # keep UI responsive during startup
+        # Keep UI responsive and visibly update the progress while loading
         app = QGuiApplication.instance()
         if app:
             app.processEvents()
@@ -253,11 +256,11 @@ class RoundedProgressBar(QWidget):
         self._value = 0
         self._text_visible = True
         self._format = "%p%"
-        # Make track seamless with splash background (white) and no border
-        self._track_bg = QColor("#ffffff")
-        self._track_border = QColor(0, 0, 0, 0)  # unused; kept for compatibility
-        self._fill = QColor("#69b19b")
-        # Ensure the parent background shows through with no widget background
+        # Default-like track and green fill
+        self._track_bg = QColor("#f5f5f5")
+        self._track_border = QColor("#dddddd")
+        self._fill = QColor("#69b19b")  # keep original bar color
+        # Transparent background so frame shows around it
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAutoFillBackground(False)
 
@@ -293,47 +296,30 @@ class RoundedProgressBar(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
-        # Geometry and radius (half height for a pill)
         w = self.width()
         h = self.height()
         if w <= 0 or h <= 0:
             return
 
-        # Use integer-aligned rect (no half-pixel offset) to avoid fringe
         outer = QRectF(self.rect())
         radius = outer.height() / 2.0
 
-        # We'll render a full-length rounded green pill, then mask the right side
-        # with a hard-edged white rectangle (AA off) for a crisp flat head.
-        inner = QRectF(outer)
+        # Track (background)
+        p.setPen(QPen(self._track_border, 1.0))
+        p.setBrush(self._track_bg)
+        p.drawRoundedRect(outer, radius, radius)
 
-        # Fill amount (clamped)
+        # Fill amount
         percent = max(0.0, min(1.0, self._percent() / 100.0))
         if percent > 0.0:
-            # Draw full rounded green pill first
+            fill_w = outer.width() * percent
+            # Clip to the fill width, then draw the same rounded rect as the track
+            p.save()
+            p.setClipRect(QRectF(outer.left(), outer.top(), fill_w, outer.height()))
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(self._fill)
-            p.drawRoundedRect(inner, inner.height() / 2.0, inner.height() / 2.0)
-            # Mask the right side for a crisp flat head when not 100%
-            if percent < 1.0:
-                cutoff = inner.left() + inner.width() * percent
-                # Disable AA for razor-sharp vertical edge
-                p.setRenderHint(QPainter.RenderHint.Antialiasing, False)
-                p.setBrush(QColor("#ffffff"))
-                p.setPen(Qt.PenStyle.NoPen)
-                # Use integer-aligned rect to avoid subpixel blending
-                cutoff_int = int(round(cutoff))
-                mask_rect = QRectF(cutoff_int, inner.top() - 1, inner.right() - cutoff_int + 1, inner.height() + 2)
-                p.drawRect(mask_rect)
-                # Re-enable AA for the outline and text
-                p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-
-        # Optional white outline on top to mask any AA fringe
-        pen = QPen(QColor("#ffffff"))
-        pen.setWidthF(1.0)
-        p.setPen(pen)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawRoundedRect(outer, radius, radius)
+            p.drawRoundedRect(outer, radius, radius)
+            p.restore()
 
         # Text overlay (centered)
         if self._text_visible:
