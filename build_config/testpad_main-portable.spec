@@ -100,7 +100,10 @@ a = Analysis(
             'backends': ['qtagg'],
         },
     },
-    runtime_hooks=[os.path.join(base_dir, 'build_config', 'runtime_hook_qt.py')],
+    runtime_hooks=[
+        os.path.join(base_dir, 'build_config', 'runtime_hook_qt.py'),
+        os.path.join(base_dir, 'build_config', 'runtime_hook_mpl.py'),
+    ],
     excludes=['PyQt5'],
     noarchive=False,
     optimize=0,
