@@ -20,7 +20,8 @@ a = Analysis(
     hookspath=[],
     hooksconfig={
         'matplotlib': {
-            'backends': 'all',  # collect all backends
+            # Only the Qt backend needed by PySide6
+            'backends': ['qtagg'],
         },
     },
     runtime_hooks=[],
@@ -39,7 +40,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     console=False,  # windowed app (no console)
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -53,7 +54,7 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name=f'testpad_v{VERSION}',
 )

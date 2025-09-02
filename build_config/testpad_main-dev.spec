@@ -19,7 +19,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={
         'matplotlib': {
-            'backends': 'all',
+            'backends': ['qtagg'],
         },
     },
     runtime_hooks=[],
