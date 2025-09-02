@@ -67,6 +67,24 @@ def _render_svg_to_pixmap(svg_path: str, size: QSize) -> Optional[QPixmap]:
     return pm
 
 
+def _load_logo_pixmap(preferred_png: str, fallback_png: str, fallback_svg: str, size: QSize) -> Optional[QPixmap]:
+    # Try preferred PNG
+    p_png = resolve_resource_path(preferred_png)
+    if os.path.exists(p_png):
+        pm = QPixmap(p_png)
+        if not pm.isNull():
+            return pm.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    # Fallback PNG
+    f_png = resolve_resource_path(fallback_png)
+    if os.path.exists(f_png):
+        pm = QPixmap(f_png)
+        if not pm.isNull():
+            return pm.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    # Fallback SVG render if available
+    f_svg = resolve_resource_path(fallback_svg)
+    return _render_svg_to_pixmap(f_svg, size)
+
+
 class SplashScreen(QWidget):
     """
     Simple, rounded, white splash window with a progress bar.
@@ -166,10 +184,14 @@ class SplashScreen(QWidget):
 
         outer_layout.addWidget(self._frame)
 
-        # Load logo from SVG
-        svg_path = resolve_resource_path(logo_svg_relative)
-        # Render a larger logo for better visual weight
-        pm = _render_svg_to_pixmap(svg_path, QSize(760, 220))
+        # Load logo from PNG first (preferred), fall back to SVG
+        target_size = QSize(760, 220)
+        pm = _load_logo_pixmap(
+            preferred_png='FUS_logo_text_icon_ms_v3.png',
+            fallback_png='fus_icon_transparent.png',
+            fallback_svg=logo_svg_relative,
+            size=target_size,
+        )
         if isinstance(pm, QPixmap):
             self.logo_label.setPixmap(pm)
             # Fix label to pixmap size so Qt does not stretch it
@@ -184,7 +206,7 @@ class SplashScreen(QWidget):
             self.message_label.setFixedWidth(bar_width)
         else:
             # Fallback to text if rendering fails
-            base_name = os.path.basename(svg_path)
+            base_name = 'splash_logo.png'
             self.logo_label.setText(base_name)
 
         # Wider splash, slightly taller than the logo aspect ratio
