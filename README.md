@@ -1,145 +1,209 @@
 Testpad
 =======
 
-Desktop application for generating calibration, analysis, and visualization outputs for FUS transducers and related workflows. The repository is structured for developers; end‑users typically receive a packaged installer or executable.
+Desktop application for generating calibration, analysis, and visualization outputs for FUS transducers and related workflows. The application is built with PySide6 (Qt) and provides modular tabs for common lab and production tasks.
 
-This README focuses on developer setup, project structure, and build/distribution guidance.
+This README covers setup, usage, and build/distribution for developers.
 
+## Table of Contents
 
-Overview
---------
-Testpad is a PySide6 (Qt) desktop app with modular tabs for:
+- [Testpad](#testpad)
+  - [Table of Contents](#table-of-contents)
+  - [About the Project](#about-the-project)
+    - [Key Features](#key-features)
+    - [Built With](#built-with)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+  - [Usage](#usage)
+    - [Launching The App](#launching-the-app)
+    - [Common Workflows](#common-workflows)
+    - [Building/Packaging](#buildingpackaging)
+  - [Contributing](#contributing)
+  - [Troubleshooting](#troubleshooting)
+  - [Example Dataset](#example-dataset)
+  - [License](#license)
+  - [Contact](#contact)
 
-- Matching box calculations and CSV plotting
-- Transducer calibration reports (sweeps, field, and line plots)
-- Transducer linear graphs
-- RFB (Radiation Force Balance) analysis
-- Sweep graphs
-- Burn‑in visualization and stats
-- Hydrophone analysis
-- Temperature analysis
-- Vol2Press sweep analysis and YAML generation
+---
 
-Major dependencies: PySide6, NumPy/SciPy, Matplotlib, h5py, pandas, PyYAML.
+## About the Project
 
+Testpad is a PySide6 desktop app with modular tabs to support calibration, plotting, and analysis for FUS transducers and related workflows.
 
-Project Structure
------------------
-The codebase uses a “src/” layout and separates UI and non‑UI logic.
+### Key Features
+- Tabbed workflows for:
+  - Matching box calculations and CSV plotting
+  - Transducer calibration reports (sweeps, field, line plots)
+  - Transducer linear graphs
+  - Radiation Force Balance (RFB) analysis
+  - Sweep graphs and burn-in visualization
+  - Hydrophone and temperature analysis
+  - Vol2Press sweep analysis and YAML generation
+- Lazy-loaded tabs for faster startup and responsive UI
+- Packaged builds for distribution (one-dir and one-file)
 
+### Built With
+- Python 3.12
+- PySide6 (Qt 6)
+- NumPy, SciPy, pandas
+- Matplotlib, Pillow
+- h5py, PyYAML
+
+---
+
+## Getting Started
+
+Follow these steps to set up the project locally for use or development.
+
+### Prerequisites
+- Python 3.12
+- Conda (Miniconda/Anaconda) for environment management
+- Windows PowerShell recommended for helper scripts (cross-platform Python run is still supported)
+
+### Installation
+
+1) Clone the repository
+```bash
+git clone <this-repo-url>
+cd testpad
 ```
-testpad/                 # repo root
-├─ src/
-│  └─ testpad/
-│     ├─ testpad_main.py           # entry point (module: testpad.testpad_main)
-│     ├─ version.py
-│     ├─ resources/                # icons, static resources
-│     │  ├─ fus_icon_transparent.ico
-│     │  └─ ...
-│     ├─ ui/
-│     │  └─ tabs/                  # all tab widgets (Qt Widgets)
-│     │     ├─ matching_box_tab.py
-│     │     ├─ transducer_calibration_tab.py
-│     │     ├─ transducer_linear_tab.py
-│     │     └─ ...
-│     ├─ core/                     # non‑UI logic (calculations, I/O)
-│     │  ├─ matching_box/
-│     │  ├─ transducer/            # calibration + plotting utilities
-│     │  └─ ...
-│     └─ utils/                    # validators, helpers
-│
-├─ build_config/                   # PyInstaller specs, build assets
-├─ tests/                          # test suite (pytest suggested)
-├─ environment.yml                 # dev environment (conda)
-├─ pyproject.toml                  # packaging / build config
-└─ .vscode/launch.json             # debug configurations
+
+2) Create the developer environment (includes PySide6 and libraries)
+- Recommended (uses lockfile if available):
+```powershell
+./scripts/setup-dev-env.ps1
+```
+- Manual:
+```powershell
+conda env create -f environment-dev.yml
 ```
 
+3) Activate the environment
+```powershell
+conda activate testpad-dev
+```
 
-Getting Started (Developers)
----------------------------
+---
 
-Prerequisites
-- Python 3.12 (recommended)
-- Conda (Miniconda/Anaconda) recommended for native deps (NumPy/h5py/etc.)
-- VS Code (optional) with Python extension
+## Usage
 
-Setup
-1) Clone the repository.
-2) Create the environment (includes PySide6 6.7.x and libraries):
-   - `conda env create -f environment.yml`
-3) Activate it:
-   - `conda activate testpad-dev`
+### Launching The App
+- Using helper script (from repo root):
+```powershell
+./scripts/run.ps1
+```
+- Manually from `src/`:
+```powershell
+cd src
+python -m testpad.testpad_main
+```
+- Or from repo root by setting `PYTHONPATH`:
+```powershell
+$env:PYTHONPATH = "src"
+python -m testpad.testpad_main
+```
 
-Run
-- From repo root (recommended):
-  - `python -m testpad.testpad_main`
+VS Code (optional)
+- Module: `testpad.testpad_main`
+- CWD: `${workspaceFolder}/src`
+- Optional env: `PYTHONPATH=${workspaceFolder}/src`
 
-VS Code
-- Preferred debug config (module mode):
-  - module: `testpad.testpad_main`
-  - cwd: `${workspaceFolder}/src`
+### Common Workflows
+- Transducer Calibration Report
+  - Open the “Transducer Calibration Report” tab.
+  - Provide required inputs and generate the sweep/field/line plots; export figures as needed.
+- Matching Box Calculator
+  - Open the “Matching Box” tab.
+  - Import/load CSV data and compute LC circuit values; visualize CSV graphs.
+- Sweep Analysis / Burn-in / Hydrophone / Temperature
+  - Open the corresponding tab, load relevant data files, and generate plots/exports as needed.
 
-Packaging / Distribution
-------------------------
-We use PyInstaller specs under `build_config/` to generate an executable.
+### Building/Packaging
+We use PyInstaller specs under `build_config/` to generate executables.
 
-- Ensure the environment is active, then install PyInstaller if needed:
-  - `pip install pyinstaller`
-- Build using the provided spec:
-  - `pyinstaller build_config/testpad_main.spec`
+1) Prepare a release environment
+```powershell
+./scripts/setup-release-env.ps1
+```
+2) Build variants
+```powershell
+# One-dir, windowed
+./scripts/build-release.ps1 -Clean
+
+# One-file portable .exe
+./scripts/build-portable.ps1 -Clean
+
+# One-dir, console (dev)
+./scripts/build-dev.ps1 -Clean
+
+# Aggregator
+./scripts/build.ps1 -Target release   -Clean
+./scripts/build.ps1 -Target portable  -Clean
+./scripts/build.ps1 -Target dev       -Clean
+```
+Manual equivalent:
+```powershell
+conda run -n testpad-release pyinstaller build_config/testpad_main-release.spec --noconfirm
+```
 
 Notes
-- The spec bundles:
-  - `src/testpad/resources` → collected as `resources/` at runtime
-  - Matching box schematic images from `src/testpad/core/matching_box/`
-- The application resolves the app icon from package resources and also when frozen (via `_MEIPASS`).
+- Specs bundle `src/testpad/resources` as `resources/` at runtime and include matching-box schematics.
+- Runtime hooks collect Qt plugins and Matplotlib backends: `build_config/runtime_hook_qt.py`, `build_config/runtime_hook_mpl.py`.
 
+---
 
-Key Conventions
----------------
-- Code style: PEP 8 (auto‑formatters optional), with type hints where practical.
-- UI (Qt Widgets) lives under `src/testpad/ui/tabs/`.
-- Non‑UI logic belongs in `src/testpad/core/` (pure functions, I/O, plotting backends).
-- Shared helpers live in `src/testpad/utils/`.
-- Avoid heavy work in `__init__` for long‑running classes; prefer explicit `run()` methods.
+## Contributing
 
+Please make new contributions under a feature branch and open a pull request for review.
 
-Transducer Calibration API (Developers)
---------------------------------------
-The calibration module provides a typed API while preserving legacy usage.
+1) Create a feature branch
+```bash
+git checkout -b prefix/feature-name
+```
+2) Commit your changes
+```bash
+git commit -m "Add feature-name"
+```
+3) Push the branch
+```bash
+git push origin prefix/feature-name
+```
+4) Open a pull request
 
-- Preferred:
-  - `from testpad.core.transducer.combined_calibration_figures_python import CombinedCalibration, CombinedCalibrationConfig`
-  - Build a `CombinedCalibrationConfig` and pass it to `CombinedCalibration(config, textbox)`; then call `getGraphs()`.
-- Legacy wrapper (still available):
-  - `from testpad.core.transducer.combined_calibration_figures_python import combined_calibration`
-  - Call `combined_calibration(var_list, textbox).getGraphs()`.
+Branch name prefixes: `new_feat/` or `bug/` are suggested.
 
+---
 
-Testing
--------
-- Test suite placeholder in `tests/`. We recommend `pytest`.
-- Philosophy: unit test core modules (in `src/testpad/core/`); keep UI tests light.
-
-
-Troubleshooting
----------------
+## Troubleshooting
 - `ModuleNotFoundError: No module named 'testpad'`
-  - Run from the project root using module mode: `python -m testpad.testpad_main`, or set `PYTHONPATH=src`.
+  - Run from `src/` (e.g., `cd src; python -m testpad.testpad_main`) or set `PYTHONPATH=src` from the repo root. The helper script `./scripts/run.ps1` runs in module mode for you.
 - Qt plugin errors when frozen
-  - Ensure PyInstaller spec is used; it collects Qt plugins and Matplotlib backends.
+  - Ensure you build using the PyInstaller specs; runtime hooks collect Qt plugins and Matplotlib backends.
 - Missing DLLs (BLAS/HDF5)
-  - Use the provided conda environment; it ensures compatible native libs.
+  - Use the provided conda environments (`environment-*.yml`) or lockfiles.
+- PowerShell execution policy blocks scripts
+  - Enable for the current session:
+    ```powershell
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+    ```
 
+---
 
-Contributing
-------------
-- Use feature branches and pull requests.
-- Keep changes focused; document any user‑visible behavior updates.
-- Prefer typed, testable code in `core/`; keep UI layers thin.
+## Example Dataset
+No public example datasets are bundled with this repository. If you need sample data for testing or demos, contact your team or use internal lab datasets.
 
+---
 
-License
--------
+## License
+
 If a license is required, add it here. Otherwise, the code is proprietary to its author(s) and/or organization.
+
+---
+
+## Contact
+
+- Open an issue in this repository for bugs and feature requests.
+- For internal support, contact your FUS Instruments team/maintainer.
+- Maintainer: Adrian Veenhoven — adrian.veen@gmail.com
+
