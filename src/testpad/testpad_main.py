@@ -1,11 +1,12 @@
 import sys
 import os
 import importlib
-import contextlib
+from contextlib import contextmanager
+import time 
+import logging
 from importlib.abc import MetaPathFinder as _MetaPathFinder
 from importlib.machinery import PathFinder as _PathFinder
 from typing import Callable, List, Tuple, Set, Optional
-# from PySide6.QtGui import QResizeEvent, QPalette
 from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QCoreApplication, QTimer, QSignalBlocker
@@ -96,7 +97,7 @@ class ApplicationWindow(QMainWindow):
         # Initial tab is loaded synchronously in __init__ to avoid blank window
 
     @staticmethod
-    @contextlib.contextmanager
+    @contextmanager
     def _progress_imports(callback: Optional[Callable[[str], None]], targets: Set[str], per_file_cb: Optional[Callable[[int], None]] = None):
         if callback is None:
             yield
@@ -147,33 +148,42 @@ class ApplicationWindow(QMainWindow):
                 pass
 
     def _ensure_loaded(self, index: int, progress_cb: Optional[Callable[[str], None]] = None) -> None:
+        # Skip work if the tab is already loaded or the index falls outside the spec list.
         if index in self._loaded or index < 0 or index >= len(self._lazy_specs):
             return
         label, module_path, class_name = self._lazy_specs[index]
         try:
+            # Provide immediate feedback that this tab is the one being resolved.
             if progress_cb:
                 progress_cb(f"Loading: {label} ({module_path})")
+            # Highlight module families that tend to dominate import time so the progress UI can
+            # surface meaningful messages while the interpreter walks their files.
             heavy = {"testpad", "PySide6", "numpy", "pandas", "matplotlib", "h5py", "scipy", "PIL", "yaml"}
+            # Temporarily install our import tracer to stream progress callbacks as dependencies load.
             with self._progress_imports(progress_cb, heavy, self._per_file_cb):
                 mod = importlib.import_module(module_path)
+            # Late-bind the widget class so we do not pay import costs until the tab is needed.
             cls = getattr(mod, class_name)
-            # SweepGraphTab originally took no parent
+            # `SweepGraphTab` predates the parent-aware tabs, so we keep its legacy construction path.
             widget = cls() if label == "Sweep Graphs" else cls(self)
             if progress_cb:
                 progress_cb(f"Loaded: {label}")
         except Exception as e:
             from PySide6.QtWidgets import QLabel
+            # Substitute a failure indicator so the user sees the problem instead of a blank tab.
             widget = QLabel(f"Failed to load '{label}': {e}")
 
         # Replace placeholder while preserving index
         blocker = QSignalBlocker(self._tab_widget)
         try:
+            # Swap the placeholder for the real widget without triggering `currentChanged`.
             self._tab_widget.removeTab(index)
             self._tab_widget.insertTab(index, widget, label)
             # Keep current index without re-triggering currentChanged
             self._tab_widget.setCurrentIndex(index)
         finally:
             del blocker
+        # Remember that this tab has been resolved so future activations are no-ops.
         self._loaded[index] = True
     
 if __name__ == "__main__":
