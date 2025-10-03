@@ -1,107 +1,276 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, Iterable, Sequence, Optional
+from typing import Any, Dict, List, Optional, Iterable
+import csv
 
-"""
-Data Flow (Dissolved O2 Tab)
---------------------------------
-Inputs (future):
-  - Primary data file (planned): .csv or .txt with columns:
-        timestamp (ISO/string), temperature_c (float), oxygen_ppm OR sensor_counts (int/float)
-  - Optional calibration file: .yaml containing calibration coefficients:
-        {
-          "sensor": "XYZ123",
-          "slope": <float>,
-          "offset": <float>,
-          "temperature_comp": { "a": <float>, "b": <float> }
-        }
+# ------------------ Constants / Defaults ------------------
 
-Planned Processing Steps:
-  1. load_from_file(path): lightweight parse → cache raw fields
-  2. apply_calibration(): convert raw sensor counts → oxygen_ppm (if needed)
-  3. compute_summary(): derive aggregates (mean, min, max)
-  4. expose state via get_state() / to_dict() for UI + persistence
+MIN_MINUTE = 0
+MAX_MINUTE = 10
+DEFAULT_TEST_DESCRIPTIONS = [
+    "Vacuum Pressure:",
+    "Flow Rate:",
+    "Dissolved Oxygen level test:",
+    "Dissolved Oxygen re-circulation test (1000 mL):",
+]
 
-State Keys (DissolvedO2State):
-  loaded        : bool          - Has a file been (successfully) loaded
-  source_path   : str | None    - Absolute path to last loaded file
-  temperature_c : float | None  - Last parsed (or computed) temperature
-  oxygen_ppm    : float | None  - Last parsed or calibrated dissolved oxygen value
+# ------------------ Data Structures ------------------
 
-Outputs:
-  - DissolvedO2State object (immutable snapshot via get_state())
-  - Dict form (for serialization / saving UI session state)
-
-Non-Goals (current phase):
-  - Real parsing / calibration math
-  - Multi-file aggregation
-  - Background threading (handled later by presenter/service layer)
-"""
+@dataclass
+class TestResultRow:
+    description: str
+    pass_fail: str = ""          # "Pass" / "Fail" / "" (UI enforces)
+    spec_min: Optional[float] = None
+    spec_max: Optional[float] = None
+    measured: Optional[float] = None
 
 @dataclass
 class DissolvedO2State:
-    loaded: bool = False
-    source_path: str | None = None
-    temperature_c: float | None = None
-    oxygen_ppm: float | None = None
+    loaded: bool
+    points_filled: int
+    temperature_c: float | None
+    minutes_with_data: List[int]
 
-
+# ------------------ Model ------------------
 class DissolvedO2Model:
-    """In-memory state holder + pure data transformations (logic stubbed for now)."""
+    """
+    Simple model for a 10-minute dissolved O2 test.
+
+    Table A (Test Results):
+      - 4 rows.
+      - Columns: Description (static), Pass/Fail, Spec_Min, Spec_Max, Data Measured.
+      - Only non-description fields user-editable.
+    
+    Table B (Time Series):
+      - Minutes fixed: 0..10 (inclusive).
+      - oxygen_mg_per_L > 0 (float).
+      - Stored in _oxygen_data: minute -> value.
+
+    Temperature:
+      - Single optional static value (applies to entire test).
+
+    CSV Import:
+      - Flexible headers for time & oxygen:
+          time aliases: time, Time, minute, minutes, t_min
+          oxygen aliases: oxygen, oxygen_mg_per_L, o2, O2, do2, DO2
+          (temperature optional: temperature_c, temp_c, Temperature, temp)
+      - Minutes coerced to int; must be 0..10.
+      - Oxygen must be > 0.
+
+    Errors:
+      - All validation failures raise ValueError (UI should catch and display).
+    """
 
     def __init__(self) -> None:
-        self._state = DissolvedO2State()
+        self._oxygen_data: Dict[int, float] = {}
+        self._temperature_c: float | None = None
+        self._test_rows: List[TestResultRow] = [
+            TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS
+        ]
+        self._source_path: str | None = None
 
-    # -------- State Accessors --------
+    # -------- Validation Helpers --------
+    @staticmethod
+    def _validate_minute(minute: int) -> None:
+        """Ensure the minute identifier is an integer within the allowed 0..10 window."""
+        if not isinstance(minute, int):
+            raise ValueError("Minute must be an integer.")
+        if minute < MIN_MINUTE or minute > MAX_MINUTE:
+            raise ValueError(f"Minute must be in range {MIN_MINUTE}..{MAX_MINUTE}.")
+
+    @staticmethod
+    def _coerce_minute(raw: str) -> int:
+        """Parse a raw time value into a valid minute slot, raising if coercion fails."""
+        try:
+            m = int(float(raw))
+        except Exception as e:
+            raise ValueError(f"Time value not numeric: {raw}") from e
+        DissolvedO2Model._validate_minute(m)
+        return m
+
+    @staticmethod
+    def _validate_oxygen(value: float | str | int) -> float:
+        """Normalize an oxygen reading to float and enforce the > 0 mg/L requirement."""
+        try:
+            v = float(value)
+        except Exception as e:
+            raise ValueError(f"Oxygen value not numeric: {value}") from e
+        if v <= 0:
+            raise ValueError("Oxygen (mg/L) must be > 0.")
+        return v
+
+    # -------- Time Series API --------
+    def set_measurement(self, minute: int, oxygen_mg_per_L: float) -> DissolvedO2State:
+        """Insert or update the oxygen reading for a specific minute slot."""
+        self._validate_minute(minute)
+        self._oxygen_data[minute] = self._validate_oxygen(oxygen_mg_per_L)
+        return self.get_state()
+
+    def bulk_set_measurements(self, pairs: Iterable[tuple[int, float]]) -> DissolvedO2State:
+        """Apply multiple minute/value pairs, validating each in sequence."""
+        for m, v in pairs:
+            self.set_measurement(m, v)
+        return self.get_state()
+
+    def clear_measurement(self, minute: int) -> DissolvedO2State:
+        """Remove any stored reading for the given minute (no-op if missing)."""
+        self._validate_minute(minute)
+        self._oxygen_data.pop(minute, None)
+        return self.get_state()
+
+    def list_measurements(self) -> List[tuple[int, float]]:
+        """Return the stored readings sorted by minute for stable UI rendering."""
+        return sorted(self._oxygen_data.items())
+
+    def build_time_series_rows(self) -> List[tuple[int, Optional[float]]]:
+        """Generate an 11-row minute grid with gaps filled by ``None`` for the UI table."""
+        return [(m, self._oxygen_data.get(m)) for m in range(MIN_MINUTE, MAX_MINUTE + 1)]
+
+    # -------- Temperature --------
+    def set_temperature(self, temperature_c: float | str | int) -> DissolvedO2State:
+        """Store the shared bath temperature, coercing numeric inputs to float."""
+        try:
+            t = float(temperature_c)
+        except Exception as e:
+            raise ValueError("Temperature must be numeric.") from e
+        self._temperature_c = t
+        return self.get_state()
+
+    def clear_temperature(self) -> DissolvedO2State:
+        """Reset the optional temperature reading back to an unset state."""
+        self._temperature_c = None
+        return self.get_state()
+
+    # -------- Test Results Table --------
+    def update_test_row(self,
+                        index: int,
+                        pass_fail: Optional[str] = None,
+                        spec_min: Optional[float | str] = None,
+                        spec_max: Optional[float | str] = None,
+                        measured: Optional[float | str] = None) -> List[TestResultRow]:
+        """Mutate a single test-result row, coercing numerics and returning a copy list."""
+        if not (0 <= index < len(self._test_rows)):
+            raise ValueError("Test row index out of range.")
+        row = self._test_rows[index]
+        if pass_fail is not None:
+            row.pass_fail = pass_fail
+        if spec_min is not None:
+            row.spec_min = float(spec_min)
+        if spec_max is not None:
+            row.spec_max = float(spec_max)
+        if measured is not None:
+            row.measured = float(measured)
+        return self.get_test_rows()
+
+    def get_test_rows(self) -> List[TestResultRow]:
+        """Return deep-copied test rows so callers cannot mutate internal state."""
+        return [TestResultRow(**asdict(r)) for r in self._test_rows]
+
+    def set_test_descriptions(self, descriptions: List[str]) -> None:
+        """
+        Developer utility (not user-facing).
+        Reassigns the static description column (length must remain 4).
+        """
+        if len(descriptions) != 4:
+            raise ValueError("Exactly 4 descriptions required.")
+        for i, desc in enumerate(descriptions):
+            self._test_rows[i].description = desc
+
+    # -------- CSV Load / Save --------
+    def load_from_csv(self, path: str) -> DissolvedO2State:
+        """
+        Loads time series from CSV.
+        Headers (one of each required):
+          time aliases: time, Time, minute, minutes, t_min
+          oxygen aliases: oxygen, oxygen_mg_per_L, o2, O2, do2, DO2
+          temperature (optional): temperature_c, temp_c, Temperature, temp
+        Raises ValueError on first invalid row.
+        """
+        time_aliases = {"time", "Time", "minute", "minutes", "t_min"}
+        oxy_aliases = {"oxygen", "oxygen_mg_per_L", "o2", "O2", "do2", "DO2"}
+        temp_aliases = {"temperature_c", "temp_c", "Temperature", "temp"}
+
+        self._source_path = path
+        with open(path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            if reader.fieldnames is None:
+                raise ValueError("CSV missing header row.")
+            headers = set(reader.fieldnames)
+
+            def resolve(candidates: set[str], required: bool) -> Optional[str]:
+                for h in headers:
+                    if h in candidates:
+                        return h
+                if required:
+                    raise ValueError(f"Missing required column; expected one of: {sorted(candidates)}")
+                return None
+
+            time_col = resolve(time_aliases, True)
+            oxy_col = resolve(oxy_aliases, True)
+            temp_col = resolve(temp_aliases, False)
+
+            # Start fresh
+            self._oxygen_data.clear()
+
+            for line_no, row in enumerate(reader, start=2):
+                raw_time = row.get(time_col, "").strip()
+                raw_oxy = row.get(oxy_col, "").strip()
+                if raw_time == "" or raw_oxy == "":
+                    raise ValueError(f"Blank time or oxygen at line {line_no}.")
+                minute = self._coerce_minute(raw_time)
+                oxy_val = self._validate_oxygen(raw_oxy)
+                self._oxygen_data[minute] = oxy_val  # overwrite if duplicate
+                if temp_col:
+                    raw_temp = row.get(temp_col, "").strip()
+                    if raw_temp:
+                        try:
+                            self._temperature_c = float(raw_temp)
+                        except ValueError:
+                            raise ValueError(f"Invalid temperature at line {line_no}: {raw_temp}")
+
+        return self.get_state()
+
+    def export_csv(self, path: str, include_temperature: bool = True) -> None:
+        """Write the time-series data (and optional temperature) to a tidy CSV file."""
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            cols = ["minute", "oxygen_mg_per_L"]
+            if include_temperature and self._temperature_c is not None:
+                cols.append("temperature_c")
+            writer.writerow(cols)
+            for minute, oxy in self.list_measurements():
+                row = [minute, oxy]
+                if include_temperature and self._temperature_c is not None:
+                    row.append(self._temperature_c)
+                writer.writerow(row)
+
+    # -------- State / Reset / Serialization --------
+    def reset(self) -> DissolvedO2State:
+        """Restore the model to a pristine state with default rows and no data."""
+        self._oxygen_data.clear()
+        self._temperature_c = None
+        self._test_rows = [TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS]
+        self._source_path = None
+        return self.get_state()
+
     def get_state(self) -> DissolvedO2State:
-        """Return a copy-like snapshot of current state (read-only for callers)."""
-        return DissolvedO2State(**asdict(self._state))
+        """Snapshot the current model state for presenter/view consumption."""
+        return DissolvedO2State(
+            loaded=bool(self._oxygen_data),
+            points_filled=len(self._oxygen_data),
+            temperature_c=self._temperature_c,
+            minutes_with_data=sorted(self._oxygen_data.keys()),
+        )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize state for persistence."""
-        return asdict(self._state)
-
-    # -------- Mutators / Lifecycle --------
-    def reset(self) -> DissolvedO2State:
-        """Clear all loaded data back to defaults."""
-        self._state = DissolvedO2State()
-        return self.get_state()
-
-    def load_from_file(self, path: str) -> DissolvedO2State:
-        """
-        Stub: register a file as 'loaded'.
-        Future: parse file, populate temperature / oxygen.
-        """
-        self._state.source_path = path
-        self._state.loaded = True
-        return self.get_state()
-
-    def set_temperature(self, value: float) -> DissolvedO2State:
-        """Set (parsed or computed) temperature in °C."""
-        self._state.temperature_c = value
-        return self.get_state()
-
-    def set_oxygen(self, ppm: float) -> DissolvedO2State:
-        """Set dissolved oxygen value (parts per million)."""
-        self._state.oxygen_ppm = ppm
-        return self.get_state()
-
-    # -------- Future Calibration Hooks (placeholders) --------
-    def apply_calibration(self) -> DissolvedO2State:
-        """
-        Placeholder: will transform raw sensor counts into oxygen_ppm.
-        Currently a no-op.
-        """
-        return self.get_state()
-
-    def compute_summary(self) -> Dict[str, Optional[float]]:
-        """
-        Placeholder: aggregate statistics (mean/min/max).
-        Returns dict with nulls until real data added.
-        """
+        """Serialize the model to primitive types for persistence or debugging."""
+        # Persistence breadcrumb:
+        # - Mirror this structure with `state_schema.json`.
+        # - Future helper: add `from_dict` to rehydrate `_oxygen_data`, `_temperature_c`,
+        #   `_test_rows`, `_source_path`, and metadata once presenter captures it.
         return {
-            "temperature_mean": self._state.temperature_c,
-            "oxygen_mean": self._state.oxygen_ppm,
-            "oxygen_min": self._state.oxygen_ppm,
-            "oxygen_max": self._state.oxygen_ppm,
+            "oxygen_data": {str(k): v for k, v in self._oxygen_data.items()},
+            "temperature_c": self._temperature_c,
+            "test_results": [asdict(r) for r in self.get_test_rows()],
+            "source_path": self._source_path,
         }
