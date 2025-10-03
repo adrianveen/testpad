@@ -36,6 +36,7 @@ class DissolvedO2Presenter:
         self._view._import_csv_btn.clicked.connect(self._on_import_csv)
         self._view._export_csv_btn.clicked.connect(self._on_export_csv)
         self._view._generate_report_btn.clicked.connect(self._on_generate_report)
+        self._view._reset_btn.clicked.connect(self._on_reset)
 
         # Pass/Fail combo boxes
         for row in range(7):
@@ -198,6 +199,21 @@ class DissolvedO2Presenter:
         finally:
             self._block_signals(False)
     
+    def _on_reset(self) -> None:
+        """Handle reset button click - clear all data"""
+        # Confirmation dialog
+        reply = PySide6.QtWidgets.QMessageBox.question(
+            self._view,
+            "Confirm Reset Data",
+            "Are you sure you want to reset all data? This action cannot be undone.",
+            PySide6.QtWidgets.QMessageBox.StandardButton.Yes | PySide6.QtWidgets.QMessageBox.StandardButton.No
+        )
+
+        if reply == PySide6.QtWidgets.QMessageBox.StandardButton.Yes:
+            self._model.reset()
+            self._refresh_view()
+            self._view._console_output.append("All data reset.")
+
     def _block_signals(self, block: bool) -> None:
         """Helper to block/unblock signals from view widgets."""
         # Metadata fields

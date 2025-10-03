@@ -56,7 +56,10 @@ class DissolvedO2Tab(BaseTab):
         self._test_table.setHorizontalHeaderLabels(
             ["Test Procedure/Description", "Pass/Fail", "Spec_Min", "Spec_Max", "Data Measured"]
         )
-        
+        # get the row height to force calculation
+        row_height = self._test_table.rowHeight(0)  # Force row height calculation
+        self._test_table.setFixedHeight(row_height * 7)  # Set fixed height for all rows
+
         # Pre-fill descriptions (these are read-only)
         for row, desc in enumerate(DEFAULT_TEST_DESCRIPTIONS):
             # Column 0: Description only
