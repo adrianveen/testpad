@@ -12,6 +12,9 @@ DEFAULT_TEST_DESCRIPTIONS = [
     "Flow Rate:",
     "Dissolved Oxygen level test:",
     "Dissolved Oxygen re-circulation test (1000 mL):",
+    "   Starting DO Level:",
+    "   Time to read 4 mg/L (min):",
+    "   Time to reach 2 mg/L (min):",
 ]
 
 # ------------------ Data Structures ------------------

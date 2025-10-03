@@ -37,6 +37,16 @@ class DissolvedO2Presenter:
         self._view._export_csv_btn.clicked.connect(self._on_export_csv)
         self._view._generate_report_btn.clicked.connect(self._on_generate_report)
 
+        # Pass/Fail combo boxes
+        for row in range(7):
+            if row == 3:
+                continue
+            combo = self._view._test_table.cellWidget(row, 1)
+            if combo:
+                combo.currentTextChanged.connect(
+                    lambda text, r=row: self._on_pass_fail_changed(r, text)
+                )
+
     def _on_name_changed(self, text: str) -> None:
         """Handle name edit changes."""
         self._model.set_metadata_field("tester_name", text)
@@ -71,7 +81,12 @@ class DissolvedO2Presenter:
                 self._model.update_test_row(row, measured=value if value else None)
         except ValueError as e:
             self._view._console_output.append(f"Test table error: {e}")
-
+    def _on_pass_fail_changed(self, row: int, value: str) -> None:
+        """Handle pass/fail combo box changes."""
+        try:
+            self._model.update_test_row(row, pass_fail=value)
+        except ValueError as e:
+            self._view._console_output.append(f"Pass/Fail error: {e}")
     def _time_series_changed(self, row: int, column: int) -> None:
         """Handle time series table cell changes."""
         pass
@@ -184,11 +199,9 @@ class DissolvedO2Presenter:
         for row_idx, row_data in enumerate(rows):
             # Column 0 (description) already set in view, read only
             # Column 1: Pass/Fail
-            pass_fail_item = self._view._test_table.item(row_idx, 1)
-            if pass_fail_item is None:
-                pass_fail_item = PySide6.QtWidgets.QTableWidgetItem()
-                self._view._test_table.setItem(row_idx, 1, pass_fail_item)
-            pass_fail_item.setText(row_data.pass_fail)
+            combo = self._view._test_table.cellWidget(row_idx, 1)
+            if combo:
+                combo.setCurrentText(row_data.pass_fail)
 
             # Column 2: Spec Min
             self._set_table_cell_float(row_idx, 2, row_data.spec_min)
