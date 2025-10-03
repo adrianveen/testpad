@@ -199,7 +199,7 @@ if __name__ == "__main__":
     splash.update_progress(5, "Starting Testpad…")
     
     flags = {
-        "dissolved_o2": False
+        "dissolved_o2": True  # Enable for testing
     }
     tabs_spec: List[TabSpec] = list(enabled_tabs(TABS_SPEC, flags))
 

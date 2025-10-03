@@ -1,15 +1,232 @@
-from typing import Any
+from datetime import datetime
+from typing import Any, Optional, TYPE_CHECKING
+
+import PySide6.QtCore
+import PySide6.QtWidgets
+
 from .model import DissolvedO2Model
+
+if TYPE_CHECKING:
+    from .view import DissolvedO2Tab
 
 class DissolvedO2Presenter:
     """Placeholder presenter coordinating view <-> model."""
-    def __init__(self, model: DissolvedO2Model) -> None:
+    def __init__(self, model: DissolvedO2Model, view: 'DissolvedO2Tab') -> None:
         self._model = model
-        # Hook view signals later
+        self._view = view
 
     def initialize(self) -> None:
         """Called after view is constructed."""
+        self._connect_signals()
+        self._refresh_view()
         pass
+    def _connect_signals(self) -> None:
+        """Connect view signals to presenter slots."""
+        # Metadata fields
+        self._view._name_edit.textChanged.connect(self._on_name_changed)
+        self._view._location_edit.textChanged.connect(self._on_location_changed)
+        self._view._date_edit.dateChanged.connect(self._on_date_changed)
+        self._view._serial_edit.textChanged.connect(self._on_serial_changed)
+        # Test Table Fields
+        self._view._test_table.cellChanged.connect(self._on_test_table_cell_changed)
+        # Time Series Fields
+        self._view._time_series_widget.cellChanged.connect(self._time_series_changed)
+        self._view._temperature_edit.textChanged.connect(self._on_temperature_changed)
+        # Action Buttons
+        self._view._import_csv_btn.clicked.connect(self._on_import_csv)
+        self._view._export_csv_btn.clicked.connect(self._on_export_csv)
+        self._view._generate_report_btn.clicked.connect(self._on_generate_report)
+
+    def _on_name_changed(self, text: str) -> None:
+        """Handle name edit changes."""
+        self._model.set_metadata_field("tester_name", text)
+    def _on_location_changed(self, text: str) -> None:
+        """Handle location edit changes."""
+        self._model.set_metadata_field("location", text)
+    def _on_date_changed(self, date: Any) -> None:
+        """Handle date edit changes."""
+        self._model.set_metadata_field("test_date", date.toPython())
+    def _on_serial_changed(self, text: str) -> None:
+        """Handle serial edit changes."""
+        self._model.set_metadata_field("ds50_serial", text)
+    def _on_test_table_cell_changed(self, row: int, column: int) -> None:
+        """Handle test table cell changes."""
+        if column == 0:
+            return
+        
+        item = self._view._test_table.item(row, column)
+        if item is None:
+            return
+        
+        value = item.text().strip()
+
+        try:
+            if column == 1: # Pass/Fail
+                self._model.update_test_row(row, pass_fail=value)
+            elif column == 2: # Spec Min
+                self._model.update_test_row(row, spec_min=value if value else None)
+            elif column == 3: # Spec Max
+                self._model.update_test_row(row, spec_max=value if value else None)
+            elif column == 4: # Data Measured
+                self._model.update_test_row(row, measured=value if value else None)
+        except ValueError as e:
+            self._view._console_output.append(f"Test table error: {e}")
+
+    def _time_series_changed(self, row: int, column: int) -> None:
+        """Handle time series table cell changes."""
+        pass
+    def _on_temperature_changed(self, text: str) -> None:
+        """Handle temperature edit changes."""
+        if text.strip() == "":
+            self._model.clear_temperature()
+        else:
+            try:
+                self._model.set_temperature(text)
+            except ValueError as e:
+                # TODO: Show error to user (we'll add this later)
+                self._view._console_output.append(f"Temperature error: {e}")
+    def _on_import_csv(self) -> None:
+        """Handle import CSV button click."""
+        path, _ = PySide6.QtWidgets.QFileDialog.getOpenFileName(
+            self._view,
+            "Import Dissolved O2 Data",
+            "",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if not path: # User cancelled
+            return
+        
+        try:
+            self._model.load_from_csv(path)
+            self._refresh_view() # Update UI with loaded data
+            self._view._console_output.append(f"✅ Imported data from {path}")
+        except ValueError as e:
+            self._view._console_output.append(f"❌ Import error: {e}")
+        except Exception as e:
+            self._view._console_output.append(f"❌ Unexpected error during import: {e}")
+        
+    def _on_export_csv(self) -> None:
+        """Handle export CSV button click."""
+        timestamp = datetime.now().strftime("%y%m%d-%H%M%")
+        path, _ = PySide6.QtWidgets.QFileDialog.getSaveFileName(
+            self._view,
+            "Export Dissolved O2 Data",
+            f"dissolved_o2_data_{timestamp}.csv", # Filename + time stamp
+            "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if not path: # User cancelled
+            return
+
+        try:
+            self._model.export_csv(path)
+            self._view._console_output.append(f"✅ Exported data to {path}")
+        except ValueError as e:
+            self._view._console_output.append(f"❌ Export error: {e}")
+        except Exception as e:
+            self._view._console_output.append(f"❌ Unexpected error during export: {e}")
+
+    def _on_generate_report(self) -> None:
+        """Handle generate report button click."""
+        pass
+    def _refresh_view(self) -> None:
+        """Update all view widgetgs from current model state."""
+        # Temporarily block signals
+        self._block_signals(True)
+
+        try:
+            # 1. Refresh Metadata
+            metadata = self._model.get_metadata()
+            self._view._name_edit.setText(metadata.tester_name)
+            self._view._location_edit.setText(metadata.location)
+            self._view._serial_edit.setText(metadata.ds50_serial)
+            if metadata.test_date:
+                qdate = PySide6.QtCore.QDate(metadata.test_date)
+                self._view._date_edit.setDate(qdate)
+            
+            # 2. Refresh Test Table
+            self._refresh_test_table()
+
+            # 3. Refresh Time Series
+            self._refresh_time_series()
+
+            # 4. Refresh Temperature
+            temp = self._model.get_temperature_c()
+            if temp is not None:
+                self._view._temperature_edit.setText(f"{temp:.2f}")
+            else:
+                self._view._temperature_edit.clear()
+        finally:
+            self._block_signals(False)
+    
+    def _block_signals(self, block: bool) -> None:
+        """Helper to block/unblock signals from view widgets."""
+        # Metadata fields
+        self._view._name_edit.blockSignals(block)
+        self._view._location_edit.blockSignals(block)
+        self._view._date_edit.blockSignals(block)
+        self._view._serial_edit.blockSignals(block)
+        # Test Table Fields
+        self._view._test_table.blockSignals(block)
+        # Time Series Fields
+        self._view._time_series_widget.blockSignals(block)
+        self._view._temperature_edit.blockSignals(block)
+        # Action Buttons
+        self._view._import_csv_btn.blockSignals(block)
+        self._view._export_csv_btn.blockSignals(block)
+        self._view._generate_report_btn.blockSignals(block)
+
+    def _refresh_test_table(self) -> None:
+        """Update test table from model state."""
+        rows = self._model.get_test_rows()
+
+        for row_idx, row_data in enumerate(rows):
+            # Column 0 (description) already set in view, read only
+            # Column 1: Pass/Fail
+            pass_fail_item = self._view._test_table.item(row_idx, 1)
+            if pass_fail_item is None:
+                pass_fail_item = PySide6.QtWidgets.QTableWidgetItem()
+                self._view._test_table.setItem(row_idx, 1, pass_fail_item)
+            pass_fail_item.setText(row_data.pass_fail)
+
+            # Column 2: Spec Min
+            self._set_table_cell_float(row_idx, 2, row_data.spec_min)
+
+            # Column 3: Spec Max
+            self._set_table_cell_float(row_idx, 3, row_data.spec_max)
+
+            # Column 4: Data Measured
+            self._set_table_cell_float(row_idx, 4, row_data.measured)
+    
+    def _set_table_cell_float(self, row: int, col: int, value: Optional[float]) -> None:
+        """Helper to set a table cell to a float value."""
+        item = self._view._test_table.item(row, col)
+        if item is None:
+            item = PySide6.QtWidgets.QTableWidgetItem()
+            self._view._test_table.setItem(row, col, item)
+
+        if value is not None:
+            item.setText(f"{value:.2f}")
+        else:
+            item.setText("")
+
+    def _refresh_time_series(self) -> None:
+        """Update time series table from model state."""
+        time_series_rows = self._model.build_time_series_rows()
+
+        for row_idx, (minute, oxygen_level) in enumerate(time_series_rows):
+            # Column 0 (minute) already set in view, read only
+            # Column 1: Dissolved O2
+            oxy_item = self._view._time_series_widget.item(row_idx, 1)
+            if oxy_item is None:
+                oxy_item = PySide6.QtWidgets.QTableWidgetItem()
+                self._view._time_series_widget.setItem(row_idx, 1, oxy_item)
+
+            if oxygen_level is not None:
+                oxy_item.setText(f"{oxygen_level:.2f}")
+            else:
+                oxy_item.setText("")
 
     def shutdown(self) -> None:
         """Cleanup hooks/resources."""

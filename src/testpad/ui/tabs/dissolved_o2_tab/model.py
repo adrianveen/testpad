@@ -31,6 +31,12 @@ class DissolvedO2State:
     temperature_c: float | None
     minutes_with_data: List[int]
 
+@dataclass
+class Metadata:
+    tester_name: str = ""
+    location: str = ""
+    test_date: Any = None # Will be a datetime.date or QDate
+    ds50_serial: str = ""
 # ------------------ Model ------------------
 class DissolvedO2Model:
     """
@@ -69,6 +75,8 @@ class DissolvedO2Model:
         ]
         self._source_path: str | None = None
 
+        self._metadata = Metadata()
+
     # -------- Validation Helpers --------
     @staticmethod
     def _validate_minute(minute: int) -> None:
@@ -99,6 +107,15 @@ class DissolvedO2Model:
             raise ValueError("Oxygen (mg/L) must be > 0.")
         return v
 
+    # -------- Metadata API --------
+    def set_metadata_field(self, field: str, value: Any) -> None:
+        """Update a metadata field."""
+        if not hasattr(self._metadata, field):
+            raise ValueError(f"Unknown metadata field: {field}")
+        setattr(self._metadata, field, value)
+    def get_metadata(self) -> Metadata:
+        """Return a copy of the current metadata."""
+        return Metadata(**asdict(self._metadata))
     # -------- Time Series API --------
     def set_measurement(self, minute: int, oxygen_mg_per_L: float) -> DissolvedO2State:
         """Insert or update the oxygen reading for a specific minute slot."""
@@ -140,6 +157,9 @@ class DissolvedO2Model:
         """Reset the optional temperature reading back to an unset state."""
         self._temperature_c = None
         return self.get_state()
+    def get_temperature_c(self) -> float | None:
+        """Return the current temperature reading, or None if unset."""
+        return self._temperature_c
 
     # -------- Test Results Table --------
     def update_test_row(self,
@@ -251,6 +271,7 @@ class DissolvedO2Model:
         self._temperature_c = None
         self._test_rows = [TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS]
         self._source_path = None
+        self._metadata = Metadata()
         return self.get_state()
 
     def get_state(self) -> DissolvedO2State:
@@ -273,4 +294,5 @@ class DissolvedO2Model:
             "temperature_c": self._temperature_c,
             "test_results": [asdict(r) for r in self.get_test_rows()],
             "source_path": self._source_path,
+            "metadata": asdict(self._metadata),
         }
