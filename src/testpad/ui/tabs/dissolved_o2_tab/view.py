@@ -74,8 +74,6 @@ class DissolvedO2Tab(BaseTab):
 
             self._test_table.setItem(row, 0, item)
 
-            #print("re-circulation" in desc)
-
             if row != 3:
                 # Column 1: Pass/Fail dropdown for non header rows
                 pass_fail_combo = PySide6.QtWidgets.QComboBox()
@@ -108,11 +106,17 @@ class DissolvedO2Tab(BaseTab):
             ["Time (minutes)", "Dissolved O2 (mg/L)"]
         )
         self._time_series_widget.verticalHeader().setVisible(True)  # Push to left
-
+        
         for row in range(11):
             minute_item = PySide6.QtWidgets.QTableWidgetItem(str(row))
+            minute_item.setTextAlignment(PySide6.QtCore.Qt.AlignmentFlag.AlignCenter)
             minute_item.setFlags(minute_item.flags() & ~PySide6.QtCore.Qt.ItemIsEditable) # Make read-only
             self._time_series_widget.setItem(row, 0, minute_item)
+
+            # Oxygen column - pre-create empty editable cells for alignment purposes
+            oxygen_item = PySide6.QtWidgets.QTableWidgetItem()
+            oxygen_item.setTextAlignment(PySide6.QtCore.Qt.AlignmentFlag.AlignCenter)
+            self._time_series_widget.setItem(row, 1, oxygen_item)
 
         table_layout.addWidget(self._time_series_widget)
 

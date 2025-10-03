@@ -102,10 +102,13 @@ class DissolvedO2Model:
     @staticmethod
     def _validate_oxygen(value: float | str | int) -> float:
         """Normalize an oxygen reading to float and enforce the > 0 mg/L requirement."""
-        try:
-            v = float(value)
-        except Exception as e:
-            raise ValueError(f"Oxygen value not numeric: {value}") from e
+
+        if value != "":
+            try:
+                v = float(value)
+                print(v)
+            except Exception as e:
+                raise ValueError(f"Oxygen value not numeric: {value}") from e
         if v <= 0:
             raise ValueError("Oxygen (mg/L) must be > 0.")
         return v

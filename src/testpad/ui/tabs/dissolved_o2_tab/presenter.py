@@ -89,7 +89,30 @@ class DissolvedO2Presenter:
             self._view._console_output.append(f"Pass/Fail error: {e}")
     def _time_series_changed(self, row: int, column: int) -> None:
         """Handle time series table cell changes."""
-        pass
+        if column != 1:
+            return
+        item = self._view._time_series_widget.item(row, column)
+        if item is None:
+            return
+        
+        value = item.text().strip()
+
+        if value == "":
+            try:
+                self._model.clear_measurement(row)
+                self._view._console_output.append(f"Cleared oxygen level measurement at minute {row}")
+            except ValueError as e:
+                self._view._console_output.append(f"Clear error: {e}")
+            return
+
+        # Try to set the measurement
+        try:
+            self._model.set_measurement(row, value)
+            self._view._console_output.append(f"Set oxygen level at minute {row} to {value} mg/L")
+        except ValueError as e:
+            self._view._console_output.append(f"Invalid oxygen level at minute {row}: {e}")
+            item.setText("") # Clear invalid entry
+        
     def _on_temperature_changed(self, text: str) -> None:
         """Handle temperature edit changes."""
         if text.strip() == "":
