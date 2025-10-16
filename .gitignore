@@ -1,5 +1,7 @@
 # Testpad specific .gitignore
-.claude/# pixi environments
-.pixi/*
+.claude/ 
+.pixi/* # pixi environments
 !.pixi/config.toml
 pixi.*
+planning/
+.vscode/
