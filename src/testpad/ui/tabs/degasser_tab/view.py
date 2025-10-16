@@ -163,6 +163,8 @@ class DegasserTab(BaseTab):
 
         header = self._time_series_widget.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        vertical_header = self._time_series_widget.verticalHeader()
+        vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         # Temperature widget
         temp_layout = QHBoxLayout()
