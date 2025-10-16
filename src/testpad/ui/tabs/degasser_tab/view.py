@@ -6,7 +6,7 @@ import PySide6.QtGui
 from testpad.ui.tabs.base_tab import BaseTab
 from testpad.ui.tabs.degasser_tab.model import DEFAULT_TEST_DESCRIPTIONS, DegasserModel
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
-from testpad.ui.tabs.degasser_tab.degasser_plot import TimeSeriesChartWidget
+from testpad.ui.widgets.chart_widgets import TimeSeriesChartWidget
 
 class DegasserTab(BaseTab):
     """Degasser tab view."""
@@ -15,13 +15,12 @@ class DegasserTab(BaseTab):
 
         self._model = DegasserModel()
         self._presenter = DegasserPresenter(self._model, self)
-        self._chart_widget = TimeSeriesChartWidget()
+        self._time_series_chart = TimeSeriesChartWidget()
 
         layout = PySide6.QtWidgets.QGridLayout(self)
         layout.addWidget(self._build_metadata_section(), 0, 0, 1, 2)
         layout.addWidget(self._build_test_table(), 1, 0, 1, 2)
         layout.addWidget(self._build_time_series_section(), 2, 0, 1, 1)
-        #layout.addWidget(self._build_chart_section(), 2, 1, 1, 1)
         layout.addWidget(self._build_action_buttons(), 3, 0, 1, 2)
         layout.addWidget(self._build_console_section(), 4, 0, 1, 2)
 
@@ -132,36 +131,36 @@ class DegasserTab(BaseTab):
 
         # Temperature widget
         temp_layout = PySide6.QtWidgets.QHBoxLayout()
-        temp_label = PySide6.QtWidgets.QLabel("Temperature °C (Optional): ")
-        self._temperature_edit = PySide6.QtWidgets.QDoubleSpinBox()
-        self._temperature_edit.setDecimals(1)
-        self._temperature_edit.setRange(-273.15, 1000.0)  # Physical range for temperature
-        self._temperature_edit.setSuffix(" °C")
-        self._temperature_edit.setMaximumWidth(100)
-        temp_layout.addWidget(temp_label)
+        temp_checkbox = PySide6.QtWidgets.QCheckBox("Temperature Measured (°C):")
+        temp_checkbox.setChecked(False)
+        self._temperature_edit = PySide6.QtWidgets.QLineEdit()
+        self._temperature_edit.hide()  # Start hidden
+        self._temperature_edit.setEnabled(False)
+        self._temperature_edit.setText("")  # Start empty
+        self._temperature_edit.setPlaceholderText("Optional")
+        self._temperature_edit.setMaximumWidth(75)
+        temp_layout.addWidget(temp_checkbox)
         temp_layout.addWidget(self._temperature_edit)
         temp_layout.addStretch()
         table_layout.addLayout(temp_layout)
 
-        # Right: Placeholder for Chart
-        chart_container = PySide6.QtWidgets.QWidget()
-        chart_layout = PySide6.QtWidgets.QVBoxLayout()
-        chart_container.setLayout(chart_layout)
-
-        self._chart_widget.setLayout(PySide6.QtWidgets.QVBoxLayout())
-        chart_layout.addWidget(self._chart_widget)
+        temp_checkbox.toggled.connect(self._temperature_edit.setVisible)
+        temp_checkbox.toggled.connect(self._temperature_edit.setEnabled)
+        temp_checkbox.toggled.connect(
+            lambda checked: self._temperature_edit.setText("25.0") if checked else self._temperature_edit.setText("")
+        )
 
         # Add to main layout
         h_layout.addWidget(table_container, 1)
-        h_layout.addWidget(chart_container, 1)
+        h_layout.addWidget(self._time_series_chart, 1)
 
         main_layout.addLayout(h_layout)
 
         return widget
 
-    def update_chart_widget(self, data: list[float], temp: Optional[float] = None) -> None:
+    def update_chart_widget(self, data: list[tuple[int, float]], temp: Optional[float] = None) -> None:
         """Update the chart widget in the time series section."""
-        self._chart_widget.update_plot(data, temp)
+        self._time_series_chart.update_plot(data, temp)
     
     def _build_action_buttons(self) -> PySide6.QtWidgets.QWidget:
         """Build the action buttons section."""
@@ -212,3 +211,7 @@ class DegasserTab(BaseTab):
     def _on_console_toggled(self, checked: bool) -> None:
         """Show/hide console output when checkbox is toggled."""
         self._console_output.setVisible(checked)
+
+    def log_message(self, message: str) -> None:
+        """Log a message to the console output."""
+        self._console_output.append(message)

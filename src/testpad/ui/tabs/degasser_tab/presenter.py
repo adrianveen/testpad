@@ -21,7 +21,11 @@ class DegasserPresenter:
         pass
 
     def _connect_signals(self) -> None:
-        """Connect view signals to presenter slots."""
+        """Connect view signals to presenter slots.
+        
+        Raises:
+            ValueError: If any signal connection fails.
+        """
         # Metadata fields
         self._view._name_edit.textChanged.connect(self._on_name_changed)
         self._view._location_edit.textChanged.connect(self._on_location_changed)
@@ -31,7 +35,7 @@ class DegasserPresenter:
         self._view._test_table.cellChanged.connect(self._on_test_table_cell_changed)
         # Time Series Fields
         self._view._time_series_widget.cellChanged.connect(self._time_series_changed)
-        self._view._temperature_edit.valueChanged.connect(self._on_temperature_changed)
+        self._view._temperature_edit.textChanged.connect(self._on_temperature_changed)
         # Action Buttons
         self._view._import_csv_btn.clicked.connect(self._on_import_csv)
         self._view._export_csv_btn.clicked.connect(self._on_export_csv)
@@ -88,14 +92,30 @@ class DegasserPresenter:
             self._view._console_output.append(f"Test table error: {e}")
 
     def _on_pass_fail_changed(self, row: int, value: str) -> None:
-        """Handle pass/fail combo box changes."""
+        """Handle pass/fail combo box changes.
+        
+        Args:
+            row (int): The row index of the test table.
+            value (str): The new pass/fail value from the combo box.
+        
+        Raises:
+            ValueError: If the value is invalid.
+        """
         try:
             self._model.update_test_row(row, pass_fail=value)
         except ValueError as e:
             self._view._console_output.append(f"Pass/Fail error: {e}")
 
     def _time_series_changed(self, row: int, column: int) -> None:
-        """Handle time series table cell changes."""
+        """Handle time series table cell changes.
+        
+        Args:
+            row (int): The row index of the time series table.
+            column (int): The column index of the time series table.
+
+        Raises:
+            ValueError: If oxygen level is invalid.
+        """
         if column != 1:
             return
         item = self._view._time_series_widget.item(row, column)
@@ -107,41 +127,55 @@ class DegasserPresenter:
         if value == "":
             try:
                 self._model.clear_measurement(row)
-                self._view._console_output.append(
+                self._view.log_message(
                     f"Cleared oxygen level measurement at minute {row}"
                 )
                 self._refresh_view()
             except ValueError as e:
-                self._view._console_output.append(f"Clear error: {e}")
+                self._view.log_message(f"Clear error: {e}")
             return
 
         # Try to set the measurement
         try:
             self._model.set_measurement(row, value)
-            self._view._console_output.append(
+            self._view.log_message(
                 f"Set oxygen level at minute {row} to {value} mg/L"
             )
             self._refresh_view()
         except ValueError as e:
-            self._view._console_output.append(
+            self._view.log_message(
                 f"Invalid oxygen level at minute {row}: {e}"
             )
             item.setText("")  # Clear invalid entry
 
-    def _on_temperature_changed(self, value: float) -> None:
-        """Handle temperature edit changes."""
-        if value is None:
+    def _on_temperature_changed(self, temp: str = None) -> None:
+        """Handle temperature edit changes.
+        
+        Args:
+            value (str): The new temperature value from the text field.
+
+        Raises:
+            ValueError: If temperature is out of valid range.
+        """        
+        if temp == "":
             self._model.clear_temperature()
+            self._refresh_view()
         else:
+            temp = temp.strip()
             try:
-                self._model.set_temperature(value)
+                self._model.set_temperature(temp)
                 self._refresh_view()
             except ValueError as e:
                 # TODO: Show error to user (we'll add this later)
-                self._view._console_output.append(f"Temperature error: {e}")
+                self._view.log_message(f"Temperature error: {e}")
 
     def _on_import_csv(self) -> None:
-        """Handle import CSV button click."""
+        """Handle import CSV button click.
+        
+        Raises:
+            ValueError: If import fails due to invalid file format.
+            Exception: For any other unexpected errors.
+        """
         path, _ = PySide6.QtWidgets.QFileDialog.getOpenFileName(
             self._view,
             "Import Degasser Data",
@@ -155,14 +189,18 @@ class DegasserPresenter:
         try:
             self._model.load_from_csv(path)
             self._refresh_view()  # Update UI with loaded data
-            self._view._console_output.append(f"✅ Imported data from {path}")
+            self._view.log_message(f"✅ Imported data from {path}")
         except ValueError as e:
-            self._view._console_output.append(f"❌ Import error: {e}")
+            self._view.log_message(f"❌ Import error: {e}")
         except Exception as e:
-            self._view._console_output.append(f"❌ Unexpected error during import: {e}")
+            self._view.log_message(f"❌ Unexpected error during import: {e}")
 
     def _on_export_csv(self) -> None:
-        """Handle export CSV button click."""
+        """Handle export CSV button click.
+        Raises:
+            ValueError: If export fails due to invalid state.
+            Exception: For any other unexpected errors.        
+        """
         timestamp = datetime.now().strftime("%y%m%d-%H%M%")
         path, _ = PySide6.QtWidgets.QFileDialog.getSaveFileName(
             self._view,
@@ -176,11 +214,11 @@ class DegasserPresenter:
 
         try:
             self._model.export_csv(path)
-            self._view._console_output.append(f"✅ Exported data to {path}")
+            self._view.log_message(f"✅ Exported data to {path}")
         except ValueError as e:
-            self._view._console_output.append(f"❌ Export error: {e}")
+            self._view.log_message(f"❌ Export error: {e}")
         except Exception as e:
-            self._view._console_output.append(f"❌ Unexpected error during export: {e}")
+            self._view.log_message(f"❌ Unexpected error during export: {e}")
 
     def _on_generate_report(self) -> None:
         """Handle generate report button click."""
@@ -210,10 +248,12 @@ class DegasserPresenter:
             # 5. Refresh chart
             self._update_chart_widget()
 
-            if temp is not None:
-                self._view._temperature_edit.setValue(temp)
-            else:
-                self._view._temperature_edit.clear()
+            if not self._view._temperature_edit.hasFocus():
+                if temp is not None:
+                    self._view._temperature_edit.setText(f"{temp:.1f}")
+                else:
+                    self._view._temperature_edit.setText("")
+
         finally:
             self._block_signals(False)
 
@@ -231,7 +271,7 @@ class DegasserPresenter:
         if reply == PySide6.QtWidgets.QMessageBox.StandardButton.Yes:
             self._model.reset()
             self._refresh_view()
-            self._view._console_output.append("All data reset.")
+            self._view.log_message("All data reset.")
 
     def _refresh_test_table(self) -> None:
         """Update test table from model state."""

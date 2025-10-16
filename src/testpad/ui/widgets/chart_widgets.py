@@ -30,7 +30,7 @@ class TimeSeriesChartWidget(QWidget):
             self,
             measurements: Sequence[tuple[int, float]],
             temperature_c: Optional[float]
-        ) -> Figure:
+        ) -> None:
         """Build a matplotlib Figure for the time series data.
         
         Args:
@@ -65,6 +65,5 @@ class TimeSeriesChartWidget(QWidget):
 
         self._ax.grid(GRID_ENABLED, alpha=GRID_ALPHA, linestyle=GRID_LINE_STYLE, linewidth=GRID_LINE_WIDTH)
 
-        if self._canvas:
-            self._canvas.draw()
+        self._canvas.draw()
 
