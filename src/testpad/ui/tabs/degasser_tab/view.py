@@ -21,7 +21,14 @@ from PySide6.QtWidgets import (
 import PySide6.QtGui
 
 from testpad.ui.tabs.base_tab import BaseTab
-from testpad.ui.tabs.degasser_tab.model import DEFAULT_TEST_DESCRIPTIONS, DegasserModel
+from testpad.ui.tabs.degasser_tab.model import DegasserModel
+from testpad.ui.tabs.degasser_tab.config import (
+    DEFAULT_TEST_DESCRIPTIONS,
+    DS50_SPEC_RANGES,
+    DS50_SPEC_UNITS,
+    NO_LIMIT_SYMBOL,
+    ROW_SPEC_MAPPING
+)
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 from testpad.ui.widgets.chart_widgets import TimeSeriesChartWidget
 
@@ -102,8 +109,35 @@ class DegasserTab(BaseTab):
                 item.setBackground(PySide6.QtGui.QColor(60, 60, 60)) # Light gray background
                 # Span all columns for 2nd re-circulation header
                 self._test_table.setSpan(3, 0, 1, 5)
-
             self._test_table.setItem(row, 0, item)
+
+            # Get spec key for this row (None for header row)
+            spec_key = ROW_SPEC_MAPPING[row]
+
+            # Only add spec cells for non-header rows
+            if spec_key is not None:
+                spec = DS50_SPEC_RANGES.get(spec_key, (None, None))
+                unit = DS50_SPEC_UNITS.get(spec_key, "")
+
+                for col in range(2, 5):
+                    if col == 2:  # Spec_Min
+                        if spec[0] is None:
+                            spec_value = NO_LIMIT_SYMBOL
+                        else:
+                            spec_value = f"{spec[0]} {unit}" if unit else str(spec[0])
+                    elif col == 3:  # Spec_Max
+                        if spec[1] is None:
+                            spec_value = NO_LIMIT_SYMBOL
+                        else:
+                            spec_value = f"{spec[1]} {unit}" if unit else str(spec[1])
+                    else:  # Data Measured (col == 4)
+                        spec_value = ""
+
+                    spec_item = QTableWidgetItem(spec_value)
+                    spec_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    if col in (2, 3):  # Spec columns are read-only
+                        spec_item.setFlags(spec_item.flags() & ~Qt.ItemIsEditable)
+                    self._test_table.setItem(row, col, spec_item)
 
             if row != 3:
                 # Column 1: Pass/Fail dropdown for non header rows

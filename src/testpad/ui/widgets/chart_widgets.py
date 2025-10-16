@@ -1,7 +1,7 @@
 from typing import Sequence, Optional
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from testpad.utils.plot_config import (
+from testpad.config.plotting import (
     PRIMARY_COLOR, 
     GRID_ENABLED, 
     GRID_ALPHA,

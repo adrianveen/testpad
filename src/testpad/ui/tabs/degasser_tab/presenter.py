@@ -283,13 +283,10 @@ class DegasserPresenter:
             if combo:
                 combo.setCurrentText(row_data.pass_fail)
 
-            # Column 2: Spec Min
-            self._set_table_cell_float(row_idx, 2, row_data.spec_min)
+            # Columns 2 & 3 (Spec Min/Max) are set once in view from config - never refresh
+            # They are static DS-50 specifications, not user data
 
-            # Column 3: Spec Max
-            self._set_table_cell_float(row_idx, 3, row_data.spec_max)
-
-            # Column 4: Data Measured
+            # Column 4: Data Measured - this is the only editable data column
             self._set_table_cell_float(row_idx, 4, row_data.measured)
 
     def _set_table_cell_float(self, row: int, col: int, value: Optional[float]) -> None:

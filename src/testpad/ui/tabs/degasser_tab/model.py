@@ -2,19 +2,11 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Iterable
 import csv
-
-# ------------------ Constants / Defaults ------------------
-MIN_MINUTE = 0
-MAX_MINUTE = 10
-DEFAULT_TEST_DESCRIPTIONS = [
-    "Vacuum Pressure:",
-    "Flow Rate:",
-    "Dissolved Oxygen level test:",
-    "Dissolved Oxygen re-circulation test (1000 mL):",
-    "   Starting DO Level:",
-    "   Time to read 4 mg/L (min):",
-    "   Time to reach 2 mg/L (min):",
-]
+from .config import (
+    MIN_MINUTE,
+    MAX_MINUTE,
+    DEFAULT_TEST_DESCRIPTIONS
+)
 
 # ------------------ Data Structures ------------------
 @dataclass
