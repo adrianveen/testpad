@@ -3,15 +3,19 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import PySide6.QtCore
 import PySide6.QtWidgets
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from .degasser_plot import build_time_series_plot
 
-from .model import DissolvedO2Model
+from .model import DegasserModel
 
 if TYPE_CHECKING:
-    from .view import DissolvedO2Tab
+    from .view import DegasserTab
 
-class DissolvedO2Presenter:
+
+class DegasserPresenter:
     """Placeholder presenter coordinating view <-> model."""
-    def __init__(self, model: DissolvedO2Model, view: 'DissolvedO2Tab') -> None:
+
+    def __init__(self, model: DegasserModel, view: "DegasserTab") -> None:
         self._model = model
         self._view = view
 
@@ -19,7 +23,9 @@ class DissolvedO2Presenter:
         """Called after view is constructed."""
         self._connect_signals()
         self._refresh_view()
+        self._update_chart_widget()
         pass
+
     def _connect_signals(self) -> None:
         """Connect view signals to presenter slots."""
         # Metadata fields
@@ -32,6 +38,9 @@ class DissolvedO2Presenter:
         # Time Series Fields
         self._view._time_series_widget.cellChanged.connect(self._time_series_changed)
         self._view._temperature_edit.textChanged.connect(self._on_temperature_changed)
+        # self._view._time_series_widget.cellChanged.connect(
+        #     lambda row, column: self._update_chart_widget()
+        # )
         # Action Buttons
         self._view._import_csv_btn.clicked.connect(self._on_import_csv)
         self._view._export_csv_btn.clicked.connect(self._on_export_csv)
@@ -51,43 +60,49 @@ class DissolvedO2Presenter:
     def _on_name_changed(self, text: str) -> None:
         """Handle name edit changes."""
         self._model.set_metadata_field("tester_name", text)
+
     def _on_location_changed(self, text: str) -> None:
         """Handle location edit changes."""
         self._model.set_metadata_field("location", text)
+
     def _on_date_changed(self, date: Any) -> None:
         """Handle date edit changes."""
         self._model.set_metadata_field("test_date", date.toPython())
+
     def _on_serial_changed(self, text: str) -> None:
         """Handle serial edit changes."""
         self._model.set_metadata_field("ds50_serial", text)
+
     def _on_test_table_cell_changed(self, row: int, column: int) -> None:
         """Handle test table cell changes."""
         if column == 0:
             return
-        
+
         item = self._view._test_table.item(row, column)
         if item is None:
             return
-        
+
         value = item.text().strip()
 
         try:
-            if column == 1: # Pass/Fail
+            if column == 1:  # Pass/Fail
                 self._model.update_test_row(row, pass_fail=value)
-            elif column == 2: # Spec Min
+            elif column == 2:  # Spec Min
                 self._model.update_test_row(row, spec_min=value if value else None)
-            elif column == 3: # Spec Max
+            elif column == 3:  # Spec Max
                 self._model.update_test_row(row, spec_max=value if value else None)
-            elif column == 4: # Data Measured
+            elif column == 4:  # Data Measured
                 self._model.update_test_row(row, measured=value if value else None)
         except ValueError as e:
             self._view._console_output.append(f"Test table error: {e}")
+
     def _on_pass_fail_changed(self, row: int, value: str) -> None:
         """Handle pass/fail combo box changes."""
         try:
             self._model.update_test_row(row, pass_fail=value)
         except ValueError as e:
             self._view._console_output.append(f"Pass/Fail error: {e}")
+
     def _time_series_changed(self, row: int, column: int) -> None:
         """Handle time series table cell changes."""
         if column != 1:
@@ -95,13 +110,15 @@ class DissolvedO2Presenter:
         item = self._view._time_series_widget.item(row, column)
         if item is None:
             return
-        
+
         value = item.text().strip()
 
         if value == "":
             try:
                 self._model.clear_measurement(row)
-                self._view._console_output.append(f"Cleared oxygen level measurement at minute {row}")
+                self._view._console_output.append(
+                    f"Cleared oxygen level measurement at minute {row}"
+                )
             except ValueError as e:
                 self._view._console_output.append(f"Clear error: {e}")
             return
@@ -109,11 +126,15 @@ class DissolvedO2Presenter:
         # Try to set the measurement
         try:
             self._model.set_measurement(row, value)
-            self._view._console_output.append(f"Set oxygen level at minute {row} to {value} mg/L")
+            self._view._console_output.append(
+                f"Set oxygen level at minute {row} to {value} mg/L"
+            )
         except ValueError as e:
-            self._view._console_output.append(f"Invalid oxygen level at minute {row}: {e}")
-            item.setText("") # Clear invalid entry
-        
+            self._view._console_output.append(
+                f"Invalid oxygen level at minute {row}: {e}"
+            )
+            item.setText("")  # Clear invalid entry
+
     def _on_temperature_changed(self, text: str) -> None:
         """Handle temperature edit changes."""
         if text.strip() == "":
@@ -124,38 +145,39 @@ class DissolvedO2Presenter:
             except ValueError as e:
                 # TODO: Show error to user (we'll add this later)
                 self._view._console_output.append(f"Temperature error: {e}")
+
     def _on_import_csv(self) -> None:
         """Handle import CSV button click."""
         path, _ = PySide6.QtWidgets.QFileDialog.getOpenFileName(
             self._view,
-            "Import Dissolved O2 Data",
+            "Import Degasser Data",
             "",
-            "CSV Files (*.csv);;All Files (*)"
+            "CSV Files (*.csv);;All Files (*)",
         )
 
-        if not path: # User cancelled
+        if not path:  # User cancelled
             return
-        
+
         try:
             self._model.load_from_csv(path)
-            self._refresh_view() # Update UI with loaded data
+            self._refresh_view()  # Update UI with loaded data
             self._view._console_output.append(f"✅ Imported data from {path}")
         except ValueError as e:
             self._view._console_output.append(f"❌ Import error: {e}")
         except Exception as e:
             self._view._console_output.append(f"❌ Unexpected error during import: {e}")
-        
+
     def _on_export_csv(self) -> None:
         """Handle export CSV button click."""
         timestamp = datetime.now().strftime("%y%m%d-%H%M%")
         path, _ = PySide6.QtWidgets.QFileDialog.getSaveFileName(
             self._view,
-            "Export Dissolved O2 Data",
-            f"dissolved_o2_data_{timestamp}.csv", # Filename + time stamp
-            "CSV Files (*.csv);;All Files (*)"
+            "Export Degasser Data",
+            f"degasser_data_{timestamp}.csv",  # Filename + time stamp
+            "CSV Files (*.csv);;All Files (*)",
         )
 
-        if not path: # User cancelled
+        if not path:  # User cancelled
             return
 
         try:
@@ -169,6 +191,7 @@ class DissolvedO2Presenter:
     def _on_generate_report(self) -> None:
         """Handle generate report button click."""
         pass
+
     def _refresh_view(self) -> None:
         """Update all view widgetgs from current model state."""
         # Temporarily block signals
@@ -183,7 +206,7 @@ class DissolvedO2Presenter:
             if metadata.test_date:
                 qdate = PySide6.QtCore.QDate(metadata.test_date)
                 self._view._date_edit.setDate(qdate)
-            
+
             # 2. Refresh Test Table
             self._refresh_test_table()
 
@@ -198,7 +221,7 @@ class DissolvedO2Presenter:
                 self._view._temperature_edit.clear()
         finally:
             self._block_signals(False)
-    
+
     def _on_reset(self) -> None:
         """Handle reset button click - clear all data"""
         # Confirmation dialog
@@ -206,7 +229,8 @@ class DissolvedO2Presenter:
             self._view,
             "Confirm Reset Data",
             "Are you sure you want to reset all data? This action cannot be undone.",
-            PySide6.QtWidgets.QMessageBox.StandardButton.Yes | PySide6.QtWidgets.QMessageBox.StandardButton.No
+            PySide6.QtWidgets.QMessageBox.StandardButton.Yes
+            | PySide6.QtWidgets.QMessageBox.StandardButton.No,
         )
 
         if reply == PySide6.QtWidgets.QMessageBox.StandardButton.Yes:
@@ -250,7 +274,7 @@ class DissolvedO2Presenter:
 
             # Column 4: Data Measured
             self._set_table_cell_float(row_idx, 4, row_data.measured)
-    
+
     def _set_table_cell_float(self, row: int, col: int, value: Optional[float]) -> None:
         """Helper to set a table cell to a float value."""
         item = self._view._test_table.item(row, col)
@@ -279,6 +303,38 @@ class DissolvedO2Presenter:
                 oxy_item.setText(f"{oxygen_level:.2f}")
             else:
                 oxy_item.setText("")
+
+    def _update_chart_widget(self) -> None:
+        """
+        Chart widget for plotting time series data.
+
+        Args:
+            data: List[tuple[int, float]] - minute, oxygen pairs
+
+        Raises:
+            NotImplementedError: Placeholder for future charting implementation.
+        """
+        # Build the figure using the plotting function
+        figure = build_time_series_plot(
+            self._model.list_measurements(), self._model.get_temperature_c()
+        )
+
+        # Create the canvas from the figure
+        canvas = FigureCanvas(figure)
+        layout = self._view._chart_widget.layout()
+
+        # Create layout if missing
+        if layout is None:
+            layout = PySide6.QtWidgets.QVBoxLayout()
+
+        # Clear existing widgets
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        # Add the new canvas
+        layout.addWidget(canvas)
 
     def shutdown(self) -> None:
         """Cleanup hooks/resources."""

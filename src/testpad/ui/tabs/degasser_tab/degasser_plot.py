@@ -1,7 +1,7 @@
 from typing import Sequence, Optional
 from matplotlib.figure import Figure
 
-def build_do2_time_series(measurements: Sequence[tuple[int, float]],
+def build_time_series_plot(measurements: Sequence[tuple[int, float]],
                           temperature_c: Optional[float]) -> Figure:
     fig = Figure(figsize=(5, 3), tight_layout=True)
     ax = fig.add_subplot(111)
@@ -14,5 +14,7 @@ def build_do2_time_series(measurements: Sequence[tuple[int, float]],
         ax.set_title(f"Dissolved O₂ vs Time (Temp {temperature_c:.1f}°C)")
     else:
         ax.set_title("Dissolved O₂ vs Time")
+    pen = ax.get_lines()[0].get_pen()
+    marker_color = '#'
     ax.grid(alpha=0.3)
     return fig

@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Iterable
 import csv
 
 # ------------------ Constants / Defaults ------------------
-
 MIN_MINUTE = 0
 MAX_MINUTE = 10
 DEFAULT_TEST_DESCRIPTIONS = [
@@ -18,7 +17,6 @@ DEFAULT_TEST_DESCRIPTIONS = [
 ]
 
 # ------------------ Data Structures ------------------
-
 @dataclass
 class TestResultRow:
     description: str
@@ -41,7 +39,7 @@ class Metadata:
     test_date: Any = None # Will be a datetime.date or QDate
     ds50_serial: str = ""
 # ------------------ Model ------------------
-class DissolvedO2Model:
+class DegasserModel:
     """
     Simple model for a 10-minute dissolved O2 test.
 
@@ -96,7 +94,7 @@ class DissolvedO2Model:
             m = int(float(raw))
         except Exception as e:
             raise ValueError(f"Time value not numeric: {raw}") from e
-        DissolvedO2Model._validate_minute(m)
+        DegasserModel._validate_minute(m)
         return m
 
     @staticmethod
@@ -203,12 +201,17 @@ class DissolvedO2Model:
     # -------- CSV Load / Save --------
     def load_from_csv(self, path: str) -> DissolvedO2State:
         """
-        Loads time series from CSV.
+        Loads time series from CSV.\n
         Headers (one of each required):
           time aliases: time, Time, minute, minutes, t_min
           oxygen aliases: oxygen, oxygen_mg_per_L, o2, O2, do2, DO2
           temperature (optional): temperature_c, temp_c, Temperature, temp
-        Raises ValueError on first invalid row.
+        
+        Args:
+            path (str): The file path to load the CSV data from.
+            
+        Raises:
+            ValueError on first invalid row.
         """
         time_aliases = {"time", "Time", "minute", "minutes", "t_min"}
         oxy_aliases = {"oxygen", "oxygen_mg_per_L", "o2", "O2", "do2", "DO2"}
@@ -255,7 +258,13 @@ class DissolvedO2Model:
         return self.get_state()
 
     def export_csv(self, path: str, include_temperature: bool = True) -> None:
-        """Write the time-series data (and optional temperature) to a tidy CSV file."""
+        """Write the time-series data (and optional temperature) to a tidy CSV file.
+        
+        Args:
+            path (str): The file path to write the CSV data to.
+            include_temperature (bool): If True, includes the temperature column if set.
+                Defaults to True.
+        """
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             cols = ["minute", "oxygen_mg_per_L"]

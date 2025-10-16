@@ -2,8 +2,6 @@ import sys
 import os
 import importlib
 from contextlib import contextmanager
-import time 
-import logging
 from importlib.abc import MetaPathFinder as _MetaPathFinder
 from importlib.machinery import PathFinder as _PathFinder
 from typing import Callable, List, Tuple, Set, Optional
@@ -13,7 +11,7 @@ from PySide6.QtCore import QCoreApplication, QTimer, QSignalBlocker
 
 from testpad.resources.palette.custom_palette import load_custom_palette
 from testpad.ui.splash import SplashScreen
-from testpad.ui.tabs.registry import TABS_SPEC, enabled_tabs, load_tab_class, TabSpec
+from testpad.ui.tabs.registry import TABS_SPEC, enabled_tabs, TabSpec
 from testpad.version import __version__ 
 
 # application window (subclass of QMainWindow)
@@ -199,7 +197,7 @@ if __name__ == "__main__":
     splash.update_progress(5, "Starting Testpad…")
     
     flags = {
-        "dissolved_o2": True  # Enable for testing
+        "degasser_data": True  # Enable for testing
     }
     tabs_spec: List[TabSpec] = list(enabled_tabs(TABS_SPEC, flags))
 

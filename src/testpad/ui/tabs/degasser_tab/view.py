@@ -3,23 +3,24 @@ import PySide6.QtWidgets
 import PySide6.QtGui
 
 from testpad.ui.tabs.base_tab import BaseTab
-from testpad.ui.tabs.dissolved_o2_tab.model import DEFAULT_TEST_DESCRIPTIONS, DissolvedO2Model
-from testpad.ui.tabs.dissolved_o2_tab.presenter import DissolvedO2Presenter
+from testpad.ui.tabs.degasser_tab.model import DEFAULT_TEST_DESCRIPTIONS, DegasserModel
+from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 
-class DissolvedO2Tab(BaseTab):
-    """Dissolved O2 tab."""
+class DegasserTab(BaseTab):
+    """Degasser tab view."""
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self._model = DissolvedO2Model()
-        self._presenter = DissolvedO2Presenter(self._model, self)
+        self._model = DegasserModel()
+        self._presenter = DegasserPresenter(self._model, self)
 
-        layout = PySide6.QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self._build_metadata_section())
-        layout.addWidget(self._build_test_table())
-        layout.addWidget(self._build_time_series_section())
-        layout.addWidget(self._build_action_buttons())
-        layout.addWidget(self._build_console_section())
+        layout = PySide6.QtWidgets.QGridLayout(self)
+        layout.addWidget(self._build_metadata_section(), 0, 0, 1, 2)
+        layout.addWidget(self._build_test_table(), 1, 0, 1, 2)
+        layout.addWidget(self._build_time_series_section(), 2, 0, 1, 2)
+        layout.addWidget(self._build_chart_section(), 2, 1, 1, 1)
+        layout.addWidget(self._build_action_buttons(), 3, 0, 1, 2)
+        layout.addWidget(self._build_console_section(), 4, 0, 1, 2)
 
         self._presenter.initialize()
 
@@ -58,7 +59,7 @@ class DissolvedO2Tab(BaseTab):
         )
         # get the row height to force calculation
         row_height = self._test_table.rowHeight(0)  # Force row height calculation
-        self._test_table.setFixedHeight(row_height * 7)  # Set fixed height for all rows
+        self._test_table.setFixedHeight(row_height * 7.7)  # Set fixed height for all rows
 
         # Pre-fill descriptions (these are read-only)
         for row, desc in enumerate(DEFAULT_TEST_DESCRIPTIONS):
