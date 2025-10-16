@@ -89,7 +89,7 @@ class DegasserPresenter:
             elif column == 4:  # Data Measured
                 self._model.update_test_row(row, measured=value if value else None)
         except ValueError as e:
-            self._view._console_output.append(f"Test table error: {e}")
+            self._view.log_message(f"Test table error: {e}")
 
     def _on_pass_fail_changed(self, row: int, value: str) -> None:
         """Handle pass/fail combo box changes.
@@ -104,7 +104,7 @@ class DegasserPresenter:
         try:
             self._model.update_test_row(row, pass_fail=value)
         except ValueError as e:
-            self._view._console_output.append(f"Pass/Fail error: {e}")
+            self._view.log_message(f"Pass/Fail error: {e}")
 
     def _time_series_changed(self, row: int, column: int) -> None:
         """Handle time series table cell changes.
@@ -166,7 +166,6 @@ class DegasserPresenter:
                 self._model.set_temperature(temp)
                 self._refresh_view()
             except ValueError as e:
-                # TODO: Show error to user (we'll add this later)
                 self._view.log_message(f"Temperature error: {e}")
 
     def _on_import_csv(self) -> None:
@@ -338,12 +337,10 @@ class DegasserPresenter:
 
     def shutdown(self) -> None:
         """Cleanup hooks/resources."""
-        pass
 
     # Future example:
     def load_data(self, source: Any) -> None:
         """Load data (stub)."""
-        pass
 
     def _block_signals(self, block: bool) -> None:
         """Helper to block/unblock signals from view widgets."""

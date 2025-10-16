@@ -1,7 +1,7 @@
 # Plan: Add a New Tab Cleanly, Safely, and Reversibly
 
 **Feature Branch:** `feat/dissolved-ox-tab`
-**Status:** 🟡 In Progress - Core UI & Data Layer Complete
+**Status:** 🟢 Chart Implementation Complete - Ready for PDF Generation
 
 ---
 
@@ -25,7 +25,7 @@
 - [ ] **Step 16:** Definition of Done
 - [ ] **Step 17:** Merge & post-merge
 
-**👉 CURRENT LOCATION:** Core data entry & reset complete - **MONDAY: Chart rendering → PDF generation**
+**👉 CURRENT LOCATION:** Chart rendering complete with custom widget - **NEXT: PDF report generation**
 
 ---
 
@@ -33,22 +33,37 @@
 
 ### ✅ Completed
 - **Model layer:** Metadata dataclass, time-series storage, test rows, CSV import/export, validation (fixed oxygen validation bug)
-- **View layer:** Full UI with metadata form, test table (hierarchical, fixed height), time-series table (center-aligned), chart placeholder, collapsible console
-- **Presenter layer:** Signal wiring, metadata handlers, test table editing (Pass/Fail combos), CSV import/export, error handling
+- **View layer:** Full UI with metadata form, test table (hierarchical, fixed height), time-series table (center-aligned), live chart rendering, collapsible console
+- **Presenter layer:** Signal wiring, metadata handlers, test table editing (Pass/Fail combos), CSV import/export, error handling, chart update orchestration
 - **Time series editing:** Cell change handler with validation, clear on empty, console feedback
 - **Reset button:** Confirmation dialog, clears all data, refreshes UI
 - **Architecture:** TYPE_CHECKING circular import fix, proper MVP separation
+- **Chart rendering:** ✅ COMPLETE
+  - Custom `TimeSeriesChartWidget` (reusable QWidget)
+  - Matplotlib Figure/Axis/Canvas integration
+  - Real-time updates with efficient `ax.clear()` + `canvas.draw()` pattern
+  - Temperature displayed in chart title when measured
+  - Centralized in `ui/widgets/chart_widgets.py` for reusability
+  - Uses constants from `utils/plot_config.py`
+- **Temperature input:** Checkbox + QLineEdit pattern for optional temperature
+  - Checkbox controls visibility/enabled state
+  - QLineEdit allows empty state (None)
+  - Chart title updates dynamically
+  - Real-time updates with `textChanged` signal
+  - `hasFocus()` guard prevents interrupting user typing
 - **UX polish:**
   - Dropdown combos for Pass/Fail
-  - Table column stretching
+  - Table column/row stretching (responsive design)
   - Side-by-side layout for time-series/chart
   - Center-aligned oxygen values
-  - Test table locked to 7-row height
+  - Test table locked to exact row height (no scrollbars)
+  - Time series table expands to fill available space
+  - Metadata form with right-aligned labels
   - Console collapsible with toggle
+  - Clean import organization
 
 ### 🚧 In Progress
-- ⏸️ **Chart rendering** - Ready to start Monday (integrate matplotlib figure)
-- ⏸️ **PDF report generation** - After chart complete
+- ⏸️ **PDF report generation** - Next priority (requires QThread implementation)
 
 ### ⏳ Not Started
 - State save/restore
@@ -213,13 +228,14 @@ If your current codebase is still a monolith, this plan lets you introduce just 
 ### Immediate (Core Functionality)
 1. ✅ ~~**Time Series Editing**~~ - COMPLETE: Handler implemented with validation, clear-on-empty, console feedback
 2. ✅ ~~**Reset Button**~~ - COMPLETE: Confirmation dialog, model reset, UI refresh
-3. **Chart Rendering** ⭐ START MONDAY - Integrate matplotlib figure into chart widget:
-   - Import matplotlib in presenter (lazy load - only when needed)
-   - Use `do2_plot.build_do2_time_series()` to generate figure
-   - Embed figure in `_chart_widget` using FigureCanvas from matplotlib.backends.backend_qt5agg
-   - Update chart when: time series data changes, CSV imported, reset clicked
-   - Handle edge case: empty data (show empty/placeholder chart)
-4. **PDF Report Generation** - Implement with QThread for background processing:
+3. ✅ ~~**Chart Rendering**~~ - COMPLETE: Custom widget with real-time updates
+   - ✅ Created reusable `TimeSeriesChartWidget` (better than planned approach!)
+   - ✅ Matplotlib Figure/Axis/Canvas properly integrated
+   - ✅ Real-time updates without widget recreation (`ax.clear()` + `canvas.draw()`)
+   - ✅ Temperature in title when measured, clean title when not measured
+   - ✅ Chart updates on: data changes, CSV import, reset, temperature toggle
+   - ✅ Empty data handled gracefully
+4. **PDF Report Generation** ⭐ NEXT - Implement with QThread for background processing:
    - Create report layout (metadata + tables + chart)
    - Use QPdfWriter or QTextDocument → PDF
    - Add progress feedback during generation
@@ -243,7 +259,7 @@ If your current codebase is still a monolith, this plan lets you introduce just 
 
 ---
 
-## 📝 Session Summary & Monday Prep
+## 📝 Latest Session Summary (Chart Implementation Complete!)
 
 ### What We Accomplished This Session
 - ✅ Built complete MVP architecture (Model-View-Presenter)
@@ -251,30 +267,49 @@ If your current codebase is still a monolith, this plan lets you introduce just 
 - ✅ CSV import/export working
 - ✅ Reset functionality with confirmation
 - ✅ Fixed circular import issues (TYPE_CHECKING pattern)
-- ✅ Polished UI (dropdowns, alignment, fixed heights, collapsible console)
-- ✅ Created reusable templates for future features
+- ✅ **Chart rendering COMPLETE** - Custom reusable widget approach
+- ✅ Temperature input with elegant checkbox + QLineEdit pattern
+- ✅ Layout polish (stretch factors, responsive design, no scrollbars)
+- ✅ Real-time chart updates without performance issues
+- ✅ Created reusable `TimeSeriesChartWidget` in central location
+- ✅ Excellent UX with `hasFocus()` guard for seamless typing
 
-### Ready for Monday
-**Files to work with:**
-- `presenter.py` - Will add chart update logic
-- `view.py` - Chart widget already has placeholder
-- `do2_plot.py` - Helper function already exists
+### Chart Implementation Details (Completed Beyond Plan!)
+**Approach taken:** Option 2B - Custom QWidget (best practice)
+- Created `TimeSeriesChartWidget` class in `ui/widgets/chart_widgets.py`
+- Widget owns its own Figure, Axis, and Canvas
+- Update pattern: `ax.clear()` → replot → `canvas.draw()` (efficient!)
+- No widget recreation on updates (major performance win)
+- Temperature handling: QLineEdit with checkbox (supports None state)
+- Real-time updates with `textChanged` signal + `hasFocus()` guard
 
-**What chart rendering needs:**
-1. Import `FigureCanvas` from `matplotlib.backends.backend_qt5agg`
-2. Create canvas from figure returned by `build_do2_time_series()`
-3. Add canvas to `_chart_widget` layout
-4. Call chart update after: data changes, CSV import, reset
+**Files modified:**
+- ✅ `ui/widgets/chart_widgets.py` - NEW: Reusable chart widget
+- ✅ `view.py` - Integrated widget, fixed layout stretching
+- ✅ `presenter.py` - Chart update orchestration, temperature handling
 
-**Estimated time:** 30-45 minutes for chart rendering
+### Ready for Next Session
+**Next priority: PDF Report Generation**
+
+**Key challenges to solve:**
+1. Background threading (QThread or QThreadPool)
+2. Report layout (metadata + tables + chart image)
+3. Progress feedback during generation
+4. Save dialog and error handling
+
+**Estimated effort:** 2-3 hours for full PDF implementation
 
 ### Known Issues / Tech Debt
 - ❌ Other tabs still commented out in `registry.py` (remember to re-enable before merge)
-- ❌ Console shows messages but no proper error dialogs yet
+- ⚠️ Minor cleanup needed:
+  - Remove TODO comment at [presenter.py:169](presenter.py:169) (now obsolete)
+  - Remove unnecessary `pass` at [presenter.py:21](presenter.py:21)
 - ❌ No state persistence (data lost on tab close)
 - ❌ No unit tests yet
 
 ### Performance Check
 - ✅ Tab loads quickly (no matplotlib imported on init)
-- ✅ UI responsive (all heavy ops planned for background)
-- ⏳ Need to verify: chart render time, PDF generation time
+- ✅ UI responsive even with rapid typing in temperature field
+- ✅ Chart updates smoothly without lag
+- ✅ All heavy ops planned for background (PDF generation)
+- ⏳ Need to verify: PDF generation time (target: <2s for typical report)

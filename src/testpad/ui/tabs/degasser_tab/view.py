@@ -110,7 +110,6 @@ class DegasserTab(BaseTab):
                 pass_fail_combo = QComboBox()
                 pass_fail_combo.addItems(["", "Pass", "Fail"])
                 self._test_table.setCellWidget(row, 1, pass_fail_combo)
-                # get the row height to force calculation
         
         height = self._test_table.horizontalHeader().height()
         for row in range(7):
