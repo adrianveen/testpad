@@ -1,3 +1,4 @@
+from typing import Optional
 import PySide6.QtCore
 import PySide6.QtWidgets
 import PySide6.QtGui
@@ -5,6 +6,7 @@ import PySide6.QtGui
 from testpad.ui.tabs.base_tab import BaseTab
 from testpad.ui.tabs.degasser_tab.model import DEFAULT_TEST_DESCRIPTIONS, DegasserModel
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
+from testpad.ui.tabs.degasser_tab.degasser_plot import TimeSeriesChartWidget
 
 class DegasserTab(BaseTab):
     """Degasser tab view."""
@@ -13,12 +15,13 @@ class DegasserTab(BaseTab):
 
         self._model = DegasserModel()
         self._presenter = DegasserPresenter(self._model, self)
+        self._chart_widget = TimeSeriesChartWidget()
 
         layout = PySide6.QtWidgets.QGridLayout(self)
         layout.addWidget(self._build_metadata_section(), 0, 0, 1, 2)
         layout.addWidget(self._build_test_table(), 1, 0, 1, 2)
-        layout.addWidget(self._build_time_series_section(), 2, 0, 1, 2)
-        layout.addWidget(self._build_chart_section(), 2, 1, 1, 1)
+        layout.addWidget(self._build_time_series_section(), 2, 0, 1, 1)
+        #layout.addWidget(self._build_chart_section(), 2, 1, 1, 1)
         layout.addWidget(self._build_action_buttons(), 3, 0, 1, 2)
         layout.addWidget(self._build_console_section(), 4, 0, 1, 2)
 
@@ -129,9 +132,11 @@ class DegasserTab(BaseTab):
 
         # Temperature widget
         temp_layout = PySide6.QtWidgets.QHBoxLayout()
-        temp_label = PySide6.QtWidgets.QLabel("Temperature (°C): ")
-        self._temperature_edit = PySide6.QtWidgets.QLineEdit()
-        self._temperature_edit.setPlaceholderText("Optional")
+        temp_label = PySide6.QtWidgets.QLabel("Temperature °C (Optional): ")
+        self._temperature_edit = PySide6.QtWidgets.QDoubleSpinBox()
+        self._temperature_edit.setDecimals(1)
+        self._temperature_edit.setRange(-273.15, 1000.0)  # Physical range for temperature
+        self._temperature_edit.setSuffix(" °C")
         self._temperature_edit.setMaximumWidth(100)
         temp_layout.addWidget(temp_label)
         temp_layout.addWidget(self._temperature_edit)
@@ -143,7 +148,6 @@ class DegasserTab(BaseTab):
         chart_layout = PySide6.QtWidgets.QVBoxLayout()
         chart_container.setLayout(chart_layout)
 
-        self._chart_widget = PySide6.QtWidgets.QWidget()
         self._chart_widget.setLayout(PySide6.QtWidgets.QVBoxLayout())
         chart_layout.addWidget(self._chart_widget)
 
@@ -155,19 +159,9 @@ class DegasserTab(BaseTab):
 
         return widget
 
-    def _build_chart_section(self) -> PySide6.QtWidgets.QWidget:
-        """Build the chart section."""
-        widget = PySide6.QtWidgets.QWidget()
-        layout = PySide6.QtWidgets.QVBoxLayout()
-        widget.setLayout(layout)
-
-        # Create Widget
-        self._chart_widget = PySide6.QtWidgets.QWidget()
-        self._chart_widget.setLayout(PySide6.QtWidgets.QVBoxLayout())
-
-        layout.addWidget(self._chart_widget)
-
-        return widget
+    def update_chart_widget(self, data: list[float], temp: Optional[float] = None) -> None:
+        """Update the chart widget in the time series section."""
+        self._chart_widget.update_plot(data, temp)
     
     def _build_action_buttons(self) -> PySide6.QtWidgets.QWidget:
         """Build the action buttons section."""

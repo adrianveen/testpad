@@ -1,13 +1,8 @@
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
-
 import PySide6.QtCore
 import PySide6.QtWidgets
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from .degasser_plot import build_time_series_plot
-
 from .model import DegasserModel
-
 if TYPE_CHECKING:
     from .view import DegasserTab
 
@@ -23,7 +18,6 @@ class DegasserPresenter:
         """Called after view is constructed."""
         self._connect_signals()
         self._refresh_view()
-        self._update_chart_widget()
         pass
 
     def _connect_signals(self) -> None:
@@ -37,10 +31,7 @@ class DegasserPresenter:
         self._view._test_table.cellChanged.connect(self._on_test_table_cell_changed)
         # Time Series Fields
         self._view._time_series_widget.cellChanged.connect(self._time_series_changed)
-        self._view._temperature_edit.textChanged.connect(self._on_temperature_changed)
-        # self._view._time_series_widget.cellChanged.connect(
-        #     lambda row, column: self._update_chart_widget()
-        # )
+        self._view._temperature_edit.valueChanged.connect(self._on_temperature_changed)
         # Action Buttons
         self._view._import_csv_btn.clicked.connect(self._on_import_csv)
         self._view._export_csv_btn.clicked.connect(self._on_export_csv)
@@ -119,6 +110,7 @@ class DegasserPresenter:
                 self._view._console_output.append(
                     f"Cleared oxygen level measurement at minute {row}"
                 )
+                self._refresh_view()
             except ValueError as e:
                 self._view._console_output.append(f"Clear error: {e}")
             return
@@ -129,19 +121,21 @@ class DegasserPresenter:
             self._view._console_output.append(
                 f"Set oxygen level at minute {row} to {value} mg/L"
             )
+            self._refresh_view()
         except ValueError as e:
             self._view._console_output.append(
                 f"Invalid oxygen level at minute {row}: {e}"
             )
             item.setText("")  # Clear invalid entry
 
-    def _on_temperature_changed(self, text: str) -> None:
+    def _on_temperature_changed(self, value: float) -> None:
         """Handle temperature edit changes."""
-        if text.strip() == "":
+        if value is None:
             self._model.clear_temperature()
         else:
             try:
-                self._model.set_temperature(text)
+                self._model.set_temperature(value)
+                self._refresh_view()
             except ValueError as e:
                 # TODO: Show error to user (we'll add this later)
                 self._view._console_output.append(f"Temperature error: {e}")
@@ -193,7 +187,7 @@ class DegasserPresenter:
         pass
 
     def _refresh_view(self) -> None:
-        """Update all view widgetgs from current model state."""
+        """Update all view widgets from current model state."""
         # Temporarily block signals
         self._block_signals(True)
 
@@ -209,14 +203,15 @@ class DegasserPresenter:
 
             # 2. Refresh Test Table
             self._refresh_test_table()
-
             # 3. Refresh Time Series
             self._refresh_time_series()
-
             # 4. Refresh Temperature
             temp = self._model.get_temperature_c()
+            # 5. Refresh chart
+            self._update_chart_widget()
+
             if temp is not None:
-                self._view._temperature_edit.setText(f"{temp:.2f}")
+                self._view._temperature_edit.setValue(temp)
             else:
                 self._view._temperature_edit.clear()
         finally:
@@ -237,23 +232,6 @@ class DegasserPresenter:
             self._model.reset()
             self._refresh_view()
             self._view._console_output.append("All data reset.")
-
-    def _block_signals(self, block: bool) -> None:
-        """Helper to block/unblock signals from view widgets."""
-        # Metadata fields
-        self._view._name_edit.blockSignals(block)
-        self._view._location_edit.blockSignals(block)
-        self._view._date_edit.blockSignals(block)
-        self._view._serial_edit.blockSignals(block)
-        # Test Table Fields
-        self._view._test_table.blockSignals(block)
-        # Time Series Fields
-        self._view._time_series_widget.blockSignals(block)
-        self._view._temperature_edit.blockSignals(block)
-        # Action Buttons
-        self._view._import_csv_btn.blockSignals(block)
-        self._view._export_csv_btn.blockSignals(block)
-        self._view._generate_report_btn.blockSignals(block)
 
     def _refresh_test_table(self) -> None:
         """Update test table from model state."""
@@ -314,27 +292,9 @@ class DegasserPresenter:
         Raises:
             NotImplementedError: Placeholder for future charting implementation.
         """
-        # Build the figure using the plotting function
-        figure = build_time_series_plot(
-            self._model.list_measurements(), self._model.get_temperature_c()
-        )
-
-        # Create the canvas from the figure
-        canvas = FigureCanvas(figure)
-        layout = self._view._chart_widget.layout()
-
-        # Create layout if missing
-        if layout is None:
-            layout = PySide6.QtWidgets.QVBoxLayout()
-
-        # Clear existing widgets
-        while layout.count():
-            child = layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-
-        # Add the new canvas
-        layout.addWidget(canvas)
+        measurements = self._model.list_measurements()
+        temperature_c = self._model.get_temperature_c()
+        self._view.update_chart_widget(measurements, temperature_c)
 
     def shutdown(self) -> None:
         """Cleanup hooks/resources."""
@@ -344,3 +304,20 @@ class DegasserPresenter:
     def load_data(self, source: Any) -> None:
         """Load data (stub)."""
         pass
+
+    def _block_signals(self, block: bool) -> None:
+        """Helper to block/unblock signals from view widgets."""
+        # Metadata fields
+        self._view._name_edit.blockSignals(block)
+        self._view._location_edit.blockSignals(block)
+        self._view._date_edit.blockSignals(block)
+        self._view._serial_edit.blockSignals(block)
+        # Test Table Fields
+        self._view._test_table.blockSignals(block)
+        # Time Series Fields
+        self._view._time_series_widget.blockSignals(block)
+        self._view._temperature_edit.blockSignals(block)
+        # Action Buttons
+        self._view._import_csv_btn.blockSignals(block)
+        self._view._export_csv_btn.blockSignals(block)
+        self._view._generate_report_btn.blockSignals(block)

@@ -6,5 +6,6 @@ lazy-loader can resolve it without knowing the internal layout.
 """
 
 from .view import DegasserTab
+from testpad.utils import plot_config
 
-__all__ = ["DegasserTab"]
+__all__ = ["DegasserTab", "plot_config"]

@@ -248,7 +248,7 @@ class DegasserModel:
                 oxy_val = self._validate_oxygen(raw_oxy)
                 self._oxygen_data[minute] = oxy_val  # overwrite if duplicate
                 if temp_col:
-                    raw_temp = row.get(temp_col, "").strip()
+                    raw_temp = temp_col
                     if raw_temp:
                         try:
                             self._temperature_c = float(raw_temp)
