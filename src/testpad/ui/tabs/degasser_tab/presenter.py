@@ -1,5 +1,4 @@
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING
 
 import PySide6.QtCore
@@ -225,7 +224,7 @@ class DegasserPresenter:
             self._view.log_message(f"❌ Export error: {e}")
         except Exception as e:
             self._view.log_message(f"❌ Unexpected error during export: {e}")
-            
+
     def _initialize_defaults(self) -> None:
         """Initialize model with default values."""
         # Get models current state to compare
@@ -305,9 +304,14 @@ class DegasserPresenter:
 
         output_path = DEFAULT_EXPORT_DIR
 
-        report_generator = GenerateReport(metadata, test_data, time_series,
-                                          self._view._time_series_chart._figure,
-                                          temperature_c, output_path)
+        report_generator = GenerateReport(
+            time_series=time_series,
+            metadata=metadata,
+            test_data=test_data,
+            temperature=temperature_c,
+            output_dir=output_path,
+            figure=None
+            )
         try:
             report_generator.generate_report()
             self._view.log_message("✅ Report generated successfully. " \

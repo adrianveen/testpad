@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Iterable
+from datetime import date
 import csv
 from .config import (
     MIN_MINUTE,
@@ -27,7 +28,7 @@ class DissolvedO2State:
 @dataclass
 class Metadata:
     tester_name: str = ""
-    test_date: Any = None # Will be a datetime.date or QDate
+    test_date: date | None = None # Will be a datetime.date or QDate
     ds50_serial: str = ""
     location: str = ""
 
