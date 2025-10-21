@@ -6,7 +6,6 @@ any Qt dependencies, following separation of concerns principles.
 
 from typing import Mapping, Sequence, Tuple, Optional
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 from testpad.config.plotting import (
     PRIMARY_COLOR, 

@@ -6,7 +6,6 @@ for PDF layout decisions.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)

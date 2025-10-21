@@ -1,22 +1,11 @@
-from optparse import Option
-from turtle import color
-from typing import Sequence, Optional, Dict
+from typing import Sequence, Optional
 from pathlib import Path
-import time
-from copy import deepcopy
-from matplotlib import markers
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from testpad.config.plotting import (
-    PRIMARY_COLOR, 
-    GRID_ENABLED, 
     GRID_ALPHA,
     GRID_LINE_STYLE,
-    GRID_LINE_WIDTH,
-    DEFAULT_MARKER,
-    DEFAULT_MARKER_SIZE,
-    DEFAULT_LINE_WIDTH,
-    DEFAULT_LINE_STYLE
+    GRID_LINE_WIDTH
 ) 
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from testpad.ui.tabs.degasser_tab.plotting import make_time_series_figure

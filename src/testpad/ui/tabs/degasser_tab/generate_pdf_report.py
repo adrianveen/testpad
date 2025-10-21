@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Any, Dict
-import tempfile
 import os
 
 from fpdf import FPDF, Align
