@@ -12,5 +12,6 @@ dependencies:
   - pillow>=10
   - pyyaml>=6
   - pyinstaller>=6.15.0
+  - pytest
   - pip
 

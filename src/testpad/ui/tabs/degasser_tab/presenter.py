@@ -1,8 +1,15 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING
+
 import PySide6.QtCore
 import PySide6.QtWidgets
+
+from testpad.config import DEFAULT_EXPORT_DIR
+
 from .model import DegasserModel
+from .generate_pdf_report import GenerateReport
+
 if TYPE_CHECKING:
     from .view import DegasserTab
 
@@ -17,8 +24,8 @@ class DegasserPresenter:
     def initialize(self) -> None:
         """Called after view is constructed."""
         self._connect_signals()
+        self._initialize_defaults()
         self._refresh_view()
-        pass
 
     def _connect_signals(self) -> None:
         """Connect view signals to presenter slots.
@@ -218,10 +225,18 @@ class DegasserPresenter:
             self._view.log_message(f"❌ Export error: {e}")
         except Exception as e:
             self._view.log_message(f"❌ Unexpected error during export: {e}")
+            
+    def _initialize_defaults(self) -> None:
+        """Initialize model with default values."""
+        # Get models current state to compare
+        metadata = self._model.get_metadata()
 
-    def _on_generate_report(self) -> None:
-        """Handle generate report button click."""
-        pass
+        # Check if the date is set, if not set to value in UI
+        if metadata.test_date is None:
+            ui_date = self._view._date_edit.date().toPython()
+            self._model.set_metadata_field("test_date", ui_date)
+
+        # Can use this for other fields if needed in future
 
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""
@@ -271,6 +286,50 @@ class DegasserPresenter:
             self._model.reset()
             self._refresh_view()
             self._view.log_message("All data reset.")
+    
+    def _on_generate_report(self) -> None:
+        """Generate a PDF report when 'Generate Report' button is clicked.
+        Passes data to model for report generation.
+
+        Raises:
+            ValueError: If report generation fails due to invalid state.
+            Exception: For any other unexpected errors.
+        """
+        data_dict = self._model.to_dict()
+        time_series = data_dict['time_series']
+        temperature_c = data_dict['temperature_c']
+        metadata = data_dict['metadata']
+        if metadata['test_date'] is None:
+            metadata['test_date'] = self._view._date_edit.date().toPython()
+        test_data = data_dict['test_table']
+
+        output_path = DEFAULT_EXPORT_DIR
+
+        report_generator = GenerateReport(metadata, test_data, time_series,
+                                          self._view._time_series_chart._figure,
+                                          temperature_c, output_path)
+        try:
+            report_generator.generate_report()
+            self._view.log_message("✅ Report generated successfully. " \
+            f"The report was saved to {output_path}")
+        except (ValueError, OSError) as e:
+            self._view.log_message(f"❌ Report generation error: {e}")
+            PySide6.QtWidgets.QMessageBox.critical(
+                self._view,
+                "Report Generation Error",
+                f"Failed to generate report: {e}" \
+                "\nConfirm the following before proceeding:" \
+                "\n- Ensure you have write permissions for the output directory." \
+                "\n- Close any open instances of the report file if it already exists." \
+                "\n- Check if the output directory is valid and accessible."
+            )
+        except Exception as e:
+            self._view.log_message(f"❌ Unexpected error during report generation: {e}")
+            PySide6.QtWidgets.QMessageBox.critical(
+                self._view,
+                "Report Generation Error",
+                f"An unexpected error occurred: {e}"
+            )
 
     def _refresh_test_table(self) -> None:
         """Update test table from model state."""

@@ -27,9 +27,10 @@ class DissolvedO2State:
 @dataclass
 class Metadata:
     tester_name: str = ""
-    location: str = ""
     test_date: Any = None # Will be a datetime.date or QDate
     ds50_serial: str = ""
+    location: str = ""
+
 # ------------------ Model ------------------
 class DegasserModel:
     """
@@ -289,15 +290,26 @@ class DegasserModel:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize the model to primitive types for persistence or debugging."""
+        """Serialize the model to primitive types for persistence or debugging.
+        
+        Returns:
+            Dict: A dictionary representation of the model state.
+        
+        Dict Keys:
+            - "time_series": Dict[int, float] - minute to oxygen mapping.
+            - "temperature_c": float | None - the bath temperature.
+            - "test_table": List[Dict[str, Any]] - list of test result rows as dicts.
+            - "source_path": str | None - path of last loaded CSV, if any.
+            - "metadata": Dict[str, Any] - metadata fields as a dict.
+        """
         # Persistence breadcrumb:
         # - Mirror this structure with `state_schema.json`.
         # - Future helper: add `from_dict` to rehydrate `_oxygen_data`, `_temperature_c`,
         #   `_test_rows`, `_source_path`, and metadata once presenter captures it.
         return {
-            "oxygen_data": {str(k): v for k, v in self._oxygen_data.items()},
+            "time_series": {str(k): v for k, v in self._oxygen_data.items()},
             "temperature_c": self._temperature_c,
-            "test_results": [asdict(r) for r in self.get_test_rows()],
+            "test_table": [asdict(r) for r in self.get_test_rows()],
             "source_path": self._source_path,
             "metadata": asdict(self._metadata),
         }
