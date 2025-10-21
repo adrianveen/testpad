@@ -1,5 +1,9 @@
-from typing import Optional
+from typing import Any, Optional
+from dataclasses import dataclass, field
+from datetime import date
+
 import PySide6.QtCore
+import PySide6.QtGui
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -18,10 +22,12 @@ from PySide6.QtWidgets import (
     QLabel,
     QTableWidgetItem
 )
-import PySide6.QtGui
 
 from testpad.ui.tabs.base_tab import BaseTab
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
+from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
+from testpad.ui.tabs.degasser_tab.view_state import DegasserViewState
+from testpad.ui.widgets.chart_widgets import TimeSeriesChartWidget
 from testpad.ui.tabs.degasser_tab.config import (
     DEFAULT_TEST_DESCRIPTIONS,
     DS50_SPEC_RANGES,
@@ -29,8 +35,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     NO_LIMIT_SYMBOL,
     ROW_SPEC_MAPPING
 )
-from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
-from testpad.ui.widgets.chart_widgets import TimeSeriesChartWidget
+
 
 class DegasserTab(BaseTab):
     """Degasser tab view."""
@@ -54,6 +59,51 @@ class DegasserTab(BaseTab):
         layout.setRowStretch(4, 0)  # Console section not stretchable
 
         self._presenter.initialize()
+
+    def render(self, state: DegasserViewState) -> None:
+        """Render the view based on the provided state.
+
+        This is the primary interface between Presenter and View. The Presenter
+        creates a ViewState from the Model and passes it here. This method
+        updates all UI widgets to reflect the state.
+
+        Args:
+            state: Complete UI state to render
+
+        Note: This method handles signal blocking internally to prevent
+            feedback loops during updates.
+        """
+        self._block_signals(True)
+        try:
+            # Update Metadata
+            self._name_edit.setText(state.tester_name)
+            self._location_edit.setText(state.location)
+            self._serial_edit.setText(state.ds50_serial)
+
+            if state.test_date:
+                qdate = PySide6.QtCore.QDate(state.test_date)
+                self._date_edit.setDate(qdate)
+            
+            # Render Chart
+            self._time_series_chart.update_plot(
+                state.time_series_measurements,
+                state.temperature_c
+            )
+
+            # Render temperature display
+            # Only update if field is not in focus - user may be editing
+            if not self._temperature_edit.hasFocus():
+                if state.temperature_c is not None:
+                    self._temperature_edit.setText(f"{state.temperature_c:.1f}")
+                else:
+                    self._temperature_edit.setText("")
+            
+            self._render_test_table(state.test_rows)
+            
+            self._render_time_series_table(state.time_series_table_rows)
+
+        finally:
+            self._block_signals(False)
 
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
@@ -266,7 +316,6 @@ class DegasserTab(BaseTab):
         # Create Widget
         self._console_output = QTextBrowser()
         self._console_output.setReadOnly(True)
-        #self._console_output.setMaximumHeight(150)
 
         layout.addWidget(self._console_output)
 
@@ -285,3 +334,95 @@ class DegasserTab(BaseTab):
     def log_message(self, message: str) -> None:
         """Log a message to the console output."""
         self._console_output.append(message)
+
+
+    def _render_test_table(self, test_rows: list) -> None:
+        """Render the test table from state data.
+
+        Args:
+            test_rows: List of TestResultRow objects to display
+        """
+        for row_idx, row_data in enumerate(test_rows):
+            # Column 0 (Description) is read-only, set once in __init__
+
+            # Column 1: Pass/Fail dropdown
+            combo = self._test_table.cellWidget(row_idx, 1)
+            if combo:
+                combo.setCurrentText(row_data.pass_fail)
+
+            # Column 2 & 3 (Spec Min/Max) are static, set once in __init__
+
+            # Column 4: Data Measured
+            self._set_table_cell_float(row_idx, 4, row_data.measured)
+
+    def _render_time_series_table(
+        self,
+        table_rows: list[tuple[int, Optional[float]]]
+    ) -> None:
+        """Render the time series table from the state data.
+
+        Args:
+            table_rows: List of (minute, oxygen_level) tuples to display
+        """
+        for row_idx, (minute, oxygen_level) in enumerate(table_rows):
+            # Column 0 (minute) is read-only; set once in __init__
+
+            # Column 1: Dissolved O2 measured data
+            oxy_item = self._time_series_widget.item(row_idx, 1)
+            if oxy_item is None:
+                oxy_item = QTableWidgetItem()
+                self._time_series_widget.setItem(row_idx, 1, oxy_item)
+
+            if oxygen_level is not None:
+                oxy_item.setText(f"{oxygen_level:.2f}")
+            else:
+                oxy_item.setText("")
+    def _set_table_cell_float(
+        self,
+        row: int,
+        col: int,
+        value: Optional[float]
+    ) -> None:
+        """Helper to set table cell to a float value.
+
+        Args:
+            row: Row index
+            col: Column index
+            value: Float value to display, or None for empty cell
+        """
+        item = self._test_table.item(row, col)
+        if item is None:
+            item = QTableWidgetItem()
+            self._test_table.setItem(row, col, item)
+
+        if value is not None:
+            item.setText(f"{value:.2f}")
+        else:
+            item.setText("")
+
+    def _block_signals(self, block: bool) -> None:
+        """Block or unblock signals from all input widgets.
+
+        Used during programmatic updates to prevent triggering change handlers
+        that would send updates back to the presenter (feedback loop).
+
+        Args:
+            block: True to block signals, False to unblock
+        """
+        # Metadata fields
+        self._name_edit.blockSignals(block)
+        self._location_edit.blockSignals(block)
+        self._date_edit.blockSignals(block)
+        self._serial_edit.blockSignals(block)
+        
+        # Test Table Fields
+        self._test_table.blockSignals(block)
+        
+        # Time Series Fields
+        self._time_series_widget.blockSignals(block)
+        self._temperature_edit.blockSignals(block)
+        
+        # Action Buttons
+        self._import_csv_btn.blockSignals(block)
+        self._export_csv_btn.blockSignals(block)
+        self._generate_report_btn.blockSignals(block)

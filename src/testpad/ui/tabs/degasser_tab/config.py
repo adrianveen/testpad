@@ -5,6 +5,9 @@ Contains DS-50 specifications, test descriptions, and validation rules.
 """
 
 # === Time Series Configuration ===
+from PySide6.QtGui import QColor
+
+
 MIN_MINUTE = 0
 MAX_MINUTE = 10
 TIME_SERIES_RESOLUTION_MINUTES = 1  # Measurement interval
@@ -68,3 +71,10 @@ CSV_TEMPERATURE_ALIASES = {"temperature_c", "temp_c", "Temperature", "temp"}
 # === Validation Rules ===
 MIN_OXYGEN_VALUE = 0.0  # mg/L, must be positive
 REQUIRE_TEMPERATURE_FOR_REPORT = False  # Temperature is optional
+
+# === Report Configuration ===
+NUM_TEST_ROWS = 7
+NUM_TEST_COLS = 5
+HEADER_ROW_INDEX = 3
+HEADER_ROW_COLOR = QColor(60, 60, 60)
+REPORT_VERSION = "2025.0.4"

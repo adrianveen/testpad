@@ -182,13 +182,13 @@ class DegasserModel:
         """Return deep-copied test rows so callers cannot mutate internal state."""
         return [TestResultRow(**asdict(r)) for r in self._test_rows]
 
-    def set_test_descriptions(self, descriptions: List[str]) -> None:
+    def _set_test_descriptions_internal(self, descriptions: List[str]) -> None:
         """
         Developer utility (not user-facing).
         Reassigns the static description column (length must remain 4).
         """
-        if len(descriptions) != 4:
-            raise ValueError("Exactly 4 descriptions required.")
+        if len(descriptions) != len(DEFAULT_TEST_DESCRIPTIONS):
+            raise ValueError(f"Exactly {len(DEFAULT_TEST_DESCRIPTIONS)} descriptions required.")
         for i, desc in enumerate(descriptions):
             self._test_rows[i].description = desc
 
@@ -242,7 +242,7 @@ class DegasserModel:
                 oxy_val = self._validate_oxygen(raw_oxy)
                 self._oxygen_data[minute] = oxy_val  # overwrite if duplicate
                 if temp_col:
-                    raw_temp = temp_col
+                    raw_temp = row.get(temp_col, "").strip()
                     if raw_temp:
                         try:
                             self._temperature_c = float(raw_temp)
@@ -308,7 +308,7 @@ class DegasserModel:
         # - Future helper: add `from_dict` to rehydrate `_oxygen_data`, `_temperature_c`,
         #   `_test_rows`, `_source_path`, and metadata once presenter captures it.
         return {
-            "time_series": {str(k): v for k, v in self._oxygen_data.items()},
+            "time_series": {k: v for k, v in self._oxygen_data.items()},
             "temperature_c": self._temperature_c,
             "test_table": [asdict(r) for r in self.get_test_rows()],
             "source_path": self._source_path,

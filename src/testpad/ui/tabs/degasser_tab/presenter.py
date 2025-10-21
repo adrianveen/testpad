@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import PySide6.QtCore
 import PySide6.QtWidgets
@@ -7,6 +7,7 @@ import PySide6.QtWidgets
 from testpad.config import DEFAULT_EXPORT_DIR
 
 from .model import DegasserModel
+from .view_state import DegasserViewState
 from .generate_pdf_report import GenerateReport
 
 if TYPE_CHECKING:
@@ -19,6 +20,7 @@ class DegasserPresenter:
     def __init__(self, model: DegasserModel, view: "DegasserTab") -> None:
         self._model = model
         self._view = view
+        self._state = DegasserViewState()
 
     def initialize(self) -> None:
         """Called after view is constructed."""
@@ -94,6 +96,9 @@ class DegasserPresenter:
                 self._model.update_test_row(row, spec_max=value if value else None)
             elif column == 4:  # Data Measured
                 self._model.update_test_row(row, measured=value if value else None)
+
+            self._refresh_view()
+
         except ValueError as e:
             self._view.log_message(f"Test table error: {e}")
 
@@ -154,7 +159,7 @@ class DegasserPresenter:
             )
             item.setText("")  # Clear invalid entry
 
-    def _on_temperature_changed(self, temp: str = None) -> None:
+    def _on_temperature_changed(self, temp: str | None = None) -> None:
         """Handle temperature edit changes.
         
         Args:
@@ -239,36 +244,37 @@ class DegasserPresenter:
 
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""
-        # Temporarily block signals
-        self._block_signals(True)
+        state = self._build_view_state()
+        self._view.render(state)
+        
+    def _build_view_state(self) -> DegasserViewState:
+        """Build a complete ViewState from the current model state.
 
-        try:
-            # 1. Refresh Metadata
-            metadata = self._model.get_metadata()
-            self._view._name_edit.setText(metadata.tester_name)
-            self._view._location_edit.setText(metadata.location)
-            self._view._serial_edit.setText(metadata.ds50_serial)
-            if metadata.test_date:
-                qdate = PySide6.QtCore.QDate(metadata.test_date)
-                self._view._date_edit.setDate(qdate)
+        This method bridges Model and View - it extracts all
+        necessary data from the model and packages it into a ViewState that
+        the view can render.
 
-            # 2. Refresh Test Table
-            self._refresh_test_table()
-            # 3. Refresh Time Series
-            self._refresh_time_series()
-            # 4. Refresh Temperature
-            temp = self._model.get_temperature_c()
-            # 5. Refresh chart
-            self._update_chart_widget()
+        Returns:
+            DegasserViewState containing all current display data
+        """
+        # Gather all data from model
+        metadata = self._model.get_metadata()
+        measurements = self._model.list_measurements()
+        temperature_c = self._model.get_temperature_c()
+        test_rows = self._model.get_test_rows()
+        time_series_rows = self._model.build_time_series_rows()
 
-            if not self._view._temperature_edit.hasFocus():
-                if temp is not None:
-                    self._view._temperature_edit.setText(f"{temp:.1f}")
-                else:
-                    self._view._temperature_edit.setText("")
-
-        finally:
-            self._block_signals(False)
+        # Package into ViewState
+        return DegasserViewState(
+            tester_name=metadata.tester_name,
+            location=metadata.location,
+            ds50_serial=metadata.ds50_serial,
+            test_date=metadata.test_date,
+            time_series_measurements=measurements,
+            temperature_c=temperature_c,
+            test_rows=test_rows,
+            time_series_table_rows=time_series_rows
+        )
 
     def _on_reset(self) -> None:
         """Handle reset button click - clear all data"""
@@ -309,9 +315,8 @@ class DegasserPresenter:
             metadata=metadata,
             test_data=test_data,
             temperature=temperature_c,
-            output_dir=output_path,
-            figure=None
-            )
+            output_dir=output_path
+        )
         try:
             report_generator.generate_report()
             self._view.log_message("✅ Report generated successfully. " \
@@ -335,86 +340,9 @@ class DegasserPresenter:
                 f"An unexpected error occurred: {e}"
             )
 
-    def _refresh_test_table(self) -> None:
-        """Update test table from model state."""
-        rows = self._model.get_test_rows()
-
-        for row_idx, row_data in enumerate(rows):
-            # Column 0 (description) already set in view, read only
-            # Column 1: Pass/Fail
-            combo = self._view._test_table.cellWidget(row_idx, 1)
-            if combo:
-                combo.setCurrentText(row_data.pass_fail)
-
-            # Columns 2 & 3 (Spec Min/Max) are set once in view from config - never refresh
-            # They are static DS-50 specifications, not user data
-
-            # Column 4: Data Measured - this is the only editable data column
-            self._set_table_cell_float(row_idx, 4, row_data.measured)
-
-    def _set_table_cell_float(self, row: int, col: int, value: Optional[float]) -> None:
-        """Helper to set a table cell to a float value."""
-        item = self._view._test_table.item(row, col)
-        if item is None:
-            item = PySide6.QtWidgets.QTableWidgetItem()
-            self._view._test_table.setItem(row, col, item)
-
-        if value is not None:
-            item.setText(f"{value:.2f}")
-        else:
-            item.setText("")
-
-    def _refresh_time_series(self) -> None:
-        """Update time series table from model state."""
-        time_series_rows = self._model.build_time_series_rows()
-
-        for row_idx, (minute, oxygen_level) in enumerate(time_series_rows):
-            # Column 0 (minute) already set in view, read only
-            # Column 1: Dissolved O2
-            oxy_item = self._view._time_series_widget.item(row_idx, 1)
-            if oxy_item is None:
-                oxy_item = PySide6.QtWidgets.QTableWidgetItem()
-                self._view._time_series_widget.setItem(row_idx, 1, oxy_item)
-
-            if oxygen_level is not None:
-                oxy_item.setText(f"{oxygen_level:.2f}")
-            else:
-                oxy_item.setText("")
-
-    def _update_chart_widget(self) -> None:
-        """
-        Chart widget for plotting time series data.
-
-        Args:
-            data: List[tuple[int, float]] - minute, oxygen pairs
-
-        Raises:
-            NotImplementedError: Placeholder for future charting implementation.
-        """
-        measurements = self._model.list_measurements()
-        temperature_c = self._model.get_temperature_c()
-        self._view.update_chart_widget(measurements, temperature_c)
-
     def shutdown(self) -> None:
         """Cleanup hooks/resources."""
 
     # Future example:
     def load_data(self, source: Any) -> None:
         """Load data (stub)."""
-
-    def _block_signals(self, block: bool) -> None:
-        """Helper to block/unblock signals from view widgets."""
-        # Metadata fields
-        self._view._name_edit.blockSignals(block)
-        self._view._location_edit.blockSignals(block)
-        self._view._date_edit.blockSignals(block)
-        self._view._serial_edit.blockSignals(block)
-        # Test Table Fields
-        self._view._test_table.blockSignals(block)
-        # Time Series Fields
-        self._view._time_series_widget.blockSignals(block)
-        self._view._temperature_edit.blockSignals(block)
-        # Action Buttons
-        self._view._import_csv_btn.blockSignals(block)
-        self._view._export_csv_btn.blockSignals(block)
-        self._view._generate_report_btn.blockSignals(block)

@@ -5,3 +5,5 @@
 pixi.*
 planning/
 .vscode/
+AGENTS.*
+.python-version

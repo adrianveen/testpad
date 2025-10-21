@@ -3,8 +3,6 @@ from typing import Any, Dict
 import os
 
 from fpdf import FPDF, Align
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib import pyplot as plt
 
 from testpad.config.defaults import DEFAULT_EXPORT_DIR
 from testpad.ui.tabs.degasser_tab.config import (
@@ -19,25 +17,22 @@ from testpad.ui.tabs.degasser_tab.report_layout import DEFAULT_LAYOUT, DEFAULT_F
 
 class GenerateReport:
     """Generates a PDF report for the Degasser Test results.
-    
+
     Attributes:
         metadata (Dict[str, Any]): Metadata for the test report.
         test_data (dict): Test data for the report.
         time_series (Dict[int, float]): Time series data for the report.
-        figure (FigureCanvas): Matplotlib figure to include in the report.
         temperature (float): Temperature at which the test was conducted.
         output_dir (Path): Directory to save the generated PDF report.
         time_series_y (float): Y location tracker for time series table.
 
-    **Methods**:
-        **generate_report()**: Generates and saves the PDF report.
-        **build_report_base(margins: float)**: Initializes the PDF report with margins.
-        **build_header()**: Draws the header for the report.
-        **build_title_block(metadata: dict | None = None)**: Draws the title block with metadata
-        **build_test_table(test_data: list = [])**: Draws the test results table.
-        **build_time_series_table(data: dict[int, float])**: Draws the time series data table
-        **add_figure()**: Adds the matplotlib figure to the PDF report.
-        **dummy_figure()**: Generates a dummy matplotlib figure for testing.
+    Methods:
+        - generate_report(): Generates and saves the PDF report.
+        - build_report_base(margins: float): Initializes the PDF report with margins.
+        - build_header(): Draws the header for the report.
+        - build_title_block(metadata: dict | None = None): Draws the title block with metadata
+        - build_test_table(test_data: list = []): Draws the test results table.
+        - build_time_series_table(data: dict[int, float]): Draws the time series data table
     """
     def __init__(
             self,
@@ -45,8 +40,7 @@ class GenerateReport:
             test_data: dict,
             time_series: Dict[int, float],
             temperature: float,
-            output_dir: Path,
-            figure: FigureCanvas | None = None
+            output_dir: Path
     ) -> None:
 
         self.metadata = metadata
@@ -54,7 +48,7 @@ class GenerateReport:
         self.time_series = time_series
         self.temperature = temperature
         self.output_dir = output_dir
-        
+
         # Layout configuration
         self.layout = DEFAULT_LAYOUT
         self.figure_config = DEFAULT_FIGURE_CONFIG
@@ -217,41 +211,9 @@ class GenerateReport:
             for time, do_value in data.items():
                 row = table.row()
                 row.cell(str(time), align="C")
-                row.cell(str(do_value), align="C")
+                row.cell(f"{do_value:.2f}", align="C")
         self.pdf.ln(5)
         self.pdf.cell(text=f"Temperature: {self.temperature} °C", align="L")
-
-    def add_figure(self, fig: FigureCanvas, figure_path: Path) -> None:
-        """Adds the matplot lib figure to the PDF report.
-        """
-        left_margin = self.pdf.l_margin
-        current_y = self.time_series_y
-
-        # Determine placement for the figure to the right of the table.
-        fig_width_in, fig_height_in = fig.get_size_inches()
-        available_width = (self.pdf.w - self.pdf.r_margin) - (left_margin + 70)
-        figure_width = available_width
-        figure_height = figure_width * (fig_height_in / fig_width_in)
-
-        figure_x = left_margin + 75  # table width plus gap
-        figure_y = current_y
-        self.pdf.image(
-            str(figure_path),
-            x=figure_x,
-            y=figure_y,
-            w=figure_width,
-            h=figure_height
-        )
-
-        plt.close(fig)
-        try:
-            figure_path.unlink()
-        except OSError:
-            pass
-
-        #figure_bottom_y = figure_y + figure_height
-        #self.pdf.set_y(max(table_bottom_y, figure_bottom_y) + 8)
-        self.pdf.set_font(style="B", size=10)
 
     def _add_time_series_figure(self) -> None:
         """Create and add time series figure using the new design.
@@ -297,28 +259,6 @@ class GenerateReport:
                 os.unlink(temp_path)
             except OSError:
                 pass
-
-    def dummy_figure(self) -> FigureCanvas:
-        """Generates a dummy matplotlib figure for testing purposes.
-
-        Returns:
-            FigureCanvas: A simple matplotlib figure.
-        """
-        # Generate dummy data for the figure.
-        minutes = list(range(0, 11))
-        oxygen = [10 - (0.45 * idx) for idx in minutes]
-
-        fig, ax = plt.subplots(figsize=(4.5, 4))
-        ax.plot(minutes, oxygen, marker="o", color="#1f77b4")
-        ax.set_title("DUMMY PLOT - Dissolved Oxygen Over Time")
-        ax.set_xlabel("Time (min)")
-        ax.set_ylabel("Dissolved Oxygen (mg/L)")
-        ax.grid(True, linestyle="--", linewidth=0.5)
-
-        figure_path = Path(self.output_dir) / "temp_figure.png"
-        figure_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(figure_path, dpi=150)
-        return fig, figure_path
 
 
 if __name__ == "__main__":

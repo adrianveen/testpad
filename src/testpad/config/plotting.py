@@ -24,9 +24,9 @@ DEFAULT_MARKER_SIZE = 6
 
 # === Grid Styling ===
 GRID_ENABLED = True
-GRID_ALPHA = 0.3
+GRID_ALPHA = 0.5
 GRID_LINE_STYLE = '--'
-GRID_LINE_WIDTH = 0.5
+GRID_LINE_WIDTH = 0.6
 
 # === Figure Sizing ===
 DEFAULT_FIGURE_SIZE = (5, 3)

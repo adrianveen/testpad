@@ -178,7 +178,8 @@ class ApplicationWindow(QMainWindow):
         # Remember that this tab has been resolved so future activations are no-ops.
         self._loaded[index] = True
     
-if __name__ == "__main__":
+def main() -> None:
+    """Main entry point for the Testpad application."""
     app = QApplication(sys.argv)
 
     QCoreApplication.setOrganizationName("FUS Instruments")
@@ -242,3 +243,6 @@ if __name__ == "__main__":
     setp(95, "Finalizing UI…")
     tab_dialog.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
