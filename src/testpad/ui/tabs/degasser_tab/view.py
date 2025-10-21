@@ -278,10 +278,6 @@ class DegasserTab(BaseTab):
 
         return widget
 
-    def update_chart_widget(self, data: list[tuple[int, float]], temp: Optional[float] = None) -> None:
-        """Update the chart widget in the time series section."""
-        self._time_series_chart.update_plot(data, temp)
-
     def _build_action_buttons(self) -> QWidget:
         """Build the action buttons section."""
         widget = QWidget()
