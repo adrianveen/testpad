@@ -33,17 +33,25 @@ from testpad.ui.tabs.degasser_tab.config import (
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
     NO_LIMIT_SYMBOL,
-    ROW_SPEC_MAPPING
+    ROW_SPEC_MAPPING,
+    NUM_TEST_ROWS,
+    NUM_TEST_COLS,
+    HEADER_ROW_INDEX
 )
 
 
 class DegasserTab(BaseTab):
     """Degasser tab view."""
-    def __init__(self, parent=None) -> None:
+    def __init__(
+            self,
+            parent=None,
+            model: Optional["DegasserModel"] = None,
+            presenter: Optional["DegasserPresenter"] = None
+    ) -> None:
         super().__init__(parent)
 
-        self._model = DegasserModel()
-        self._presenter = DegasserPresenter(self._model, self)
+        self._model = model
+        self._presenter = presenter
         self._time_series_chart = TimeSeriesChartWidget()
 
         layout = QGridLayout(self)
@@ -57,8 +65,6 @@ class DegasserTab(BaseTab):
         layout.setRowStretch(2, 1)  # Time series section stretchable
         layout.setRowStretch(3, 0)  # Action buttons not stretchable
         layout.setRowStretch(4, 0)  # Console section not stretchable
-
-        self._presenter.initialize()
 
     def render(self, state: DegasserViewState) -> None:
         """Render the view based on the provided state.
@@ -83,7 +89,7 @@ class DegasserTab(BaseTab):
             if state.test_date:
                 qdate = PySide6.QtCore.QDate(state.test_date)
                 self._date_edit.setDate(qdate)
-            
+
             # Render Chart
             self._time_series_chart.update_plot(
                 state.time_series_measurements,
@@ -97,13 +103,76 @@ class DegasserTab(BaseTab):
                     self._temperature_edit.setText(f"{state.temperature_c:.1f}")
                 else:
                     self._temperature_edit.setText("")
-            
+
             self._render_test_table(state.test_rows)
-            
+
             self._render_time_series_table(state.time_series_table_rows)
 
         finally:
             self._block_signals(False)
+
+    def connect_signals(self, presenter: "DegasserPresenter") -> None:
+        """Connect all view signals to presenter event handlers.
+
+        This is the public interface for the Presenter to register
+        view events without accessing private widget memebers.
+
+        Args:
+            presenter: The presenter instance with event handler methods
+        """
+        # Metadata fields
+        self._name_edit.textChanged.connect(presenter.on_name_changed)
+        self._location_edit.textChanged.connect(presenter.on_location_changed)
+        self._date_edit.dateChanged.connect(presenter.on_date_changed)
+        self._serial_edit.textChanged.connect(presenter.on_serial_changed)
+
+        # Test Table
+        self._test_table.cellChanged.connect(presenter.on_test_table_cell_changed)
+
+        # Time Series
+        self._time_series_widget.cellChanged.connect(presenter.on_time_series_changed)
+        self._temperature_edit.textChanged.connect(presenter.on_temperature_changed)
+
+        # Action Buttons
+        self._generate_report_btn.clicked.connect(presenter.on_generate_report)
+        self._reset_btn.clicked.connect(presenter.on_reset)
+
+        # Pass/Fail Combo Boxes
+        for row in range(NUM_TEST_ROWS):
+            if row == HEADER_ROW_INDEX:
+                continue
+            combo = self._test_table.cellWidget(row, 1)
+            if combo:
+                combo.currentTextChanged.connect(
+                    lambda text, r=row: presenter.on_pass_fail_changed(r, text)
+                )
+        # TODO: Add CSV import and export connections
+
+    def get_test_table_cell_value(self, row: int, column: int) -> str:
+        """Get the text value from a test table cell.
+
+        Args:
+          row: Row index
+          column: Column index
+
+        Returns:
+          Cell text value, or empty string if cell doesn't exist
+        """
+        item = self._test_table.item(row, column)
+        return item.text().strip() if item else ""
+
+    def get_time_series_cell_value(self, row: int, column: int) -> str:
+        """Get the text value from a time series table cell.
+
+        Args:
+          row: Row index
+          column: Column index
+
+        Returns:
+          Cell text value, or empty string if cell doesn't exist
+        """
+        item = self._time_series_widget.item(row, column)
+        return item.text().strip() if item else "" 
 
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
@@ -116,7 +185,6 @@ class DegasserTab(BaseTab):
         self._location_edit = QLineEdit()
         self._date_edit = QDateEdit()
         self._date_edit.setCalendarPopup(True)
-        self._date_edit.setDate(PySide6.QtCore.QDate.currentDate())
         self._serial_edit = QLineEdit()
 
         # Layout
@@ -128,7 +196,6 @@ class DegasserTab(BaseTab):
         layout.addWidget(self._serial_edit, 1, 1)
         layout.addWidget(QLabel("Location: "), 1, 2, Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._location_edit, 1, 3)
-
 
         return widget
 
@@ -194,16 +261,16 @@ class DegasserTab(BaseTab):
                 pass_fail_combo = QComboBox()
                 pass_fail_combo.addItems(["", "Pass", "Fail"])
                 self._test_table.setCellWidget(row, 1, pass_fail_combo)
-        
+
         height = self._test_table.horizontalHeader().height()
         for row in range(7):
             height += self._test_table.rowHeight(row)
-        
+
         height += self._test_table.frameWidth() * 2  # Add frame width
         height += 2  # Add a little extra padding
 
         self._test_table.setFixedHeight(height)
-        
+
         header = self._test_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
@@ -230,7 +297,7 @@ class DegasserTab(BaseTab):
             ["Time (minutes)", "Dissolved O2 (mg/L)"]
         )
         self._time_series_widget.verticalHeader().setVisible(True)  # Push to left
-        
+
         for row in range(11):
             minute_item = QTableWidgetItem(str(row))
             minute_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -410,14 +477,14 @@ class DegasserTab(BaseTab):
         self._location_edit.blockSignals(block)
         self._date_edit.blockSignals(block)
         self._serial_edit.blockSignals(block)
-        
+
         # Test Table Fields
         self._test_table.blockSignals(block)
-        
+
         # Time Series Fields
         self._time_series_widget.blockSignals(block)
         self._temperature_edit.blockSignals(block)
-        
+
         # Action Buttons
         self._import_csv_btn.blockSignals(block)
         self._export_csv_btn.blockSignals(block)

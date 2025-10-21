@@ -22,7 +22,7 @@ TABS_SPEC = [
     # TabSpec("testpad.ui.tabs.temp_analysis_tab", "TempAnalysisTab", "Temperature Analysis"),
     # TabSpec("testpad.ui.tabs.hydrophone_tab", "HydrophoneAnalysisTab", "Hydrophone Analysis"),
     # TabSpec("testpad.ui.tabs.sweep_plot_tab", "SweepGraphTab", "Sweep Graphs"),
-    TabSpec("testpad.ui.tabs.degasser_tab", "DegasserTab", "Degasser Data", feature_flag="degasser_data")
+    TabSpec("testpad.ui.tabs.degasser_tab", "create_degasser_tab", "Degasser Data", feature_flag="degasser_data")
 ]
 
 def enabled_tabs(specs: Iterable[TabSpec], flags: Optional[Dict[str, bool]] = None) -> Iterator[TabSpec]:

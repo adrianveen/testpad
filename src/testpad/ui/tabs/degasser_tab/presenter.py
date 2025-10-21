@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 
 
 class DegasserPresenter:
-    """Placeholder presenter coordinating view <-> model."""
-
     def __init__(self, model: DegasserModel, view: "DegasserTab") -> None:
         self._model = model
         self._view = view
@@ -25,67 +23,35 @@ class DegasserPresenter:
     def initialize(self) -> None:
         """Called after view is constructed."""
         self._connect_signals()
-        self._initialize_defaults()
         self._refresh_view()
 
     def _connect_signals(self) -> None:
-        """Connect view signals to presenter slots.
-        
-        Raises:
-            ValueError: If any signal connection fails.
-        """
-        # Metadata fields
-        self._view._name_edit.textChanged.connect(self._on_name_changed)
-        self._view._location_edit.textChanged.connect(self._on_location_changed)
-        self._view._date_edit.dateChanged.connect(self._on_date_changed)
-        self._view._serial_edit.textChanged.connect(self._on_serial_changed)
-        # Test Table Fields
-        self._view._test_table.cellChanged.connect(self._on_test_table_cell_changed)
-        # Time Series Fields
-        self._view._time_series_widget.cellChanged.connect(self._time_series_changed)
-        self._view._temperature_edit.textChanged.connect(self._on_temperature_changed)
-        # Action Buttons
-        self._view._import_csv_btn.clicked.connect(self._on_import_csv)
-        self._view._export_csv_btn.clicked.connect(self._on_export_csv)
-        self._view._generate_report_btn.clicked.connect(self._on_generate_report)
-        self._view._reset_btn.clicked.connect(self._on_reset)
+        """Connect view signals to presenter event handlers"""
+        self._view.connect_signals(self)
 
-        # Pass/Fail combo boxes
-        for row in range(7):
-            if row == 3:
-                continue
-            combo = self._view._test_table.cellWidget(row, 1)
-            if combo:
-                combo.currentTextChanged.connect(
-                    lambda text, r=row: self._on_pass_fail_changed(r, text)
-                )
-
-    def _on_name_changed(self, text: str) -> None:
+    def on_name_changed(self, text: str) -> None:
         """Handle name edit changes."""
         self._model.set_metadata_field("tester_name", text)
 
-    def _on_location_changed(self, text: str) -> None:
+    def on_location_changed(self, text: str) -> None:
         """Handle location edit changes."""
         self._model.set_metadata_field("location", text)
 
-    def _on_date_changed(self, date: Any) -> None:
+    def on_date_changed(self, date: Any) -> None:
         """Handle date edit changes."""
         self._model.set_metadata_field("test_date", date.toPython())
 
-    def _on_serial_changed(self, text: str) -> None:
+    def on_serial_changed(self, text: str) -> None:
         """Handle serial edit changes."""
         self._model.set_metadata_field("ds50_serial", text)
 
-    def _on_test_table_cell_changed(self, row: int, column: int) -> None:
+    def on_test_table_cell_changed(self, row: int, column: int) -> None:
         """Handle test table cell changes."""
         if column == 0:
             return
 
-        item = self._view._test_table.item(row, column)
-        if item is None:
-            return
-
-        value = item.text().strip()
+        # Get cell value (already returns a string, stripped)
+        value = self._view.get_test_table_cell_value(row, column)
 
         try:
             if column == 1:  # Pass/Fail
@@ -102,7 +68,7 @@ class DegasserPresenter:
         except ValueError as e:
             self._view.log_message(f"Test table error: {e}")
 
-    def _on_pass_fail_changed(self, row: int, value: str) -> None:
+    def on_pass_fail_changed(self, row: int, value: str) -> None:
         """Handle pass/fail combo box changes.
         
         Args:
@@ -117,7 +83,7 @@ class DegasserPresenter:
         except ValueError as e:
             self._view.log_message(f"Pass/Fail error: {e}")
 
-    def _time_series_changed(self, row: int, column: int) -> None:
+    def on_time_series_changed(self, row: int, column: int) -> None:
         """Handle time series table cell changes.
         
         Args:
@@ -129,11 +95,7 @@ class DegasserPresenter:
         """
         if column != 1:
             return
-        item = self._view._time_series_widget.item(row, column)
-        if item is None:
-            return
-
-        value = item.text().strip()
+        value = self._view.get_time_series_cell_value(row, column)
 
         if value == "":
             try:
@@ -157,9 +119,8 @@ class DegasserPresenter:
             self._view.log_message(
                 f"Invalid oxygen level at minute {row}: {e}"
             )
-            item.setText("")  # Clear invalid entry
 
-    def _on_temperature_changed(self, temp: str | None = None) -> None:
+    def on_temperature_changed(self, temp: str | None = None) -> None:
         """Handle temperature edit changes.
         
         Args:
@@ -230,18 +191,6 @@ class DegasserPresenter:
         except Exception as e:
             self._view.log_message(f"❌ Unexpected error during export: {e}")
 
-    def _initialize_defaults(self) -> None:
-        """Initialize model with default values."""
-        # Get models current state to compare
-        metadata = self._model.get_metadata()
-
-        # Check if the date is set, if not set to value in UI
-        if metadata.test_date is None:
-            ui_date = self._view._date_edit.date().toPython()
-            self._model.set_metadata_field("test_date", ui_date)
-
-        # Can use this for other fields if needed in future
-
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""
         state = self._build_view_state()
@@ -276,7 +225,7 @@ class DegasserPresenter:
             time_series_table_rows=time_series_rows
         )
 
-    def _on_reset(self) -> None:
+    def on_reset(self) -> None:
         """Handle reset button click - clear all data"""
         # Confirmation dialog
         reply = PySide6.QtWidgets.QMessageBox.question(
@@ -292,7 +241,7 @@ class DegasserPresenter:
             self._refresh_view()
             self._view.log_message("All data reset.")
     
-    def _on_generate_report(self) -> None:
+    def on_generate_report(self) -> None:
         """Generate a PDF report when 'Generate Report' button is clicked.
         Passes data to model for report generation.
 
@@ -304,8 +253,6 @@ class DegasserPresenter:
         time_series = data_dict['time_series']
         temperature_c = data_dict['temperature_c']
         metadata = data_dict['metadata']
-        if metadata['test_date'] is None:
-            metadata['test_date'] = self._view._date_edit.date().toPython()
         test_data = data_dict['test_table']
 
         output_path = DEFAULT_EXPORT_DIR

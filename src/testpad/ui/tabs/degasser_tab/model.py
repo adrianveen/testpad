@@ -70,8 +70,8 @@ class DegasserModel:
         ]
         self._source_path: str | None = None
 
-        self._metadata = Metadata()
-
+        self._metadata = Metadata(test_date=date.today())
+        
     # -------- Validation Helpers --------
     @staticmethod
     def _validate_minute(minute: int) -> None:
