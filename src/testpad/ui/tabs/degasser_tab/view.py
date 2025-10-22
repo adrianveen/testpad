@@ -1,6 +1,5 @@
 from typing import Optional, cast
 import PySide6.QtCore
-import PySide6.QtGui
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -16,6 +15,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QDateEdit,
     QTableWidget,
+    QStyledItemDelegate,
     QLabel,
     QTableWidgetItem
 )
@@ -24,8 +24,9 @@ from testpad.ui.tabs.base_tab import BaseTab
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 from testpad.ui.tabs.degasser_tab.view_state import DegasserViewState
-from testpad.ui.widgets.chart_widgets import TimeSeriesChartWidget
+from testpad.ui.tabs.degasser_tab.chart_widgets import TimeSeriesChartWidget
 from testpad.ui.tabs.degasser_tab.config import (
+    METADATA_FIELDS,
     DEFAULT_TEST_DESCRIPTIONS,
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
@@ -37,7 +38,8 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TEST_COLS,
     HEADER_ROW_INDEX,
     HEADER_ROW_COLOR,
-    STANDARD_ROOM_TEMP_C
+    STANDARD_ROOM_TEMP_C,
+    TEST_TABLE_HEADERS
 )
 
 
@@ -165,20 +167,38 @@ class DegasserTab(BaseTab):
           Cell text value, or empty string if cell doesn't exist
         """
         item = self._test_table.item(row, column)
-        return item.text().strip() if item else ""
+        if item is None:
+            return ""
 
-    def get_time_series_cell_value(self, row: int, column: int) -> str:
-        """Get the text value from a time series table cell.
+        if column == 4:
+            edit_value = item.data(Qt.ItemDataRole.EditRole)
+            if edit_value not in (None, ""):
+                return str(edit_value).strip()
+
+        return item.text().strip()
+
+    def get_time_series_cell_value(self, row: int, column: int) -> float | None:
+        """Get the numeric value from a time series table cell.
 
         Args:
           row: Row index
           column: Column index
 
         Returns:
-          Cell text value, or empty string if cell doesn't exist
+          Cell value as float, or None if cell is empty
+
+        Raises:
+          ValueError: If cell text is not a valid number
         """
         item = self._time_series_widget.item(row, column)
-        return item.text().strip() if item else "" 
+        if item is None:
+            return None
+
+        text = item.text().strip()
+        if not text:
+            return None
+
+        return float(text) 
 
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
@@ -194,13 +214,13 @@ class DegasserTab(BaseTab):
         self._serial_edit = QLineEdit()
 
         # Layout
-        layout.addWidget(QLabel("Tester: "), 0, 0, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QLabel(f"{METADATA_FIELDS["tester_name"]}: "), 0, 0, Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._name_edit, 0, 1)
-        layout.addWidget(QLabel("Date: "), 0, 2, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QLabel(f"{METADATA_FIELDS["test_date"]}: "), 0, 2, Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._date_edit, 0, 3)
-        layout.addWidget(QLabel("DS-50 Serial #: "), 1, 0, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QLabel(f"{METADATA_FIELDS["ds50_serial_number"]}: "), 1, 0, Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._serial_edit, 1, 1)
-        layout.addWidget(QLabel("Location: "), 1, 2, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QLabel(f"{METADATA_FIELDS["location"]}: "), 1, 2, Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self._location_edit, 1, 3)
 
         return widget
@@ -213,10 +233,10 @@ class DegasserTab(BaseTab):
 
         # Create Widgets
         self._test_table = QTableWidget(NUM_TEST_ROWS, NUM_TEST_COLS)
-        self._test_table.setHorizontalHeaderLabels(
-            ["Test Procedure/Description", "Pass/Fail", "Spec_Min", "Spec_Max", "Data Measured"]
-        )
+        self._test_table.setHorizontalHeaderLabels(TEST_TABLE_HEADERS)
         self._test_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Disable vertical scrollbar
+
+        units_by_row: dict[int, str] = {}
 
         # Pre-fill descriptions (these are read-only)
         for row, desc in enumerate(DEFAULT_TEST_DESCRIPTIONS):
@@ -241,6 +261,9 @@ class DegasserTab(BaseTab):
             if spec_key is not None:
                 spec = DS50_SPEC_RANGES.get(spec_key, (None, None))
                 unit = DS50_SPEC_UNITS.get(spec_key, "")
+
+                if unit:
+                    units_by_row[row] = unit
 
                 for col in range(2, NUM_TEST_COLS):
                     if col == 2:  # Spec_Min
@@ -279,6 +302,11 @@ class DegasserTab(BaseTab):
 
         header = self._test_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        self._test_table.setItemDelegateForColumn(
+            4,
+            _MeasuredValueDelegate(units_by_row, self._test_table)
+        )
 
         layout.addWidget(self._test_table)
         return widget
@@ -400,11 +428,6 @@ class DegasserTab(BaseTab):
         """Show/hide console output when checkbox is toggled."""
         self._console_output.setVisible(checked)
 
-    def log_message(self, message: str) -> None:
-        """Log a message to the console output."""
-        self._console_output.append(message)
-
-
     def _update_test_table(self, test_rows: list) -> None:
         """Update the test table from state data.
 
@@ -466,9 +489,12 @@ class DegasserTab(BaseTab):
             self._test_table.setItem(row, col, item)
 
         if value is not None:
-            item.setText(f"{value:.2f}")
+            numeric_text = f"{value:.2f}"
+            item.setText(numeric_text)
+            item.setData(Qt.ItemDataRole.EditRole, numeric_text)
         else:
             item.setText("")
+            item.setData(Qt.ItemDataRole.EditRole, "")
 
     def _block_signals(self, block: bool) -> None:
         """Block or unblock signals from all input widgets.
@@ -496,3 +522,30 @@ class DegasserTab(BaseTab):
         self._import_csv_btn.blockSignals(block)
         self._export_csv_btn.blockSignals(block)
         self._generate_report_btn.blockSignals(block)
+
+    def log_message(self, message: str) -> None:
+        """Log a message to the console output."""
+        self._console_output.append(message)
+
+
+class _MeasuredValueDelegate(QStyledItemDelegate):
+    """Delegate that appends units for measured values in the test table."""
+
+    def __init__(self, units_by_row: dict[int, str], parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self._units_by_row = units_by_row
+
+    def initStyleOption(self, option, index) -> None:
+        super().initStyleOption(option, index)
+
+        if index.column() != 4:
+            return
+
+        unit = self._units_by_row.get(index.row())
+        if not unit:
+            return
+
+        text = option.text
+        if text and not text.endswith(unit):
+            option.text = f"{text} {unit}"
+

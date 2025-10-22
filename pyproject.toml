@@ -3,7 +3,7 @@ authors = [
 	{name = "Adrian", email = "adrian.veen@gmail.com"}
 	]
 name = "testpad"
-version = "0.1.0"
+version = "1.11.0"
 description = "Multi-tool for QA and R&D at FUS Instruments"
 readme = "README.md"
 requires-python = "==3.12"

@@ -1,7 +1,6 @@
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, cast
 
-import PySide6.QtCore
 import PySide6.QtWidgets
 
 from testpad.config import DEFAULT_EXPORT_DIR
@@ -85,7 +84,7 @@ class DegasserPresenter:
 
     def on_time_series_changed(self, row: int, column: int) -> None:
         """Handle time series table cell changes.
-        
+
         Args:
             row (int): The row index of the time series table.
             column (int): The column index of the time series table.
@@ -97,7 +96,7 @@ class DegasserPresenter:
             return
         value = self._view.get_time_series_cell_value(row, column)
 
-        if value == "":
+        if value is None:
             try:
                 self._model.clear_measurement(row)
                 self._view.log_message(
@@ -108,7 +107,7 @@ class DegasserPresenter:
                 self._view.log_message(f"Clear error: {e}")
             return
 
-        # Try to set the measurement
+        # Try to set the measurement (value is guaranteed to be float here)
         try:
             self._model.set_measurement(row, value)
             self._view.log_message(
@@ -133,7 +132,7 @@ class DegasserPresenter:
             self._model.clear_temperature()
             self._refresh_view()
         else:
-            temp = temp.strip()
+            temp = cast(str, temp).strip()
             try:
                 self._model.set_temperature(temp)
                 self._refresh_view()

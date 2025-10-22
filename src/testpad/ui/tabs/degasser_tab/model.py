@@ -1,12 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional, Iterable
+from typing import Any, Dict, List, Optional
 from datetime import date
 import csv
 from .config import (
     MIN_MINUTE,
     MAX_MINUTE,
-    DEFAULT_TEST_DESCRIPTIONS
+    DEFAULT_TEST_DESCRIPTIONS,
+    DS50_SPEC_RANGES,
+    DS50_SPEC_UNITS
 )
 
 # ------------------ Data Structures ------------------
@@ -22,9 +24,9 @@ class TestResultRow:
 class DissolvedO2State:
     loaded: bool
     points_filled: int
-    temperature_c: float | None
     minutes_with_data: List[int]
-
+    temperature_c: str | None = None
+    
 @dataclass
 class Metadata:
     tester_name: str = ""
@@ -119,12 +121,6 @@ class DegasserModel:
         self._oxygen_data[minute] = self._validate_oxygen(oxygen_mg_per_L)
         return self.get_state()
 
-    def bulk_set_measurements(self, pairs: Iterable[tuple[int, float]]) -> DissolvedO2State:
-        """Apply multiple minute/value pairs, validating each in sequence."""
-        for m, v in pairs:
-            self.set_measurement(m, v)
-        return self.get_state()
-
     def clear_measurement(self, minute: int) -> DissolvedO2State:
         """Remove any stored reading for the given minute (no-op if missing)."""
         self._validate_minute(minute)
@@ -181,16 +177,6 @@ class DegasserModel:
     def get_test_rows(self) -> List[TestResultRow]:
         """Return deep-copied test rows so callers cannot mutate internal state."""
         return [TestResultRow(**asdict(r)) for r in self._test_rows]
-
-    def _set_test_descriptions_internal(self, descriptions: List[str]) -> None:
-        """
-        Developer utility (not user-facing).
-        Reassigns the static description column (length must remain 4).
-        """
-        if len(descriptions) != len(DEFAULT_TEST_DESCRIPTIONS):
-            raise ValueError(f"Exactly {len(DEFAULT_TEST_DESCRIPTIONS)} descriptions required.")
-        for i, desc in enumerate(descriptions):
-            self._test_rows[i].description = desc
 
     # -------- CSV Load / Save --------
     def load_from_csv(self, path: str) -> DissolvedO2State:

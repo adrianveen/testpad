@@ -6,9 +6,13 @@ from fpdf import FPDF, Align
 
 from testpad.config.defaults import DEFAULT_EXPORT_DIR
 from testpad.ui.tabs.degasser_tab.config import (
-         DEFAULT_TEST_DESCRIPTIONS,
-         DS50_SPEC_RANGES,
-         DS50_SPEC_UNITS
+        DEFAULT_TEST_DESCRIPTIONS,
+        NO_LIMIT_SYMBOL,
+        ROW_SPEC_MAPPING,
+        TEST_TABLE_HEADERS,
+        REPORT_VERSION,
+        DS50_SPEC_RANGES,
+        DS50_SPEC_UNITS
 )
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
 from testpad.ui.tabs.degasser_tab.plotting import make_time_series_figure, save_figure_to_temp_file
@@ -28,11 +32,11 @@ class GenerateReport:
 
     Methods:
         - generate_report(): Generates and saves the PDF report.
-        - build_report_base(margins: float): Initializes the PDF report with margins.
-        - build_header(): Draws the header for the report.
-        - build_title_block(metadata: dict | None = None): Draws the title block with metadata
-        - build_test_table(test_data: list = []): Draws the test results table.
-        - build_time_series_table(data: dict[int, float]): Draws the time series data table
+        - _build_report_base(margins: float): Initializes the PDF report with margins.
+        - _build_header(): Draws the header for the report.
+        - _build_title_block(metadata: dict | None = None): Draws the title block with metadata
+        - _build_test_table(test_data: list = []): Draws the test results table.
+        - _build_time_series_table(data: dict[int, float]): Draws the time series data table
     """
     def __init__(
             self,
@@ -68,11 +72,11 @@ class GenerateReport:
         filename = str(filename)
 
         # Call remaining draw methods
-        self.build_report_base(self.layout.left_margin_mm)
-        self.build_header()
-        self.build_title_block(self.metadata)
-        self.build_test_table([])
-        self.build_time_series_table(self.time_series)
+        self._build_report_base(self.layout.left_margin_mm)
+        self._build_header()
+        self._build_title_block(self.metadata)
+        self._build_test_table(self.test_data)
+        self._build_time_series_table(self.time_series)
         
         # Create and add figure using new design
         self._add_time_series_figure()
@@ -82,7 +86,7 @@ class GenerateReport:
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         self.pdf.output(filename)
 
-    def build_report_base(self, margins: float):
+    def _build_report_base(self, margins: float):
         """Initializes the report object and draws the report skeleton such as margins.
 
         Args:
@@ -93,7 +97,7 @@ class GenerateReport:
         self.pdf.set_margins(left=margins, top=margins, right=margins)
         self.pdf.set_font("helvetica", size=12)     
 
-    def build_header(self):
+    def _build_header(self):
         """Draws the header for the report 
         which includes company name and logo
         
@@ -110,7 +114,7 @@ class GenerateReport:
         )
 
 
-    def build_title_block(self, metadata: dict | None = None):
+    def _build_title_block(self, metadata: dict):
         """Draws the 2 x 2 meta data table and the report title.
         
         Args:
@@ -131,7 +135,7 @@ class GenerateReport:
         # Draw the report title
         self.pdf.ln(5) # Add spacing after header
         self.pdf.cell(
-            text="FUS DS-50 Test Report version 2025.0.4",
+            text=f"FUS DS-50 Test Report version {REPORT_VERSION}",
             align=Align.C,
             center=True,
             new_x="RIGHT",
@@ -155,7 +159,7 @@ class GenerateReport:
                 if len(pair) < 2:
                     row.cell("")
 
-    def build_test_table(self, test_data: list = []):
+    def _build_test_table(self, test_data: dict):
         """Draws the 8 row x 5 col table for the test results and default values.
 
         Args:
@@ -164,26 +168,59 @@ class GenerateReport:
         Returns:
             New y location for drawing next report section.
         """
-        headers = ["Test Procedure/Description", "Pass/Fail", "Spec_Min", "Spec_Max", "Data Measured"]
+        headers = TEST_TABLE_HEADERS
         descriptions = DEFAULT_TEST_DESCRIPTIONS
         self.pdf.ln(5) # Add a spacer before the data table
-        len(headers)
-        
 
         with self.pdf.table(col_widths=(40, 25, 25, 25, 25)) as table:
             header_row = table.row()
             for header in headers:
                 header_row.cell(header, Align.C)
-            # Descriptions
-            for descr in descriptions:
+            # Test Results and Headers
+            for idx, test_row_dict in enumerate(test_data):
                 row = table.row()
-                row.cell(descr, align="L")
-                row.cell("")
-                row.cell("")
-                row.cell("")
-                row.cell("")
 
-    def build_time_series_table(self, data: dict[int, float]) -> None:
+                # Column 1: Description
+                row.cell(test_row_dict['description'], align="L")
+
+                # Column 2: Pass/Fail
+                pas_fail_text = test_row_dict.get('pass_fail','') or ''
+                row.cell(pas_fail_text, align="C")
+
+                # Get specs from config
+                spec_key = ROW_SPEC_MAPPING[idx]
+                spec = DS50_SPEC_RANGES.get(spec_key, (None, None)) if spec_key else (None, None)
+                units = DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else (None, None)
+
+                # Column 3: Spec_Min
+                if spec[0] is not None:
+                    if isinstance(spec[0], float):
+                        spec_min_text = f"{spec[0]:.2f} {units}"
+                    else:
+                        spec_min_text = f"{spec[0]} {units}"
+                else:
+                    spec_min_text = NO_LIMIT_SYMBOL
+                row.cell(spec_min_text, align="C")
+
+                # Column 4: Spec_Max 
+                if spec[1] is not None:
+                    if isinstance(spec[1], float):
+                        spec_max_text = f"{spec[1]:.2f} {units}"
+                    else:
+                        spec_max_text = f"{spec[1]} {units}"
+                else:
+                    spec_max_text = NO_LIMIT_SYMBOL
+                row.cell(spec_max_text, align="C")
+
+                # Column 5: Data Measured
+                data_measured = test_row_dict.get('measured')
+                if isinstance(data_measured, float):
+                    data_measured_text = f"{data_measured:.2f} {units}" if data_measured is not None else NO_LIMIT_SYMBOL
+                else:
+                    data_measured_text = f"{data_measured}" if data_measured is not None else NO_LIMIT_SYMBOL
+                row.cell(data_measured_text, align="C")
+
+    def _build_time_series_table(self, data: dict[int, float]) -> None:
         """Draws the 2 x 11 time series table with a title above it.
 
         Args:

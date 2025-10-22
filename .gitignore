@@ -3,7 +3,7 @@
 .pixi/* # pixi environments
 !.pixi/config.toml
 pixi.*
-planning/
+# planning/
 .vscode/
 AGENTS.*
 .python-version
