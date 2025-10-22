@@ -194,14 +194,14 @@ class DegasserPresenter:
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""
         state = self._build_view_state()
-        self._view.render(state)
+        self._view.update_view(state)
         
     def _build_view_state(self) -> DegasserViewState:
         """Build a complete ViewState from the current model state.
 
         This method bridges Model and View - it extracts all
         necessary data from the model and packages it into a ViewState that
-        the view can render.
+        the view can be updated.
 
         Returns:
             DegasserViewState containing all current display data

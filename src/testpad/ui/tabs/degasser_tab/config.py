@@ -6,7 +6,9 @@ Contains DS-50 specifications, test descriptions, and validation rules.
 
 # === Time Series Configuration ===
 from PySide6.QtGui import QColor
-
+from testpad.config import (
+        STANDARD_ROOM_TEMP_C    
+)
 
 MIN_MINUTE = 0
 MAX_MINUTE = 10
@@ -75,6 +77,8 @@ REQUIRE_TEMPERATURE_FOR_REPORT = False  # Temperature is optional
 # === Tables and Report Configuration ===
 NUM_TEST_ROWS = 7
 NUM_TEST_COLS = 5
+NUM_TIME_SERIES_ROWS = 11
+NUM_TIME_SERIES_COLS = 2
 HEADER_ROW_INDEX = 3
 HEADER_ROW_COLOR = QColor(60, 60, 60)
 REPORT_VERSION = "2025.0.4"

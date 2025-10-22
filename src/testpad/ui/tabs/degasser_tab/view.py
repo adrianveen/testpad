@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 import PySide6.QtCore
 import PySide6.QtGui
 from PySide6.QtCore import Qt
@@ -30,11 +30,14 @@ from testpad.ui.tabs.degasser_tab.config import (
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
     NO_LIMIT_SYMBOL,
+    NUM_TIME_SERIES_ROWS,
+    NUM_TIME_SERIES_COLS,
     ROW_SPEC_MAPPING,
     NUM_TEST_ROWS,
     NUM_TEST_COLS,
     HEADER_ROW_INDEX,
-    HEADER_ROW_COLOR
+    HEADER_ROW_COLOR,
+    STANDARD_ROOM_TEMP_C
 )
 
 
@@ -64,15 +67,15 @@ class DegasserTab(BaseTab):
         layout.setRowStretch(3, 0)  # Action buttons not stretchable
         layout.setRowStretch(4, 0)  # Console section not stretchable
 
-    def render(self, state: DegasserViewState) -> None:
-        """Render the view based on the provided state.
+    def update_view(self, state: DegasserViewState) -> None:
+        """Update the view based on the provided state.
 
         This is the primary interface between Presenter and View. The Presenter
         creates a ViewState from the Model and passes it here. This method
         updates all UI widgets to reflect the state.
 
         Args:
-            state: Complete UI state to render
+            state: Complete UI state to accurately update the view
 
         Note: This method handles signal blocking internally to prevent
             feedback loops during updates.
@@ -85,16 +88,20 @@ class DegasserTab(BaseTab):
             self._serial_edit.setText(state.ds50_serial)
 
             if state.test_date:
-                qdate = PySide6.QtCore.QDate(state.test_date)
+                qdate = PySide6.QtCore.QDate(
+                    state.test_date.year,
+                    state.test_date.month,
+                    state.test_date.day
+                )
                 self._date_edit.setDate(qdate)
 
-            # Render Chart
+            # Update Chart
             self._time_series_chart.update_plot(
                 state.time_series_measurements,
                 state.temperature_c
             )
 
-            # Render temperature display
+            # Update temperature display
             # Only update if field is not in focus - user may be editing
             if not self._temperature_edit.hasFocus():
                 if state.temperature_c is not None:
@@ -102,9 +109,9 @@ class DegasserTab(BaseTab):
                 else:
                     self._temperature_edit.setText("")
 
-            self._render_test_table(state.test_rows)
+            self._update_test_table(state.test_rows)
 
-            self._render_time_series_table(state.time_series_table_rows)
+            self._update_time_series_table(state.time_series_table_rows)
 
         finally:
             self._block_signals(False)
@@ -141,6 +148,7 @@ class DegasserTab(BaseTab):
                 continue
             combo = self._test_table.cellWidget(row, 1)
             if combo:
+                combo = cast(QComboBox, combo)
                 combo.currentTextChanged.connect(
                     lambda text, r=row: presenter.on_pass_fail_changed(r, text)
                 )
@@ -214,7 +222,7 @@ class DegasserTab(BaseTab):
         for row, desc in enumerate(DEFAULT_TEST_DESCRIPTIONS):
             # Column 0: Description only
             item = QTableWidgetItem(desc)
-            item.setFlags(item.flags() & ~PySide6.QtCore.Qt.ItemIsEditable) # Make read-only
+            item.setFlags(item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable) # Make read-only
             # Bold and gray background for re-circulation header rows
             if row == 3:
                 font = item.font()
@@ -223,7 +231,7 @@ class DegasserTab(BaseTab):
                 item.setFont(font)
                 item.setBackground(HEADER_ROW_COLOR) # Light gray background
                 # Span all columns for 2nd re-circulation header
-                self._test_table.setSpan(3, 0, 1, NUM_TEST_COLS)
+                self._test_table.setSpan(HEADER_ROW_INDEX, 0, 1, NUM_TEST_COLS)
             self._test_table.setItem(row, 0, item)
 
             # Get spec key for this row (None for header row)
@@ -251,10 +259,10 @@ class DegasserTab(BaseTab):
                     spec_item = QTableWidgetItem(spec_value)
                     spec_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     if col in (2, 3):  # Spec columns are read-only
-                        spec_item.setFlags(spec_item.flags() & ~Qt.ItemIsEditable)
+                        spec_item.setFlags(spec_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable)
                     self._test_table.setItem(row, col, spec_item)
 
-            if row != 3:
+            if row != HEADER_ROW_INDEX:
                 # Column 1: Pass/Fail dropdown for non header rows
                 pass_fail_combo = QComboBox()
                 pass_fail_combo.addItems(["", "Pass", "Fail"])
@@ -290,7 +298,7 @@ class DegasserTab(BaseTab):
         table_container.setLayout(table_layout)
 
         # Create Widgets
-        self._time_series_widget = QTableWidget(11, 2)
+        self._time_series_widget = QTableWidget(NUM_TIME_SERIES_ROWS, NUM_TIME_SERIES_COLS)
         self._time_series_widget.setHorizontalHeaderLabels(
             ["Time (minutes)", "Dissolved O2 (mg/L)"]
         )
@@ -299,7 +307,7 @@ class DegasserTab(BaseTab):
         for row in range(11):
             minute_item = QTableWidgetItem(str(row))
             minute_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            minute_item.setFlags(minute_item.flags() & ~Qt.ItemIsEditable) # Make read-only
+            minute_item.setFlags(minute_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable) # Make read-only
             self._time_series_widget.setItem(row, 0, minute_item)
 
             # Oxygen column - pre-create empty editable cells for alignment purposes
@@ -332,7 +340,7 @@ class DegasserTab(BaseTab):
         temp_checkbox.toggled.connect(self._temperature_edit.setVisible)
         temp_checkbox.toggled.connect(self._temperature_edit.setEnabled)
         temp_checkbox.toggled.connect(
-            lambda checked: self._temperature_edit.setText("25.0") if checked else self._temperature_edit.setText("")
+            lambda checked: self._temperature_edit.setText(str(STANDARD_ROOM_TEMP_C)) if checked else self._temperature_edit.setText("")
         )
 
         # Add to main layout
@@ -397,8 +405,8 @@ class DegasserTab(BaseTab):
         self._console_output.append(message)
 
 
-    def _render_test_table(self, test_rows: list) -> None:
-        """Render the test table from state data.
+    def _update_test_table(self, test_rows: list) -> None:
+        """Update the test table from state data.
 
         Args:
             test_rows: List of TestResultRow objects to display
@@ -409,6 +417,7 @@ class DegasserTab(BaseTab):
             # Column 1: Pass/Fail dropdown
             combo = self._test_table.cellWidget(row_idx, 1)
             if combo:
+                combo = cast(QComboBox, combo)
                 combo.setCurrentText(row_data.pass_fail)
 
             # Column 2 & 3 (Spec Min/Max) are static, set once in __init__
@@ -416,11 +425,11 @@ class DegasserTab(BaseTab):
             # Column 4: Data Measured
             self._set_table_cell_float(row_idx, 4, row_data.measured)
 
-    def _render_time_series_table(
+    def _update_time_series_table(
         self,
         table_rows: list[tuple[int, Optional[float]]]
     ) -> None:
-        """Render the time series table from the state data.
+        """Update the time series table from the state data.
 
         Args:
             table_rows: List of (minute, oxygen_level) tuples to display
