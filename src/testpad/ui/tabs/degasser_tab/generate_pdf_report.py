@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import os
 
 from fpdf import FPDF, Align
@@ -43,7 +43,7 @@ class GenerateReport:
             metadata: Dict[str, Any],
             test_data: dict,
             time_series: Dict[int, float],
-            temperature: float,
+            temperature: Optional[float],
             output_dir: Path
     ) -> None:
 
@@ -169,7 +169,6 @@ class GenerateReport:
             New y location for drawing next report section.
         """
         headers = TEST_TABLE_HEADERS
-        descriptions = DEFAULT_TEST_DESCRIPTIONS
         self.pdf.ln(5) # Add a spacer before the data table
 
         with self.pdf.table(col_widths=(40, 25, 25, 25, 25)) as table:
@@ -190,7 +189,7 @@ class GenerateReport:
                 # Get specs from config
                 spec_key = ROW_SPEC_MAPPING[idx]
                 spec = DS50_SPEC_RANGES.get(spec_key, (None, None)) if spec_key else (None, None)
-                units = DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else (None, None)
+                units = DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else ""
 
                 # Column 3: Spec_Min
                 if spec[0] is not None:

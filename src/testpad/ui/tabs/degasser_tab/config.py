@@ -6,14 +6,14 @@ Contains DS-50 specifications, test descriptions, and validation rules.
 
 # === Time Series Configuration ===
 from PySide6.QtGui import QColor
-from testpad.config import (
-        STANDARD_ROOM_TEMP_C    
+from testpad.config.defaults import (
+        DEFAULT_TEMPERATURE_C    
 )
 
 MIN_MINUTE = 0
 MAX_MINUTE = 10
 TIME_SERIES_RESOLUTION_MINUTES = 1  # Measurement interval
-
+DEFAULT_TIME_SERIES_TEMP = DEFAULT_TEMPERATURE_C
 # === Metadata Fields ===
 METADATA_FIELDS = {
     "tester_name": "Tester Name",

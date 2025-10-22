@@ -8,7 +8,7 @@ from .config import (
     MAX_MINUTE,
     DEFAULT_TEST_DESCRIPTIONS,
     DS50_SPEC_RANGES,
-    DS50_SPEC_UNITS
+    DS50_SPEC_UNITS,
 )
 
 # ------------------ Data Structures ------------------
@@ -21,11 +21,11 @@ class TestResultRow:
     measured: Optional[float] = None
 
 @dataclass
-class DissolvedO2State:
+class TimeSeriesState:
     loaded: bool
     points_filled: int
     minutes_with_data: List[int]
-    temperature_c: str | None = None
+    temperature_c: float | None = None
     
 @dataclass
 class Metadata:
@@ -115,13 +115,13 @@ class DegasserModel:
         """Return a copy of the current metadata."""
         return Metadata(**asdict(self._metadata))
     # -------- Time Series API --------
-    def set_measurement(self, minute: int, oxygen_mg_per_L: float) -> DissolvedO2State:
+    def set_measurement(self, minute: int, oxygen_mg_per_L: float) -> TimeSeriesState:
         """Insert or update the oxygen reading for a specific minute slot."""
         self._validate_minute(minute)
         self._oxygen_data[minute] = self._validate_oxygen(oxygen_mg_per_L)
         return self.get_state()
 
-    def clear_measurement(self, minute: int) -> DissolvedO2State:
+    def clear_measurement(self, minute: int) -> TimeSeriesState:
         """Remove any stored reading for the given minute (no-op if missing)."""
         self._validate_minute(minute)
         self._oxygen_data.pop(minute, None)
@@ -136,7 +136,7 @@ class DegasserModel:
         return [(m, self._oxygen_data.get(m)) for m in range(MIN_MINUTE, MAX_MINUTE + 1)]
 
     # -------- Temperature --------
-    def set_temperature(self, temperature_c: float | str | int) -> DissolvedO2State:
+    def set_temperature(self, temperature_c: float | str | int) -> TimeSeriesState:
         """Store the shared bath temperature, coercing numeric inputs to float."""
         try:
             t = float(temperature_c)
@@ -145,7 +145,7 @@ class DegasserModel:
         self._temperature_c = t
         return self.get_state()
 
-    def clear_temperature(self) -> DissolvedO2State:
+    def clear_temperature(self) -> TimeSeriesState:
         """Reset the optional temperature reading back to an unset state."""
         self._temperature_c = None
         return self.get_state()
@@ -179,7 +179,7 @@ class DegasserModel:
         return [TestResultRow(**asdict(r)) for r in self._test_rows]
 
     # -------- CSV Load / Save --------
-    def load_from_csv(self, path: str) -> DissolvedO2State:
+    def load_from_csv(self, path: str) -> TimeSeriesState:
         """
         Loads time series from CSV.\n
         Headers (one of each required):
@@ -258,18 +258,19 @@ class DegasserModel:
                 writer.writerow(row)
 
     # -------- State / Reset / Serialization --------
-    def reset(self) -> DissolvedO2State:
+    def reset(self) -> TimeSeriesState:
         """Restore the model to a pristine state with default rows and no data."""
         self._oxygen_data.clear()
         self._temperature_c = None
         self._test_rows = [TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS]
         self._source_path = None
         self._metadata = Metadata()
+        # self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
         return self.get_state()
 
-    def get_state(self) -> DissolvedO2State:
+    def get_state(self) -> TimeSeriesState:
         """Snapshot the current model state for presenter/view consumption."""
-        return DissolvedO2State(
+        return TimeSeriesState(
             loaded=bool(self._oxygen_data),
             points_filled=len(self._oxygen_data),
             temperature_c=self._temperature_c,

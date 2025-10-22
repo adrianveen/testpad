@@ -18,6 +18,7 @@ class DegasserPresenter:
         self._model = model
         self._view = view
         self._state = DegasserViewState()
+        self._updating = False
 
     def initialize(self) -> None:
         """Called after view is constructed."""
@@ -30,22 +31,27 @@ class DegasserPresenter:
 
     def on_name_changed(self, text: str) -> None:
         """Handle name edit changes."""
+        if self._updating: return
         self._model.set_metadata_field("tester_name", text)
 
     def on_location_changed(self, text: str) -> None:
         """Handle location edit changes."""
+        if self._updating: return
         self._model.set_metadata_field("location", text)
 
     def on_date_changed(self, date: Any) -> None:
         """Handle date edit changes."""
+        if self._updating: return
         self._model.set_metadata_field("test_date", date.toPython())
 
     def on_serial_changed(self, text: str) -> None:
         """Handle serial edit changes."""
+        if self._updating: return
         self._model.set_metadata_field("ds50_serial", text)
 
     def on_test_table_cell_changed(self, row: int, column: int) -> None:
         """Handle test table cell changes."""
+        if self._updating: return
         if column == 0:
             return
 
@@ -56,13 +62,11 @@ class DegasserPresenter:
             if column == 1:  # Pass/Fail
                 self._model.update_test_row(row, pass_fail=value)
             elif column == 2:  # Spec Min
-                self._model.update_test_row(row, spec_min=value if value else None)
+                self._model.update_test_row(row, spec_min=None if value.strip() == "" else value)
             elif column == 3:  # Spec Max
-                self._model.update_test_row(row, spec_max=value if value else None)
+                self._model.update_test_row(row, spec_max=None if value.strip() == "" else value)
             elif column == 4:  # Data Measured
-                self._model.update_test_row(row, measured=value if value else None)
-
-            self._refresh_view()
+                self._model.update_test_row(row, measured=None if value.strip() == "" else value)
 
         except ValueError as e:
             self._view.log_message(f"Test table error: {e}")
@@ -77,6 +81,7 @@ class DegasserPresenter:
         Raises:
             ValueError: If the value is invalid.
         """
+        if self._updating: return
         try:
             self._model.update_test_row(row, pass_fail=value)
         except ValueError as e:
@@ -92,6 +97,7 @@ class DegasserPresenter:
         Raises:
             ValueError: If oxygen level is invalid.
         """
+        if self._updating: return
         if column != 1:
             return
         value = self._view.get_time_series_cell_value(row, column)
@@ -102,7 +108,6 @@ class DegasserPresenter:
                 self._view.log_message(
                     f"Cleared oxygen level measurement at minute {row}"
                 )
-                self._refresh_view()
             except ValueError as e:
                 self._view.log_message(f"Clear error: {e}")
             return
@@ -113,7 +118,6 @@ class DegasserPresenter:
             self._view.log_message(
                 f"Set oxygen level at minute {row} to {value} mg/L"
             )
-            self._refresh_view()
         except ValueError as e:
             self._view.log_message(
                 f"Invalid oxygen level at minute {row}: {e}"
@@ -128,14 +132,13 @@ class DegasserPresenter:
         Raises:
             ValueError: If temperature is out of valid range.
         """        
+        if self._updating: return
         if temp == "":
             self._model.clear_temperature()
-            self._refresh_view()
         else:
             temp = cast(str, temp).strip()
             try:
                 self._model.set_temperature(temp)
-                self._refresh_view()
             except ValueError as e:
                 self._view.log_message(f"Temperature error: {e}")
 
@@ -146,6 +149,7 @@ class DegasserPresenter:
             ValueError: If import fails due to invalid file format.
             Exception: For any other unexpected errors.
         """
+        if self._updating: return
         path, _ = PySide6.QtWidgets.QFileDialog.getOpenFileName(
             self._view,
             "Import Degasser Data",
@@ -171,6 +175,7 @@ class DegasserPresenter:
             ValueError: If export fails due to invalid state.
             Exception: For any other unexpected errors.        
         """
+        if self._updating: return
         timestamp = datetime.now().strftime("%y%m%d-%H%M%")
         path, _ = PySide6.QtWidgets.QFileDialog.getSaveFileName(
             self._view,
@@ -192,8 +197,14 @@ class DegasserPresenter:
 
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""
-        state = self._build_view_state()
-        self._view.update_view(state)
+        if self._updating:
+            return
+        self._updating = True
+        try:
+            state = self._build_view_state()
+            self._view.update_view(state)
+        finally:
+            self._updating = False
         
     def _build_view_state(self) -> DegasserViewState:
         """Build a complete ViewState from the current model state.
@@ -226,6 +237,7 @@ class DegasserPresenter:
 
     def on_reset(self) -> None:
         """Handle reset button click - clear all data"""
+        if self._updating: return
         # Confirmation dialog
         reply = PySide6.QtWidgets.QMessageBox.question(
             self._view,
@@ -248,6 +260,7 @@ class DegasserPresenter:
             ValueError: If report generation fails due to invalid state.
             Exception: For any other unexpected errors.
         """
+        if self._updating: return
         data_dict = self._model.to_dict()
         time_series = data_dict['time_series']
         temperature_c = data_dict['temperature_c']

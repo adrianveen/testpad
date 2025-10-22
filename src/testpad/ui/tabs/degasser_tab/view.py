@@ -1,6 +1,6 @@
 from typing import Optional, cast
 import PySide6.QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSignalBlocker
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -26,6 +26,7 @@ from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 from testpad.ui.tabs.degasser_tab.view_state import DegasserViewState
 from testpad.ui.tabs.degasser_tab.chart_widgets import TimeSeriesChartWidget
 from testpad.ui.tabs.degasser_tab.config import (
+    DEFAULT_TIME_SERIES_TEMP,
     METADATA_FIELDS,
     DEFAULT_TEST_DESCRIPTIONS,
     DS50_SPEC_RANGES,
@@ -38,8 +39,11 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TEST_COLS,
     HEADER_ROW_INDEX,
     HEADER_ROW_COLOR,
-    STANDARD_ROOM_TEMP_C,
     TEST_TABLE_HEADERS
+)
+from testpad.utils.lineedit_validators import (
+    ValidatedLineEdit,
+    FixupDoubleValidator
 )
 
 
@@ -151,7 +155,7 @@ class DegasserTab(BaseTab):
             combo = self._test_table.cellWidget(row, 1)
             if combo:
                 combo = cast(QComboBox, combo)
-                combo.currentTextChanged.connect(
+                combo.textActivated.connect(
                     lambda text, r=row: presenter.on_pass_fail_changed(r, text)
                 )
         # TODO: Add CSV import and export connections
@@ -198,7 +202,10 @@ class DegasserTab(BaseTab):
         if not text:
             return None
 
-        return float(text) 
+        try:
+            return float(text)
+        except ValueError:
+            return None
 
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
@@ -244,7 +251,7 @@ class DegasserTab(BaseTab):
             item = QTableWidgetItem(desc)
             item.setFlags(item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable) # Make read-only
             # Bold and gray background for re-circulation header rows
-            if row == 3:
+            if row == HEADER_ROW_INDEX:
                 font = item.font()
                 font.setBold(True)
                 font.setPointSize(font.pointSize() + 1)
@@ -307,10 +314,11 @@ class DegasserTab(BaseTab):
             4,
             _MeasuredValueDelegate(units_by_row, self._test_table)
         )
+        self._autosize_test_table()
 
         layout.addWidget(self._test_table)
         return widget
-
+    
     def _build_time_series_section(self) -> QWidget:
         """Build the time series data entry section."""
         widget = QWidget()
@@ -327,6 +335,7 @@ class DegasserTab(BaseTab):
 
         # Create Widgets
         self._time_series_widget = QTableWidget(NUM_TIME_SERIES_ROWS, NUM_TIME_SERIES_COLS)
+        self._time_series_widget.setItemDelegateForColumn(1, ValidatedFloatDelegate(self._time_series_widget))
         self._time_series_widget.setHorizontalHeaderLabels(
             ["Time (minutes)", "Dissolved O2 (mg/L)"]
         )
@@ -368,7 +377,7 @@ class DegasserTab(BaseTab):
         temp_checkbox.toggled.connect(self._temperature_edit.setVisible)
         temp_checkbox.toggled.connect(self._temperature_edit.setEnabled)
         temp_checkbox.toggled.connect(
-            lambda checked: self._temperature_edit.setText(str(STANDARD_ROOM_TEMP_C)) if checked else self._temperature_edit.setText("")
+            lambda checked: self._temperature_edit.setText(str(DEFAULT_TIME_SERIES_TEMP)) if checked else self._temperature_edit.setText("")
         )
 
         # Add to main layout
@@ -441,7 +450,8 @@ class DegasserTab(BaseTab):
             combo = self._test_table.cellWidget(row_idx, 1)
             if combo:
                 combo = cast(QComboBox, combo)
-                combo.setCurrentText(row_data.pass_fail)
+                with QSignalBlocker(combo):
+                    combo.setCurrentText(row_data.pass_fail)
 
             # Column 2 & 3 (Spec Min/Max) are static, set once in __init__
 
@@ -523,6 +533,14 @@ class DegasserTab(BaseTab):
         self._export_csv_btn.blockSignals(block)
         self._generate_report_btn.blockSignals(block)
 
+    def _autosize_test_table(self) -> None:
+        """Auto-size the test table to fit its contents."""
+        self._autosize_test_table()
+        vertical_header = self._test_table.verticalHeader()
+        horizontal_header = self._test_table.horizontalHeader()
+        height = int(vertical_header.height() + horizontal_header.height() + 2 * self._test_table.frameWidth())
+        self._test_table.setFixedHeight(height)
+
     def log_message(self, message: str) -> None:
         """Log a message to the console output."""
         self._console_output.append(message)
@@ -549,3 +567,11 @@ class _MeasuredValueDelegate(QStyledItemDelegate):
         if text and not text.endswith(unit):
             option.text = f"{text} {unit}"
 
+class ValidatedFloatDelegate(QStyledItemDelegate):
+    """Delegate enforcing numeric-only, visually validated input in table cells."""
+    def createEditor(self, parent, option, index):
+        editor = ValidatedLineEdit(parent)
+        validator = FixupDoubleValidator(0.0, 100.0, 3, editor)  # adjust range/precision as needed
+        editor.setValidator(validator)
+        editor.setPlaceholderText("Enter number")
+        return editor
