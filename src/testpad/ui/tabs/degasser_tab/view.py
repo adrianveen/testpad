@@ -304,7 +304,7 @@ class DegasserTab(BaseTab):
         )
         self._time_series_widget.verticalHeader().setVisible(True)  # Push to left
 
-        for row in range(11):
+        for row in range(NUM_TIME_SERIES_ROWS):
             minute_item = QTableWidgetItem(str(row))
             minute_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             minute_item.setFlags(minute_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable) # Make read-only
