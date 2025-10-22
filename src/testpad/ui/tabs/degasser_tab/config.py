@@ -72,7 +72,7 @@ CSV_TEMPERATURE_ALIASES = {"temperature_c", "temp_c", "Temperature", "temp"}
 MIN_OXYGEN_VALUE = 0.0  # mg/L, must be positive
 REQUIRE_TEMPERATURE_FOR_REPORT = False  # Temperature is optional
 
-# === Report Configuration ===
+# === Tables and Report Configuration ===
 NUM_TEST_ROWS = 7
 NUM_TEST_COLS = 5
 HEADER_ROW_INDEX = 3

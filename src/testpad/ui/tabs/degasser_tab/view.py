@@ -36,7 +36,8 @@ from testpad.ui.tabs.degasser_tab.config import (
     ROW_SPEC_MAPPING,
     NUM_TEST_ROWS,
     NUM_TEST_COLS,
-    HEADER_ROW_INDEX
+    HEADER_ROW_INDEX,
+    HEADER_ROW_COLOR
 )
 
 
@@ -206,7 +207,7 @@ class DegasserTab(BaseTab):
         widget.setLayout(layout)
 
         # Create Widgets
-        self._test_table = QTableWidget(7, 5)
+        self._test_table = QTableWidget(NUM_TEST_ROWS, NUM_TEST_COLS)
         self._test_table.setHorizontalHeaderLabels(
             ["Test Procedure/Description", "Pass/Fail", "Spec_Min", "Spec_Max", "Data Measured"]
         )
@@ -223,9 +224,9 @@ class DegasserTab(BaseTab):
                 font.setBold(True)
                 font.setPointSize(font.pointSize() + 1)
                 item.setFont(font)
-                item.setBackground(PySide6.QtGui.QColor(60, 60, 60)) # Light gray background
+                item.setBackground(HEADER_ROW_COLOR) # Light gray background
                 # Span all columns for 2nd re-circulation header
-                self._test_table.setSpan(3, 0, 1, 5)
+                self._test_table.setSpan(3, 0, 1, NUM_TEST_COLS)
             self._test_table.setItem(row, 0, item)
 
             # Get spec key for this row (None for header row)
@@ -236,7 +237,7 @@ class DegasserTab(BaseTab):
                 spec = DS50_SPEC_RANGES.get(spec_key, (None, None))
                 unit = DS50_SPEC_UNITS.get(spec_key, "")
 
-                for col in range(2, 5):
+                for col in range(2, NUM_TEST_COLS):
                     if col == 2:  # Spec_Min
                         if spec[0] is None:
                             spec_value = NO_LIMIT_SYMBOL
@@ -263,7 +264,7 @@ class DegasserTab(BaseTab):
                 self._test_table.setCellWidget(row, 1, pass_fail_combo)
 
         height = self._test_table.horizontalHeader().height()
-        for row in range(7):
+        for row in range(NUM_TEST_ROWS):
             height += self._test_table.rowHeight(row)
 
         height += self._test_table.frameWidth() * 2  # Add frame width
