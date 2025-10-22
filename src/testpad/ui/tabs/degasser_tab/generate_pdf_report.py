@@ -6,7 +6,6 @@ from fpdf import FPDF, Align
 
 from testpad.config.defaults import DEFAULT_EXPORT_DIR
 from testpad.ui.tabs.degasser_tab.config import (
-        DEFAULT_TEST_DESCRIPTIONS,
         NO_LIMIT_SYMBOL,
         ROW_SPEC_MAPPING,
         TEST_TABLE_HEADERS,

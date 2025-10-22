@@ -7,7 +7,8 @@ Contains DS-50 specifications, test descriptions, and validation rules.
 # === Time Series Configuration ===
 from PySide6.QtGui import QColor
 from testpad.config.defaults import (
-        DEFAULT_TEMPERATURE_C    
+        DEFAULT_TEMPERATURE_C,
+        default_date,
 )
 
 MIN_MINUTE = 0
@@ -97,4 +98,4 @@ TEST_TABLE_HEADERS = [
     "Maximum Spec",
     "Data Measured"
 ]
-
+DEFAULT_TEST_DATE = default_date

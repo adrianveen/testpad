@@ -7,6 +7,7 @@ from .config import (
     MIN_MINUTE,
     MAX_MINUTE,
     DEFAULT_TEST_DESCRIPTIONS,
+    DEFAULT_TEST_DATE,
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
 )
@@ -72,7 +73,7 @@ class DegasserModel:
         ]
         self._source_path: str | None = None
 
-        self._metadata = Metadata(test_date=date.today())
+        self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
         
     # -------- Validation Helpers --------
     @staticmethod
@@ -264,8 +265,7 @@ class DegasserModel:
         self._temperature_c = None
         self._test_rows = [TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS]
         self._source_path = None
-        self._metadata = Metadata()
-        # self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
+        self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
         return self.get_state()
 
     def get_state(self) -> TimeSeriesState:

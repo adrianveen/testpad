@@ -4,6 +4,7 @@ Default application settings for FUS Instruments TestPad.
 These are user-facing defaults that can be overridden by user preferences
 or loaded from configuration files.
 """
+from datetime import date
 from pathlib import Path
 from .constants import (
     ABSOLUTE_ZERO_C,
@@ -24,3 +25,9 @@ DEFAULT_OUTPUT_DIR = Path.home() / "Documents" / "FUS Instruments" / "Testpad"
 DEFAULT_EXPORT_DIR = DEFAULT_OUTPUT_DIR / "Exports"
 DEFAULT_CSV_ENCODING = 'utf-8'
 DEFAULT_CSV_DELIMITER = ','
+
+# === Date Defaults ===
+ISO_8601_DATE_FORMAT = "yyyy/MM/dd"
+def default_date() -> date:
+    """Returns today's date as a date object (no time component)."""
+    return date.today()

@@ -1,7 +1,8 @@
 from typing import Optional, cast
 import PySide6.QtCore
-from PySide6.QtCore import Qt, QSignalBlocker
+from PySide6.QtCore import Qt, QSignalBlocker, QDate
 from PySide6.QtWidgets import (
+    QAbstractScrollArea,
     QCheckBox,
     QComboBox,
     QGroupBox,
@@ -41,6 +42,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     HEADER_ROW_COLOR,
     TEST_TABLE_HEADERS
 )
+from testpad.config.defaults import ISO_8601_DATE_FORMAT
 from testpad.utils.lineedit_validators import (
     ValidatedLineEdit,
     FixupDoubleValidator
@@ -92,13 +94,9 @@ class DegasserTab(BaseTab):
             self._name_edit.setText(state.tester_name)
             self._location_edit.setText(state.location)
             self._serial_edit.setText(state.ds50_serial)
-
-            if state.test_date:
-                qdate = PySide6.QtCore.QDate(
-                    state.test_date.year,
-                    state.test_date.month,
-                    state.test_date.day
-                )
+            if state.test_date is not None:
+                # Convert Python date to QDate for type safety
+                qdate = QDate(state.test_date.year, state.test_date.month, state.test_date.day)
                 self._date_edit.setDate(qdate)
 
             # Update Chart
@@ -218,6 +216,7 @@ class DegasserTab(BaseTab):
         self._location_edit = QLineEdit()
         self._date_edit = QDateEdit()
         self._date_edit.setCalendarPopup(True)
+        self._date_edit.setDisplayFormat(ISO_8601_DATE_FORMAT)  # ISO 8601 format
         self._serial_edit = QLineEdit()
 
         # Layout
@@ -298,23 +297,19 @@ class DegasserTab(BaseTab):
                 pass_fail_combo.addItems(["", "Pass", "Fail"])
                 self._test_table.setCellWidget(row, 1, pass_fail_combo)
 
-        height = self._test_table.horizontalHeader().height()
-        for row in range(NUM_TEST_ROWS):
-            height += self._test_table.rowHeight(row)
-
-        height += self._test_table.frameWidth() * 2  # Add frame width
-        height += 2  # Add a little extra padding
-
-        self._test_table.setFixedHeight(height)
-
+        # Configure table headers
         header = self._test_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        # Set a fixed height to prevent scrollbars based on table contents
+        fixed_height = self._autosize_table(self._test_table)
+        self._test_table.setFixedHeight(fixed_height)
+        self._test_table.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
 
         self._test_table.setItemDelegateForColumn(
             4,
             _MeasuredValueDelegate(units_by_row, self._test_table)
         )
-        self._autosize_test_table()
 
         layout.addWidget(self._test_table)
         return widget
@@ -356,7 +351,17 @@ class DegasserTab(BaseTab):
 
         header = self._time_series_widget.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        # Configure vertical header with fixed row heights for minimum size calculation
         vertical_header = self._time_series_widget.verticalHeader()
+        vertical_header.setDefaultSectionSize(30)  # Set desired row height
+        vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+
+        # Calculate minimum height with fixed row sizes
+        minimum_height = self._autosize_table(self._time_series_widget)
+        self._time_series_widget.setMinimumHeight(minimum_height)
+
+        # Now switch to Stretch mode for runtime behavior
         vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         # Temperature widget
@@ -480,6 +485,7 @@ class DegasserTab(BaseTab):
                 oxy_item.setText(f"{oxygen_level:.2f}")
             else:
                 oxy_item.setText("")
+
     def _set_table_cell_float(
         self,
         row: int,
@@ -523,6 +529,12 @@ class DegasserTab(BaseTab):
 
         # Test Table Fields
         self._test_table.blockSignals(block)
+        for row in range(NUM_TEST_ROWS):
+            if row == HEADER_ROW_INDEX:
+                continue
+            combo = self._test_table.cellWidget(row, 1)
+            if combo:
+                combo.blockSignals(block)
 
         # Time Series Fields
         self._time_series_widget.blockSignals(block)
@@ -533,13 +545,25 @@ class DegasserTab(BaseTab):
         self._export_csv_btn.blockSignals(block)
         self._generate_report_btn.blockSignals(block)
 
-    def _autosize_test_table(self) -> None:
-        """Auto-size the test table to fit its contents."""
-        self._autosize_test_table()
-        vertical_header = self._test_table.verticalHeader()
-        horizontal_header = self._test_table.horizontalHeader()
-        height = int(vertical_header.height() + horizontal_header.height() + 2 * self._test_table.frameWidth())
-        self._test_table.setFixedHeight(height)
+    def _autosize_table(self, table: QTableWidget) -> int:
+        """Auto-size the test table to fit its contents without scrollbars.
+
+        Uses verticalHeader().length() to get the sum of all row heights,
+        rather than manually iterating through rows.
+        """
+        h_header = table.horizontalHeader()
+        v_header = table.verticalHeader()
+        frame_width = table.frameWidth()
+
+        # Calculate total height: header + all rows + frame borders + padding
+        total_height = (
+            h_header.height() +       # Horizontal header (column names)
+            v_header.length() +       # Sum of all row heights
+            (frame_width * 2) +      # Top and bottom frame borders
+            1                        # Padding
+        )
+
+        return total_height
 
     def log_message(self, message: str) -> None:
         """Log a message to the console output."""

@@ -22,8 +22,8 @@ class DegasserPresenter:
 
     def initialize(self) -> None:
         """Called after view is constructed."""
-        self._connect_signals()
         self._refresh_view()
+        self._connect_signals()
 
     def _connect_signals(self) -> None:
         """Connect view signals to presenter event handlers"""
@@ -31,27 +31,32 @@ class DegasserPresenter:
 
     def on_name_changed(self, text: str) -> None:
         """Handle name edit changes."""
-        if self._updating: return
+        if self._updating: 
+            return
         self._model.set_metadata_field("tester_name", text)
 
     def on_location_changed(self, text: str) -> None:
         """Handle location edit changes."""
-        if self._updating: return
+        if self._updating:
+            return
         self._model.set_metadata_field("location", text)
 
     def on_date_changed(self, date: Any) -> None:
         """Handle date edit changes."""
-        if self._updating: return
+        if self._updating:
+            return
         self._model.set_metadata_field("test_date", date.toPython())
 
     def on_serial_changed(self, text: str) -> None:
         """Handle serial edit changes."""
-        if self._updating: return
+        if self._updating:
+            return
         self._model.set_metadata_field("ds50_serial", text)
 
     def on_test_table_cell_changed(self, row: int, column: int) -> None:
         """Handle test table cell changes."""
-        if self._updating: return
+        if self._updating:
+            return
         if column == 0:
             return
 
@@ -81,7 +86,8 @@ class DegasserPresenter:
         Raises:
             ValueError: If the value is invalid.
         """
-        if self._updating: return
+        if self._updating:
+            return
         try:
             self._model.update_test_row(row, pass_fail=value)
         except ValueError as e:
@@ -97,7 +103,8 @@ class DegasserPresenter:
         Raises:
             ValueError: If oxygen level is invalid.
         """
-        if self._updating: return
+        if self._updating:
+            return
         if column != 1:
             return
         value = self._view.get_time_series_cell_value(row, column)
@@ -132,7 +139,8 @@ class DegasserPresenter:
         Raises:
             ValueError: If temperature is out of valid range.
         """        
-        if self._updating: return
+        if self._updating:
+            return
         if temp == "":
             self._model.clear_temperature()
         else:
@@ -149,7 +157,8 @@ class DegasserPresenter:
             ValueError: If import fails due to invalid file format.
             Exception: For any other unexpected errors.
         """
-        if self._updating: return
+        if self._updating:
+            return
         path, _ = PySide6.QtWidgets.QFileDialog.getOpenFileName(
             self._view,
             "Import Degasser Data",
@@ -159,7 +168,7 @@ class DegasserPresenter:
 
         if not path:  # User cancelled
             return
-
+        
         try:
             self._model.load_from_csv(path)
             self._refresh_view()  # Update UI with loaded data
@@ -175,7 +184,8 @@ class DegasserPresenter:
             ValueError: If export fails due to invalid state.
             Exception: For any other unexpected errors.        
         """
-        if self._updating: return
+        if self._updating:
+            return
         timestamp = datetime.now().strftime("%y%m%d-%H%M%")
         path, _ = PySide6.QtWidgets.QFileDialog.getSaveFileName(
             self._view,
@@ -237,7 +247,8 @@ class DegasserPresenter:
 
     def on_reset(self) -> None:
         """Handle reset button click - clear all data"""
-        if self._updating: return
+        if self._updating:
+            return
         # Confirmation dialog
         reply = PySide6.QtWidgets.QMessageBox.question(
             self._view,
@@ -260,7 +271,8 @@ class DegasserPresenter:
             ValueError: If report generation fails due to invalid state.
             Exception: For any other unexpected errors.
         """
-        if self._updating: return
+        if self._updating:
+            return
         data_dict = self._model.to_dict()
         time_series = data_dict['time_series']
         temperature_c = data_dict['temperature_c']
