@@ -6,6 +6,7 @@ for PDF layout decisions.
 """
 
 from dataclasses import dataclass
+from fpdf.enums import TextEmphasis
 
 
 @dataclass(frozen=True)
@@ -15,10 +16,10 @@ class ReportLayout:
     All measurements are in millimeters (mm) for consistency with FPDF.
     """
     # Page margins
-    left_margin_mm: float = 15
-    top_margin_mm: float = 15
-    right_margin_mm: float = 15
-    bottom_margin_mm: float = 15
+    left_margin_mm: float = 10
+    top_margin_mm: float = 10
+    right_margin_mm: float = 10
+    bottom_margin_mm: float = 10
     
     # Table dimensions
     table_width_mm: float = 70
@@ -30,6 +31,7 @@ class ReportLayout:
     figure_max_height_mm: float = 120  # Increased from 100mm
     
     # Spacing
+    large_spacing_mm: float = 10
     section_spacing_mm: float = 5
     title_spacing_mm: float = 5
     
@@ -100,3 +102,49 @@ class FigureConfig:
 
 # Default figure configuration
 DEFAULT_FIGURE_CONFIG = FigureConfig()
+
+
+# Color constants (module level for reuse)
+COLOR_BLACK = (0, 0, 0)
+COLOR_GREY = (128, 128, 128)
+
+
+@dataclass(frozen=True)
+class ReportStyleConfig:
+    """Configuration for report visual styling.
+
+    Centralizes all typography, colors, and branding for PDF reports.
+    Use DEFAULT_STYLE_CONFIG for standard styling.
+    """
+    # Typography
+    font_family: str = "helvetica"
+
+    # Colors (RGB tuples for FPDF compatibility)
+    title_text_color: tuple[int, int, int] = COLOR_BLACK
+    subtitle_text_color: tuple[int, int, int] = COLOR_BLACK
+    header_text_color: tuple[int, int, int] = COLOR_BLACK
+    spec_text_color: tuple[int, int, int] = COLOR_BLACK
+    data_text_color: tuple[int, int, int] = COLOR_GREY
+
+    # Font Emphasis (FPDF style strings: "B" = bold, "I" = italic, "BI" = both)
+    title_text_style: TextEmphasis = TextEmphasis.B
+    metadata_text_style: TextEmphasis = TextEmphasis.B
+    subtitle_text_style: TextEmphasis = TextEmphasis.B
+    header_text_style: TextEmphasis = TextEmphasis.B
+    values_text_style: TextEmphasis = TextEmphasis.NONE
+
+    # Font Sizes (in points)
+    title_text_size: int = 16
+    subtitle_text_size: int = 12
+    metadata_text_size: int = 10
+    header_text_size: int = 10
+    spec_text_size: int = 10
+    data_text_size: int = 10
+
+    # Branding
+    logo_width_mm: float = 60.0
+    logo_keep_aspect_ratio: bool = True
+
+
+# Default style configuration
+DEFAULT_STYLE_CONFIG = ReportStyleConfig()

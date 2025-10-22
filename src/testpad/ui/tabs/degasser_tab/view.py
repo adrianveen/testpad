@@ -1,6 +1,6 @@
 from typing import Optional, cast
 import PySide6.QtCore
-from PySide6.QtCore import Qt, QSignalBlocker, QDate
+from PySide6.QtCore import Qt, QSignalBlocker, QDate, QTimer
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QCheckBox,
@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QStyledItemDelegate,
     QLabel,
-    QTableWidgetItem
+    QTableWidgetItem,
 )
 
 from testpad.ui.tabs.base_tab import BaseTab
@@ -40,28 +40,165 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TEST_COLS,
     HEADER_ROW_INDEX,
     HEADER_ROW_COLOR,
-    TEST_TABLE_HEADERS
+    TEST_TABLE_HEADERS,
 )
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
-from testpad.utils.lineedit_validators import (
-    ValidatedLineEdit,
-    FixupDoubleValidator
-)
+from testpad.utils.lineedit_validators import ValidatedLineEdit, FixupDoubleValidator
+
+
+class ColumnMajorTableWidget(QTableWidget):
+    """QTableWidget with column-major tab navigation (top→bottom, left→right).
+
+    Overrides default Qt behavior where Tab moves left→right across columns.
+    Instead, Tab moves top→bottom within a column, then wraps to the next column.
+    """
+
+    def _get_next_cell(
+        self, row: int, col: int, forward: bool = True
+    ) -> tuple[int, int]:
+        """Calculate next cell position in column-major order.
+
+        Column-major order means: fill cells vertically down a column, then move
+        to the next column. For example, in a 3x2 table, the order is:
+        (0,0) → (1,0) → (2,0) → (0,1) → (1,1) → (2,1) → wraps back to (0,0)
+
+        Args:
+            row: Current row index (0-based)
+            col: Current column index (0-based)
+            forward: True to move forward (Tab), False to move backward (Shift+Tab)
+
+        Returns:
+            Tuple of (new_row, new_col) representing the next cell position
+        """
+        rows, cols = self.rowCount(), self.columnCount()
+
+        if forward:
+            # Forward navigation: down column, then right to next column
+            if row < rows - 1:
+                # Not at bottom of column yet, move down one row
+                return row + 1, col
+            elif col < cols - 1:
+                # At bottom of column, jump to top of next column
+                return 0, col + 1
+            else:
+                # At bottom-right corner, wrap around to top-left
+                return 0, 0
+        else:
+            # Backward navigation: up column, then left to previous column
+            if row > 0:
+                # Not at top of column yet, move up one row
+                return row - 1, col
+            elif col > 0:
+                # At top of column, jump to bottom of previous column
+                return rows - 1, col - 1
+            else:
+                # At top-left corner, wrap around to bottom-right
+                return rows - 1, cols - 1
+
+    def keyPressEvent(self, event):
+        """Override Qt's default key handling to implement column-major navigation.
+
+        By default, QTableWidget uses row-major Tab navigation (left→right).
+        This override intercepts Tab/Enter/Backtab keys and implements column-major
+        navigation instead. Other keys are passed to Qt's default handler.
+        """
+        key = event.key()
+
+        if key in (Qt.Key_Tab, Qt.Key_Return, Qt.Key_Enter):
+            # Tab and Enter both move forward in column-major order
+            event.accept()  # Prevent Qt's default row-major navigation
+            new_row, new_col = self._get_next_cell(
+                self.currentRow(), self.currentColumn(), forward=True
+            )
+            self.setCurrentCell(new_row, new_col)
+        elif key == Qt.Key_Backtab:
+            # Shift+Tab moves backward in column-major order
+            event.accept()  # Prevent Qt's default behavior
+            new_row, new_col = self._get_next_cell(
+                self.currentRow(), self.currentColumn(), forward=False
+            )
+            self.setCurrentCell(new_row, new_col)
+        else:
+            # For all other keys (arrows, letters, etc.), use Qt's default handling
+            super().keyPressEvent(event)
+
+
+class ColumnMajorNavigationMixin:
+    """Mixin for item delegates to support column-major navigation during cell editing.
+
+    This mixin installs an event filter on editor widgets to intercept Tab/Enter
+    keys and forward them to the table's navigation logic. Any delegate class that inherits
+    from this mixin will automatically support column-major navigation during editing.
+
+    Usage: class MyDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate): ...
+    Note: Mixin must come BEFORE QStyledItemDelegate in the inheritance list for proper MRO.
+    """
+
+    def eventFilter(self, editor, event):
+        """Intercept key events from editor widgets and redirect navigation keys.
+
+        When we detect Tab/Enter, we bypass the editor and send the event directly
+        to the table's keyPressEvent for custom handling.
+
+        Args:
+            editor: The editor widget (e.g., QLineEdit) that received the event
+            event: The QEvent being processed
+
+        Returns:
+            True if event was handled (prevents further processing)
+            False to allow normal event propagation
+        """
+        if event.type() == PySide6.QtCore.QEvent.Type.KeyPress:
+            if event.key() in (
+                Qt.Key_Tab,
+                Qt.Key_Backtab,
+                Qt.Key_Return,
+                Qt.Key_Enter,
+            ):
+                # This is a navigation key - don't let the editor process it
+                table = self.parent()  # Delegate's parent is the table widget
+                if isinstance(table, ColumnMajorTableWidget):
+                    # Forward the event to the table's custom navigation handler
+                    table.keyPressEvent(event)
+                    return True  # Event handled, stop propagation
+        # Not a navigation key, or not our custom table - use default behavior
+        return super().eventFilter(editor, event)
+
+    def createEditor(self, parent, option, index):
+        """Create editor widget and install this delegate as an event filter.
+        Qt calls this method when a cell begins editing.
+
+        Args:
+            parent: Parent widget for the editor (the table viewport)
+            option: Style options for the editor
+            index: Model index of the cell being edited
+
+        Returns:
+            The editor widget with event filter installed
+        """
+        editor = super().createEditor(parent, option, index)
+        if editor:
+            # Install this delegate as an event filter on the editor
+            # Now our eventFilter() method will intercept the editor's key events
+            editor.installEventFilter(self)
+        return editor
 
 
 class DegasserTab(BaseTab):
     """Degasser tab view."""
+
     def __init__(
-            self,
-            parent=None,
-            model: Optional["DegasserModel"] = None,
-            presenter: Optional["DegasserPresenter"] = None
+        self,
+        parent=None,
+        model: Optional["DegasserModel"] = None,
+        presenter: Optional["DegasserPresenter"] = None,
     ) -> None:
         super().__init__(parent)
 
         self._model = model
         self._presenter = presenter
         self._time_series_chart = TimeSeriesChartWidget()
+        self._time_series_section: Optional[QWidget] = None
 
         layout = QGridLayout(self)
         layout.addWidget(self._build_metadata_section(), 0, 0, 1, 2)
@@ -96,13 +233,14 @@ class DegasserTab(BaseTab):
             self._serial_edit.setText(state.ds50_serial)
             if state.test_date is not None:
                 # Convert Python date to QDate for type safety
-                qdate = QDate(state.test_date.year, state.test_date.month, state.test_date.day)
+                qdate = QDate(
+                    state.test_date.year, state.test_date.month, state.test_date.day
+                )
                 self._date_edit.setDate(qdate)
 
             # Update Chart
             self._time_series_chart.update_plot(
-                state.time_series_measurements,
-                state.temperature_c
+                state.time_series_measurements, state.temperature_c
             )
 
             # Update temperature display
@@ -220,13 +358,33 @@ class DegasserTab(BaseTab):
         self._serial_edit = QLineEdit()
 
         # Layout
-        layout.addWidget(QLabel(f"{METADATA_FIELDS["tester_name"]}: "), 0, 0, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(
+            QLabel(f"{METADATA_FIELDS['tester_name']}: "),
+            0,
+            0,
+            Qt.AlignmentFlag.AlignRight,
+        )
         layout.addWidget(self._name_edit, 0, 1)
-        layout.addWidget(QLabel(f"{METADATA_FIELDS["test_date"]}: "), 0, 2, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(
+            QLabel(f"{METADATA_FIELDS['test_date']}: "),
+            0,
+            2,
+            Qt.AlignmentFlag.AlignRight,
+        )
         layout.addWidget(self._date_edit, 0, 3)
-        layout.addWidget(QLabel(f"{METADATA_FIELDS["ds50_serial_number"]}: "), 1, 0, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(
+            QLabel(f"{METADATA_FIELDS['ds50_serial_number']}: "),
+            1,
+            0,
+            Qt.AlignmentFlag.AlignRight,
+        )
         layout.addWidget(self._serial_edit, 1, 1)
-        layout.addWidget(QLabel(f"{METADATA_FIELDS["location"]}: "), 1, 2, Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(
+            QLabel(f"{METADATA_FIELDS['location']}: "),
+            1,
+            2,
+            Qt.AlignmentFlag.AlignRight,
+        )
         layout.addWidget(self._location_edit, 1, 3)
 
         return widget
@@ -237,10 +395,12 @@ class DegasserTab(BaseTab):
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
-        # Create Widgets
-        self._test_table = QTableWidget(NUM_TEST_ROWS, NUM_TEST_COLS)
+        # Create Widgets - use custom widget with column-major tab navigation
+        self._test_table = ColumnMajorTableWidget(NUM_TEST_ROWS, NUM_TEST_COLS)
         self._test_table.setHorizontalHeaderLabels(TEST_TABLE_HEADERS)
-        self._test_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Disable vertical scrollbar
+        self._test_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )  # Disable vertical scrollbar
 
         units_by_row: dict[int, str] = {}
 
@@ -248,14 +408,16 @@ class DegasserTab(BaseTab):
         for row, desc in enumerate(DEFAULT_TEST_DESCRIPTIONS):
             # Column 0: Description only
             item = QTableWidgetItem(desc)
-            item.setFlags(item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable) # Make read-only
+            item.setFlags(
+                item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable
+            )  # Make read-only
             # Bold and gray background for re-circulation header rows
             if row == HEADER_ROW_INDEX:
                 font = item.font()
                 font.setBold(True)
                 font.setPointSize(font.pointSize() + 1)
                 item.setFont(font)
-                item.setBackground(HEADER_ROW_COLOR) # Light gray background
+                item.setBackground(HEADER_ROW_COLOR)  # Light gray background
                 # Span all columns for 2nd re-circulation header
                 self._test_table.setSpan(HEADER_ROW_INDEX, 0, 1, NUM_TEST_COLS)
             self._test_table.setItem(row, 0, item)
@@ -288,7 +450,10 @@ class DegasserTab(BaseTab):
                     spec_item = QTableWidgetItem(spec_value)
                     spec_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     if col in (2, 3):  # Spec columns are read-only
-                        spec_item.setFlags(spec_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable)
+                        spec_item.setFlags(
+                            spec_item.flags()
+                            & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable
+                        )
                     self._test_table.setItem(row, col, spec_item)
 
             if row != HEADER_ROW_INDEX:
@@ -304,16 +469,17 @@ class DegasserTab(BaseTab):
         # Set a fixed height to prevent scrollbars based on table contents
         fixed_height = self._autosize_table(self._test_table)
         self._test_table.setFixedHeight(fixed_height)
-        self._test_table.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
+        self._test_table.setSizeAdjustPolicy(
+            QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
+        )
 
         self._test_table.setItemDelegateForColumn(
-            4,
-            _MeasuredValueDelegate(units_by_row, self._test_table)
+            4, _MeasuredValueDelegate(units_by_row, self._test_table)
         )
 
         layout.addWidget(self._test_table)
         return widget
-    
+
     def _build_time_series_section(self) -> QWidget:
         """Build the time series data entry section."""
         widget = QWidget()
@@ -329,8 +495,12 @@ class DegasserTab(BaseTab):
         table_container.setLayout(table_layout)
 
         # Create Widgets
-        self._time_series_widget = QTableWidget(NUM_TIME_SERIES_ROWS, NUM_TIME_SERIES_COLS)
-        self._time_series_widget.setItemDelegateForColumn(1, ValidatedFloatDelegate(self._time_series_widget))
+        self._time_series_widget = ColumnMajorTableWidget(
+            NUM_TIME_SERIES_ROWS, NUM_TIME_SERIES_COLS
+        )
+        self._time_series_widget.setItemDelegateForColumn(
+            1, ValidatedFloatDelegate(self._time_series_widget)
+        )
         self._time_series_widget.setHorizontalHeaderLabels(
             ["Time (minutes)", "Dissolved O2 (mg/L)"]
         )
@@ -339,7 +509,9 @@ class DegasserTab(BaseTab):
         for row in range(NUM_TIME_SERIES_ROWS):
             minute_item = QTableWidgetItem(str(row))
             minute_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            minute_item.setFlags(minute_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable) # Make read-only
+            minute_item.setFlags(
+                minute_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable
+            )  # Make read-only
             self._time_series_widget.setItem(row, 0, minute_item)
 
             # Oxygen column - pre-create empty editable cells for alignment purposes
@@ -382,7 +554,11 @@ class DegasserTab(BaseTab):
         temp_checkbox.toggled.connect(self._temperature_edit.setVisible)
         temp_checkbox.toggled.connect(self._temperature_edit.setEnabled)
         temp_checkbox.toggled.connect(
-            lambda checked: self._temperature_edit.setText(str(DEFAULT_TIME_SERIES_TEMP)) if checked else self._temperature_edit.setText("")
+            lambda checked: self._temperature_edit.setText(
+                str(DEFAULT_TIME_SERIES_TEMP)
+            )
+            if checked
+            else self._temperature_edit.setText("")
         )
 
         # Add to main layout
@@ -391,6 +567,7 @@ class DegasserTab(BaseTab):
 
         main_layout.addLayout(h_layout)
 
+        self._time_series_section = widget
         return widget
 
     def _build_action_buttons(self) -> QWidget:
@@ -427,6 +604,7 @@ class DegasserTab(BaseTab):
         # Create Widget
         self._console_output = QTextBrowser()
         self._console_output.setReadOnly(True)
+        self._console_output.setMinimumHeight(150)
 
         layout.addWidget(self._console_output)
 
@@ -441,6 +619,10 @@ class DegasserTab(BaseTab):
     def _on_console_toggled(self, checked: bool) -> None:
         """Show/hide console output when checkbox is toggled."""
         self._console_output.setVisible(checked)
+        # Controls window resize on hide
+        main_win = self.window()
+        if main_win and not main_win.isMaximized() and not main_win.isFullScreen():
+            QTimer.singleShot(0, lambda: main_win.resize(main_win.sizeHint()))
 
     def _update_test_table(self, test_rows: list) -> None:
         """Update the test table from state data.
@@ -464,8 +646,7 @@ class DegasserTab(BaseTab):
             self._set_table_cell_float(row_idx, 4, row_data.measured)
 
     def _update_time_series_table(
-        self,
-        table_rows: list[tuple[int, Optional[float]]]
+        self, table_rows: list[tuple[int, Optional[float]]]
     ) -> None:
         """Update the time series table from the state data.
 
@@ -486,12 +667,7 @@ class DegasserTab(BaseTab):
             else:
                 oxy_item.setText("")
 
-    def _set_table_cell_float(
-        self,
-        row: int,
-        col: int,
-        value: Optional[float]
-    ) -> None:
+    def _set_table_cell_float(self, row: int, col: int, value: Optional[float]) -> None:
         """Helper to set table cell to a float value.
 
         Args:
@@ -557,10 +733,10 @@ class DegasserTab(BaseTab):
 
         # Calculate total height: header + all rows + frame borders + padding
         total_height = (
-            h_header.height() +       # Horizontal header (column names)
-            v_header.length() +       # Sum of all row heights
-            (frame_width * 2) +      # Top and bottom frame borders
-            1                        # Padding
+            h_header.height()  # Horizontal header (column names)
+            + v_header.length()  # Sum of all row heights
+            + (frame_width * 2)  # Top and bottom frame borders
+            + 1  # Padding
         )
 
         return total_height
@@ -570,10 +746,12 @@ class DegasserTab(BaseTab):
         self._console_output.append(message)
 
 
-class _MeasuredValueDelegate(QStyledItemDelegate):
+class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
     """Delegate that appends units for measured values in the test table."""
 
-    def __init__(self, units_by_row: dict[int, str], parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, units_by_row: dict[int, str], parent: Optional[QWidget] = None
+    ) -> None:
         super().__init__(parent)
         self._units_by_row = units_by_row
 
@@ -591,11 +769,17 @@ class _MeasuredValueDelegate(QStyledItemDelegate):
         if text and not text.endswith(unit):
             option.text = f"{text} {unit}"
 
-class ValidatedFloatDelegate(QStyledItemDelegate):
+
+class ValidatedFloatDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
     """Delegate enforcing numeric-only, visually validated input in table cells."""
+
     def createEditor(self, parent, option, index):
         editor = ValidatedLineEdit(parent)
-        validator = FixupDoubleValidator(0.0, 100.0, 3, editor)  # adjust range/precision as needed
+        validator = FixupDoubleValidator(
+            0.0, 100.0, 3, editor
+        )  # adjust range/precision as needed
         editor.setValidator(validator)
         editor.setPlaceholderText("Enter number")
+        # Install event filter via mixin
+        editor.installEventFilter(self)
         return editor

@@ -1,7 +1,7 @@
 # Plan: Add a New Tab Cleanly, Safely, and Reversibly
 
 **Feature Branch:** `feat/dissolved-ox-tab`
-**Status:** 🟡 Nearly Complete - PDF test table data population in progress
+**Status:** 🟡 Pre-Merge Phase - Core features complete, needs logging, tests, and code review
 
 ---
 
@@ -11,21 +11,21 @@
 - [x] **Step 2:** Integration strategy (Tab Registry implemented)
 - [x] **Step 3:** Module boundary (`degasser_tab/` with MVP architecture)
 - [x] **Step 4:** Data flow traced (inputs/outputs defined in plan)
-- [x] **Step 5:** Threading planned (QThreadPool approach documented)
-- [x] **Step 6:** Instrumentation (console output for errors, ready for logging)
+- [x] **Step 5:** Threading planned (QThreadPool approach documented, operations fast enough to skip)
+- [ ] **Step 6:** Instrumentation (console output exists, structured logging needed)
 - [ ] **Step 7:** Accessibility & keyboard shortcuts
 - [x] **Step 8:** Tracer-bullet skeleton (tab registered, loadable, UI built)
 - [ ] **Step 9:** Tests (unit tests for model/presenter)
 - [x] **Step 10:** Performance (lazy loading, no heavy imports at init)
 - [x] **Step 11:** Error handling (try-except in presenter, validation in model)
-- [x] **Step 12:** Persistence (deferred - state save/restore in to_dict/from_dict skeleton)
+- [ ] **Step 12:** Persistence (skeleton exists with to_dict/from_dict, needs verification)
 - [x] **Step 13:** Security (input validation at model boundary with type safety)
 - [x] **Step 14:** Documentation (implementation plan maintained, inline docs complete)
 - [ ] **Step 15:** CI/packaging (test with flag on/off)
-- [ ] **Step 16:** Definition of Done
+- [ ] **Step 16:** Definition of Done (missing: logging, tests, persistence verification)
 - [ ] **Step 17:** Merge & post-merge
 
-**👉 CURRENT LOCATION:** PDF report structure implemented, test table data population needed - **NEXT: Populate test_data in build_test_table()**
+**👉 CURRENT LOCATION:** All core functionality complete (83 commits on branch). Working tree clean. Ready for: structured logging, unit tests, code review, and merge preparation.
 
 ---
 
@@ -69,16 +69,17 @@
   - `save_figure_to_temp_file()` - Save Figure to temp PNG for PDF embedding
   - `normalize_time_series_data()` - Convert dict/list to sorted tuples
   - Clean separation: plotting.py (pure functions) vs chart_widgets.py (Qt integration)
-- **PDF report generation:** ✅ COMPLETE (commits f244a15, 6c7ebbe, 413e7c1)
-  - Full implementation with fpdf library
-  - `generate_pdf_report.py` - Report generation class
-  - `report_layout.py` - Layout configuration with `ReportLayout` and `FigureConfig` dataclasses
+- **PDF report generation:** ✅ COMPLETE (commits f244a15, 6c7ebbe, 413e7c1, 742c12e, 3290528, 5a42b16)
+  - Full implementation with fpdf library (303 lines in generate_pdf_report.py)
+  - `report_layout.py` - Layout configuration with dataclasses (150 lines)
   - Metadata section with 2x2 grid layout
-  - Test results table (7 rows with DS-50 specifications)
+  - Test results table with actual data population (commit 742c12e)
   - Time series table with data
-  - Embedded matplotlib chart via temporary PNG file
+  - Embedded matplotlib chart via temporary PNG file (300 DPI)
+  - SVG logo support (commit 5a42b16)
   - Error handling with user-friendly QMessageBox dialogs
   - Saves to DEFAULT_EXPORT_DIR with proper file permissions handling
+  - All formatting magic numbers moved to report_layout.py (commit 5a42b16)
 - **Configuration architecture:** ✅ COMPLETE (commit 15ce9db)
   - Created `testpad/config/` module for app-wide constants and defaults
   - Created `degasser_tab/config.py` with DS-50 specifications (93 lines)
@@ -103,17 +104,17 @@
   - Console collapsible with toggle
   - Clean import organization (commit 1d0fa63)
 
-### 🚧 In Progress
-- **PDF test table data population** ⭐ NEXT - Implement test_data rendering in build_test_table()
-  - Change line 74: pass `self.test_data` instead of `[]`
-  - Update lines 178-184: iterate through test_data and populate cells with actual values
-  - Map TestResultRow fields to table columns (pass_fail, spec_min, spec_max, measured)
+### 🚧 Pre-Merge Tasks
+- **Structured logging** - Add logging with component context, operation tracking, elapsed time
+- **Unit tests** - Model validation, CSV I/O, presenter logic
+- **Code review** - Review for consistency, remove stale TODO comments
+- **Persistence verification** - Test save_state/restore_state functionality
+- **Performance measurement** - Verify tab load <200ms, PDF generation <2s
 
-### ⏳ Not Started / Deferred
-- Pre-merge testing and polish (after PDF completion)
-- Unit tests (deferred to post-merge)
-- CI/packaging validation (Step 15)
-- Formal QA sign-off (Step 16)
+### ⏳ Deferred to Post-Merge
+- Accessibility features (keyboard shortcuts, screen reader support)
+- CI/packaging validation (test with flag on/off)
+- QA sign-off on internal builds
 
 ---
 
@@ -122,7 +123,7 @@
 **Executed:**
 * ✅ Feature brief written: `dissolved-ox-plan.md` with purpose, user flow, inputs/outputs, performance budget, non-goals
 * ✅ Acceptance criteria defined (tab init <200ms, no UI blocking, error surfacing)
-* ✅ Visibility strategy: feature flag `dissolved_o2` defaults to `False` in `testpad_main.py:202`
+* ✅ Visibility strategy: feature flag `degasser_data` defaults to `False` in `testpad_main.py:202`
 
 ## 2) Decide the integration strategy ✅
 
@@ -133,13 +134,13 @@
 * ✅ Registry uses lazy loading via `importlib.import_module()`
 
 **Files modified:**
-- `ui/tabs/registry.py`: Added dissolved O2 tab spec with `feature_flag="dissolved_o2"`
+- `ui/tabs/registry.py`: Added degasser tab spec with `feature_flag="degasser_data"`
 - `testpad_main.py`: Feature flag defined, tab filtered via `enabled_tabs()`
 
 ## 3) Carve out a clean module boundary ✅
 
 **Executed:**
-* ✅ Created MVP architecture in `ui/tabs/dissolved_o2_tab/`
+* ✅ Created MVP architecture in `ui/tabs/degasser_tab/`
 * ✅ Separation of concerns: Model (data/validation), Presenter (coordination), View (UI)
 * ✅ Fixed circular import using `TYPE_CHECKING` pattern
 * ✅ No cross-tab dependencies - fully isolated module
@@ -149,18 +150,19 @@
 ```
 src/testpad/ui/tabs/degasser_tab/
   ├── __init__.py                  # Re-exports DegasserTab
-  ├── config.py                    # Tab-specific configuration: DS-50 specs, validation rules (93 lines)
+  ├── config.py                    # Tab-specific configuration: DS-50 specs, validation rules (100 lines)
   ├── model.py                     # Data layer: validation, CSV I/O, state, business logic (301 lines)
-  ├── view_state.py                # ViewState pattern: immutable data transfer objects (35 lines)
-  ├── presenter.py                 # Coordination: signals, model updates, ViewState building (295 lines)
-  ├── view.py                      # UI layer: QWidgets, layouts, tables, ViewState rendering
-  ├── chart_widgets.py             # Custom chart widget with matplotlib integration
+  ├── view_state.py                # ViewState pattern: immutable data transfer objects (34 lines)
+  ├── presenter.py                 # Coordination: signals, model updates, ViewState building (327 lines)
+  ├── view.py                      # UI layer: QWidgets, layouts, tables, ViewState rendering (785 lines)
+  ├── chart_widgets.py             # Custom chart widget with matplotlib integration (40 lines)
   ├── plotting.py                  # Pure plotting functions (Qt-independent, 135 lines)
-  ├── generate_pdf_report.py       # PDF report generation with fpdf (303 lines)
-  └── report_layout.py             # PDF layout configuration dataclasses (103 lines)
+  ├── generate_pdf_report.py       # PDF report generation with fpdf (429 lines)
+  ├── report_layout.py             # PDF layout configuration dataclasses (150 lines)
+  └── widgets/                     # Custom UI widgets (5 lines)
 ```
 
-**Total: ~1,470 lines of well-structured, documented code**
+**Total: 2,322 lines of well-structured, documented code across 10 modules**
 
 ### Configuration architecture pattern ✅
 
@@ -218,7 +220,7 @@ config/
 ## 8) Build a tracer-bullet skeleton ✅
 
 **Executed:**
-* ✅ Tab registered in `registry.py` with `feature_flag="dissolved_o2"`
+* ✅ Tab registered in `registry.py` with `feature_flag="degasser_data"`
 * ✅ Full UI implemented in `view.py`:
 * ✅ Metadata section (tester, date, location, serial)
 * ✅ Test results table (7 rows, hierarchical with header row for re-circulation test)
@@ -230,7 +232,7 @@ config/
 * ✅ Test table editing with Pass/Fail dropdown combos
    - CSV import/export fully working
 * ✅ Temperature input with validation
-* ✅ Error handling with console feedback
+   - Error handling with console feedback
 
 ## 9) Tests before behavior
 
@@ -279,7 +281,7 @@ tabs/new_feature/*     -> the actual module
 
 * CI: run unit tests, lint, type checks with the feature flag both off and on.
 * Artifacts: ensure resources are added to qrc or packaging spec so icons and qss load.
-* Release notes: add a single line under “Added” with the flag name (`dissolved_o2`) and how to enable it in `dev`.
+* Release notes: add a single line under “Added” with the flag name (`degasser_data`) and how to enable it in `dev`.
 * Rollback plan: keeping it behind a flag makes rollback trivial. Also keep a small git tag before merge.
 
 ## 16) Definition of Done
@@ -302,70 +304,43 @@ If your current codebase is still a monolith, this plan lets you introduce just 
 
 ## 🎯 Next Steps (Priority Order)
 
-### ✅ Core Functionality (MOSTLY COMPLETE)
-1. ✅ ~~**Time Series Editing**~~ - COMPLETE: Handler implemented with validation, clear-on-empty, console feedback
-2. ✅ ~~**Reset Button**~~ - COMPLETE: Confirmation dialog, model reset, UI refresh
-3. ✅ ~~**Chart Rendering**~~ - COMPLETE: Custom widget with real-time updates
-   - ✅ Created reusable `TimeSeriesChartWidget` (better than planned approach!)
-   - ✅ Matplotlib Figure/Axis/Canvas properly integrated
-   - ✅ Real-time updates without widget recreation (`ax.clear()` + `canvas.draw()`)
-   - ✅ Temperature in title when measured, clean title when not measured
-   - ✅ Chart updates on: data changes, CSV import, reset, temperature toggle
-   - ✅ Empty data handled gracefully
-4. 🚧 **PDF Report Generation** - IN PROGRESS: Structure implemented, test table data needs population
-   - ✅ Report structure with fpdf library
-   - ✅ Metadata section rendering
-   - ✅ Time series table with actual data
-   - ✅ Chart embedded as PNG via matplotlib save
-   - ✅ Error handling with QMessageBox dialogs
-   - ✅ Save to DEFAULT_EXPORT_DIR with proper permissions
-   - ⏳ Test results table data population (NEXT STEP)
+### ✅ Core Functionality Complete
+1. ✅ **Time Series Editing** - Handler with validation, clear-on-empty, console feedback
+2. ✅ **Reset Button** - Confirmation dialog, model reset, UI refresh
+3. ✅ **Chart Rendering** - Custom widget with real-time matplotlib updates
+4. ✅ **PDF Report Generation** - Complete with test data population (commits through 5a42b16)
+   - fpdf-based report with SVG logo support
+   - Metadata, test table with actual data, time series table, embedded chart
+   - All magic numbers moved to configuration
+5. ✅ **CSV Import/Export** - Full round-trip with flexible column aliases
+6. ✅ **Data Entry** - Metadata form, test table with Pass/Fail combos, time series editing
+7. ✅ **Navigation** - Cell navigation with keyboard overloads (commit 7f9de60)
 
-### Immediate (Complete PDF Feature)
-5. **Test Table Data Population** ⭐ NEXT - Complete the PDF report:
-   - Update `generate_report()` line 74: pass `self.test_data` instead of `[]`
-   - Update `build_test_table()` lines 178-184: iterate through test_data
-   - Populate Pass/Fail, Spec_Min, Spec_Max, Data Measured columns
-   - Handle None values gracefully (empty cells for missing data)
+### 🎯 Pre-Merge Tasks (Required)
+1. **Structured Logging** - Add component context, operation tracking, elapsed_ms
+2. **Unit Tests** - Model validation, CSV I/O, presenter signal handlers
+3. **Code Review** - Clean up stale TODO (1 found in view.py:297), verify consistency
+4. **State Persistence** - Verify save_state/restore_state works end-to-end
+5. **Performance Measurement** - Benchmark tab load time, PDF generation time
 
-### Pre-Merge (After PDF Complete)
-6. **Manual Testing** - Comprehensive end-to-end testing:
-   - Test all data entry paths (metadata, test table, time series)
-   - Verify CSV import/export round-trip
-   - Test PDF generation with various data scenarios
-   - Verify error handling for edge cases
-   - Performance check: tab load time, report generation time
-6. **Code Review Prep** - Self-review and cleanup:
-   - Review all TODOs and FIXMEs
-   - Ensure consistent code style
-   - Verify all imports are necessary
-   - Check for any remaining magic numbers
-7. **Git Cleanup** - Prepare for merge:
-   - Stage all changes (currently have unstaged modifications)
-   - Commit with clear message
-   - Squash/organize commits if needed for clean history
-
-### Polish & Robustness (Optional/Post-Merge)
-8. **State Persistence** - Deferred to post-merge (skeleton in place with to_dict/from_dict)
-9. **Input Validation UI** - Visual feedback for invalid entries (red borders, tooltips)
-10. **Keyboard Shortcuts** - Accessibility improvements (Step 7)
-
-### Testing & Documentation (Deferred to Post-Merge)
-11. **Unit Tests** - Model validation, CSV parsing, state serialization
-12. **Integration Tests** - Tab loading, signal flow, file I/O
-13. **README.md** - Document tab usage, data format, extension points
-14. **Update CONTRIBUTING.md** - Document tab development pattern for future devs
-
-### CI/Packaging & Release (Step 15-17)
-15. **CI validation** - Test with feature flag on/off
-16. **QA sign-off** - Internal testing on dev builds
-17. **Merge to main** - After QA approval
+### ⏳ Post-Merge Tasks
+- Accessibility features (keyboard shortcuts, screen reader support)
+- CI/packaging validation (test with feature flag on/off)
+- QA sign-off on internal builds
+- README.md for tab usage documentation
+- Update CONTRIBUTING.md with tab development pattern
 
 ---
 
-## 📝 Latest Session Summary (Type Safety, MVP Architecture & PDF Complete!)
+## 📝 Latest Session Summary (Current as of commit 7f9de60)
 
-### Major Accomplishments (Commits 58e0470 through d8a42be)
+### Feature Branch Stats
+- **83 commits** on feat/dissolved-ox-tab (diverged from main on 2025-10-02)
+- **2,322 lines** of production code across 10 modules
+- **Working tree:** Clean (no uncommitted changes)
+- **Version:** testpad v1.11.0
+
+### Major Accomplishments
 
 #### 1. ViewState Pattern Implementation ✅
 - Created `view_state.py` with immutable `DegasserViewState` dataclass
@@ -390,18 +365,17 @@ If your current codebase is still a monolith, this plan lets you introduce just 
 - Clean boundaries: Presenter coordinates, View renders
 - Improved testability and maintainability
 
-#### 4. PDF Report Generation 🚧 IN PROGRESS (Commits f244a15, 6c7ebbe, 413e7c1)
-- Created `generate_pdf_report.py` (303 lines) and `report_layout.py` (103 lines)
-- ✅ **Implemented:** PDF structure with fpdf library
-- ✅ **Implemented:** Metadata section (2x2 grid layout)
-- ✅ **Implemented:** Time series table with actual data from model
-- ✅ **Implemented:** Chart embedded as high-resolution PNG (300 DPI)
-- ✅ **Implemented:** Error handling with QMessageBox dialogs
-- ✅ **Implemented:** Saves to DEFAULT_EXPORT_DIR with proper file permissions
-- ⏳ **NOT YET IMPLEMENTED:** Test results table data population
-  - Line 74: `build_test_table([])` passes empty list instead of `self.test_data`
-  - Lines 158-184: `build_test_table()` method doesn't use the `test_data` parameter
-  - Currently only renders headers and description column, other 4 columns are empty
+#### 4. PDF Report Generation ✅ COMPLETE (Commits f244a15 through 5a42b16)
+- Created `generate_pdf_report.py` (429 lines) and `report_layout.py` (150 lines)
+- ✅ PDF structure with fpdf library
+- ✅ Metadata section (2x2 grid layout)
+- ✅ Test results table with actual data population (commit 742c12e)
+- ✅ Time series table with actual data from model
+- ✅ Chart embedded as high-resolution PNG (300 DPI)
+- ✅ SVG logo support (commit 5a42b16)
+- ✅ All formatting magic numbers moved to report_layout.py
+- ✅ Error handling with QMessageBox dialogs
+- ✅ Saves to DEFAULT_EXPORT_DIR with proper file permissions
 
 #### 5. Pure Plotting Functions ✅
 - Created `plotting.py` - Qt-independent matplotlib functions (135 lines)
@@ -445,7 +419,7 @@ If your current codebase is still a monolith, this plan lets you introduce just 
 - ✅ **Error handling** - User-friendly messages, comprehensive try-except coverage
 
 ### Current Implementation Status
-**Current state:** PDF structure complete, test table data population needed
+**Current state:** All core features complete, pre-merge tasks remaining
 
 **What's working:**
 - ✅ Full data entry (metadata, test table, time series)
@@ -454,35 +428,31 @@ If your current codebase is still a monolith, this plan lets you introduce just 
 - ✅ Type-safe data flow throughout the stack
 - ✅ Input validation and error handling
 - ✅ Reset functionality with confirmation
-- ✅ PDF structure: header, metadata section, time series table, embedded chart
+- ✅ PDF generation: complete report with all sections populated
+- ✅ Cell navigation with keyboard overloads (commit 7f9de60)
+- ✅ Custom delegate for units display in UI (commit 742c12e)
 
-**What needs implementation (NEXT):**
-- ⏳ PDF test results table data population
-  - `generate_report()` line 74: Pass `self.test_data` instead of `[]`
-  - `build_test_table()` lines 178-184: Use test_data to populate cells
+**Pre-merge requirements:**
+1. Structured logging (component context, elapsed_ms tracking)
+2. Unit tests (model, presenter, CSV I/O)
+3. Code review (remove stale TODO at view.py:297)
+4. State persistence verification
+5. Performance benchmarking
 
-**After PDF completion:**
-- Manual end-to-end testing with real data
-- Git cleanup (stage changes, organized commits)
-- Code review and merge preparation
-
-**Known deferred items:**
-- Unit tests (post-merge)
-- State persistence (skeleton in place with to_dict/from_dict)
-- Keyboard shortcuts and accessibility (Step 7)
-
-### Performance Validation Needed
-- ⏳ Tab load time (target: <200ms)
-- ⏳ PDF generation time (target: <2s for typical report)
-- ⏳ CSV import time for 11-row dataset
-- ✅ UI responsiveness verified (no blocking operations)
+**Deferred to post-merge:**
+- Keyboard shortcuts and accessibility
+- CI/packaging validation
+- QA sign-off
 
 ### Technical Debt Status
 - ✅ Magic numbers eliminated (commit 58e0470)
 - ✅ Unused imports cleaned (commit 1d0fa63)
 - ✅ Type safety issues resolved (commits 9ec8b32, 828265e)
 - ✅ MVP architecture enforced (commit 828265e)
-- ⚠️ Unstaged changes need to be committed before merge
+- ✅ All changes committed (working tree clean)
+- ⚠️ No structured logging implemented
+- ⚠️ No unit tests yet
+- ⚠️ Stale TODO comment in view.py:297
 
 ---
 

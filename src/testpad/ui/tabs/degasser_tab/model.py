@@ -8,8 +8,6 @@ from .config import (
     MAX_MINUTE,
     DEFAULT_TEST_DESCRIPTIONS,
     DEFAULT_TEST_DATE,
-    DS50_SPEC_RANGES,
-    DS50_SPEC_UNITS,
 )
 
 # ------------------ Data Structures ------------------

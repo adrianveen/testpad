@@ -31,7 +31,7 @@ class DegasserPresenter:
 
     def on_name_changed(self, text: str) -> None:
         """Handle name edit changes."""
-        if self._updating: 
+        if self._updating:
             return
         self._model.set_metadata_field("tester_name", text)
 
@@ -67,22 +67,28 @@ class DegasserPresenter:
             if column == 1:  # Pass/Fail
                 self._model.update_test_row(row, pass_fail=value)
             elif column == 2:  # Spec Min
-                self._model.update_test_row(row, spec_min=None if value.strip() == "" else value)
+                self._model.update_test_row(
+                    row, spec_min=None if value.strip() == "" else value
+                )
             elif column == 3:  # Spec Max
-                self._model.update_test_row(row, spec_max=None if value.strip() == "" else value)
+                self._model.update_test_row(
+                    row, spec_max=None if value.strip() == "" else value
+                )
             elif column == 4:  # Data Measured
-                self._model.update_test_row(row, measured=None if value.strip() == "" else value)
+                self._model.update_test_row(
+                    row, measured=None if value.strip() == "" else value
+                )
 
         except ValueError as e:
             self._view.log_message(f"Test table error: {e}")
 
     def on_pass_fail_changed(self, row: int, value: str) -> None:
         """Handle pass/fail combo box changes.
-        
+
         Args:
             row (int): The row index of the test table.
             value (str): The new pass/fail value from the combo box.
-        
+
         Raises:
             ValueError: If the value is invalid.
         """
@@ -112,6 +118,7 @@ class DegasserPresenter:
         if value is None:
             try:
                 self._model.clear_measurement(row)
+                self._refresh_view()
                 self._view.log_message(
                     f"Cleared oxygen level measurement at minute {row}"
                 )
@@ -122,37 +129,36 @@ class DegasserPresenter:
         # Try to set the measurement (value is guaranteed to be float here)
         try:
             self._model.set_measurement(row, value)
-            self._view.log_message(
-                f"Set oxygen level at minute {row} to {value} mg/L"
-            )
+            self._refresh_view()
+            self._view.log_message(f"Set oxygen level at minute {row} to {value} mg/L")
         except ValueError as e:
-            self._view.log_message(
-                f"Invalid oxygen level at minute {row}: {e}"
-            )
+            self._view.log_message(f"Invalid oxygen level at minute {row}: {e}")
 
     def on_temperature_changed(self, temp: str | None = None) -> None:
         """Handle temperature edit changes.
-        
+
         Args:
             value (str): The new temperature value from the text field.
 
         Raises:
             ValueError: If temperature is out of valid range.
-        """        
+        """
         if self._updating:
             return
         if temp == "":
             self._model.clear_temperature()
+            self._refresh_view()
         else:
             temp = cast(str, temp).strip()
             try:
                 self._model.set_temperature(temp)
+                self._refresh_view()
             except ValueError as e:
                 self._view.log_message(f"Temperature error: {e}")
 
     def _on_import_csv(self) -> None:
         """Handle import CSV button click.
-        
+
         Raises:
             ValueError: If import fails due to invalid file format.
             Exception: For any other unexpected errors.
@@ -168,7 +174,7 @@ class DegasserPresenter:
 
         if not path:  # User cancelled
             return
-        
+
         try:
             self._model.load_from_csv(path)
             self._refresh_view()  # Update UI with loaded data
@@ -182,7 +188,7 @@ class DegasserPresenter:
         """Handle export CSV button click.
         Raises:
             ValueError: If export fails due to invalid state.
-            Exception: For any other unexpected errors.        
+            Exception: For any other unexpected errors.
         """
         if self._updating:
             return
@@ -215,7 +221,7 @@ class DegasserPresenter:
             self._view.update_view(state)
         finally:
             self._updating = False
-        
+
     def _build_view_state(self) -> DegasserViewState:
         """Build a complete ViewState from the current model state.
 
@@ -242,7 +248,7 @@ class DegasserPresenter:
             time_series_measurements=measurements,
             temperature_c=temperature_c,
             test_rows=test_rows,
-            time_series_table_rows=time_series_rows
+            time_series_table_rows=time_series_rows,
         )
 
     def on_reset(self) -> None:
@@ -262,7 +268,7 @@ class DegasserPresenter:
             self._model.reset()
             self._refresh_view()
             self._view.log_message("All data reset.")
-    
+
     def on_generate_report(self) -> None:
         """Generate a PDF report when 'Generate Report' button is clicked.
         Passes data to model for report generation.
@@ -274,10 +280,10 @@ class DegasserPresenter:
         if self._updating:
             return
         data_dict = self._model.to_dict()
-        time_series = data_dict['time_series']
-        temperature_c = data_dict['temperature_c']
-        metadata = data_dict['metadata']
-        test_data = data_dict['test_table']
+        time_series = data_dict["time_series"]
+        temperature_c = data_dict["temperature_c"]
+        metadata = data_dict["metadata"]
+        test_data = data_dict["test_table"]
 
         output_path = DEFAULT_EXPORT_DIR
 
@@ -286,29 +292,31 @@ class DegasserPresenter:
             metadata=metadata,
             test_data=test_data,
             temperature=temperature_c,
-            output_dir=output_path
+            output_dir=output_path,
         )
         try:
             report_generator.generate_report()
-            self._view.log_message("✅ Report generated successfully. " \
-            f"The report was saved to {output_path}")
+            self._view.log_message(
+                "✅ Report generated successfully. "
+                f"The report was saved to {output_path}"
+            )
         except (ValueError, OSError) as e:
             self._view.log_message(f"❌ Report generation error: {e}")
             PySide6.QtWidgets.QMessageBox.critical(
                 self._view,
                 "Report Generation Error",
-                f"Failed to generate report: {e}" \
-                "\nConfirm the following before proceeding:" \
-                "\n- Ensure you have write permissions for the output directory." \
-                "\n- Close any open instances of the report file if it already exists." \
-                "\n- Check if the output directory is valid and accessible."
+                f"Failed to generate report: {e}"
+                "\nConfirm the following before proceeding:"
+                "\n- Ensure you have write permissions for the output directory."
+                "\n- Close any open instances of the report file if it already exists."
+                "\n- Check if the output directory is valid and accessible.",
             )
         except Exception as e:
             self._view.log_message(f"❌ Unexpected error during report generation: {e}")
             PySide6.QtWidgets.QMessageBox.critical(
                 self._view,
                 "Report Generation Error",
-                f"An unexpected error occurred: {e}"
+                f"An unexpected error occurred: {e}",
             )
 
     def shutdown(self) -> None:

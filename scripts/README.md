@@ -5,9 +5,16 @@ This folder contains helper PowerShell scripts to streamline environment setup, 
 
 Prerequisites
 -------------
+**Modern (uv-based):**
+- Python 3.12
+- uv package manager (`pip install uv` or see https://docs.astral.sh/uv/)
+- Usage: `uv pip install -e ".[dev]"` from repo root
+
+**Legacy (conda-based PowerShell scripts):**
 - Windows with PowerShell 5+ (or PowerShell 7)
 - Conda (Miniconda/Anaconda) on PATH
 - Optional: conda-lock (installed automatically for release setup if a lockfile is used)
+- Note: The PowerShell scripts below are legacy. Consider using uv for modern Python development.
 
 Execution policy
 ----------------
@@ -77,6 +84,75 @@ build-portable.ps1
 clean.ps1
   - Removes build artifacts (`build/`, `dist/`) and `__pycache__/` folders.
   - Usage: `./scripts/clean.ps1`
+
+bump_version.py
+  - Automates version bumping and local tag creation for Gitflow releases (custom implementation, no dependencies).
+  - Updates VERSION file, creates git commit with conventional format, creates local annotated tag.
+  - **Does NOT auto-push** - Manual push required to trigger release workflow.
+  - **Safety checks**: Clean git status, branch name validation (release/*, hotfix/*), tag existence.
+  - Usage:
+    - `python scripts/bump_version.py` → Interactive mode (prompts for bump type and dry-run)
+    - `python scripts/bump_version.py patch` → Bug fix release (1.11.0 → 1.11.1)
+    - `python scripts/bump_version.py minor` → Feature release (1.11.0 → 1.12.0)
+    - `python scripts/bump_version.py major` → Breaking change (1.11.0 → 2.0.0)
+    - `python scripts/bump_version.py patch --dry-run` → Preview changes without applying
+  - **After running**: Review with `git log -1 --stat`, then push with `git push origin <branch> --follow-tags`
+  - **Rollback before push**: `git tag -d v1.x.x && git reset --hard HEAD~1`
+  - **Recommended for most users** - Simple, no dependencies, safe defaults.
+
+version_bump_bumpversion.py
+  - Alternative version bumping using the `bump-my-version` library (requires installation).
+  - Same functionality as `bump_version.py` but uses an industry-standard library.
+  - Requires: `uv pip install -e ".[dev]"` or `pip install bump-my-version`
+  - Usage (identical to bump_version.py):
+    - `python scripts/version_bump_bumpversion.py patch`
+    - `python scripts/version_bump_bumpversion.py minor`
+    - `python scripts/version_bump_bumpversion.py major`
+  - Configuration in `.bumpversion.toml`
+  - **Choose if you need** pre-release versions or prefer using standard tools.
+  - See `docs/VERSION_BUMP_COMPARISON.md` for detailed comparison.
+
+**Release Documentation:**
+  - See `docs/RELEASE_WORKFLOW.md` for complete Gitflow release process.
+  - See `docs/WORKFLOWS_SUMMARY.md` for GitHub Actions workflow details.
+  - See `docs/RELEASE_WORKFLOW_DIAGRAM.md` for visual workflow diagrams.
+  - See `docs/WORKFLOW_IMPROVEMENTS.md` for optional enhancements.
+  - See `docs/VERSION_BUMP_COMPARISON.md` to choose between version bump scripts.
+
+Modern uv Workflow
+------------------
+For modern Python development using uv:
+
+**Setup:**
+```bash
+# Install dependencies and project in editable mode
+uv pip install -e ".[dev]"
+```
+
+**Run:**
+```bash
+# Run as module
+python -m testpad
+
+# Or use the installed command (if using project.scripts in pyproject.toml)
+testpad
+```
+
+**Version Bump:**
+```bash
+# Interactive mode
+python scripts/bump_version.py
+
+# Or specify bump type
+python scripts/bump_version.py patch --dry-run
+python scripts/bump_version.py patch
+```
+
+**Build Release:**
+```bash
+# Uses PyInstaller (installed via dev dependencies)
+pyinstaller build_config/testpad_main-release.spec
+```
 
 Tips
 ----
