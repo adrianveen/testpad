@@ -9,6 +9,7 @@ This reduces Qt scanning of system/plugin directories during startup.
 import os
 import sys
 
+
 def _set_qt_plugin_env():
     base = getattr(sys, "_MEIPASS", None) or os.path.dirname(sys.executable)
     qt_plugins = os.path.join(base, "qt_plugins")

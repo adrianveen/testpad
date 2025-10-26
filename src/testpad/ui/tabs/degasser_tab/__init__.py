@@ -5,13 +5,15 @@ tab registry. Importing the package re-exports the QWidget subclass so the
 lazy-loader can resolve it without knowing the internal layout.
 """
 
-from .view import DegasserTab
-from .model import DegasserModel
-from .presenter import DegasserPresenter
 from testpad.config import plotting
 
+from .model import DegasserModel
+from .presenter import DegasserPresenter
+from .view import DegasserTab
+
+
 def create_degasser_tab(parent=None) -> DegasserTab:
-    """Factory function to create a fully initialized Degasser tab."""
+    """Factory function to create initialized Degasser tab."""
     print("[degasser_tab] Creating degasser tab instance...")
 
     # Debug: Check if resources are accessible

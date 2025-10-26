@@ -1,26 +1,26 @@
 import datetime
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
-import os
 
 from fpdf import FPDF, Align, FontFace
 
 from testpad.config.defaults import DEFAULT_EXPORT_DIR, DEFAULT_FUS_LOGO_PATH
 from testpad.ui.tabs.degasser_tab.config import (
-    NO_LIMIT_SYMBOL,
-    ROW_SPEC_MAPPING,
-    TEST_TABLE_HEADERS,
-    REPORT_VERSION,
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
+    NO_LIMIT_SYMBOL,
+    REPORT_VERSION,
+    ROW_SPEC_MAPPING,
+    TEST_TABLE_HEADERS,
 )
 from testpad.ui.tabs.degasser_tab.plotting import (
     make_time_series_figure,
     save_figure_to_temp_file,
 )
 from testpad.ui.tabs.degasser_tab.report_layout import (
-    DEFAULT_LAYOUT,
     DEFAULT_FIGURE_CONFIG,
+    DEFAULT_LAYOUT,
     DEFAULT_STYLE_CONFIG,
 )
 
@@ -30,7 +30,7 @@ class GenerateReport:
 
     Attributes:
         metadata (Dict[str, Any]): Metadata for the test report.
-        test_data (dict): Test data for the report.
+        test_data (list[dict[str, Any]]): List of test data dictionaries for the report.
         time_series (Dict[int, float]): Time series data for the report.
         temperature (float): Temperature at which the test was conducted.
         output_dir (Path): Directory to save the generated PDF report.
@@ -40,15 +40,18 @@ class GenerateReport:
         - generate_report(): Generates and saves the PDF report.
         - _build_report_base(margins: float): Initializes the PDF report with margins.
         - _build_header(): Draws the header for the report.
-        - _build_title_block(metadata: dict | None = None): Draws the title block with metadata
-        - _build_test_table(test_data: list = []): Draws the test results table.
-        - _build_time_series_table(data: dict[int, float]): Draws the time series data table
+        - _build_title_block(metadata: dict | None = None): 
+        Draws the title block with metadata
+        - _build_test_table(test_data: list[dict[str, Any]]): 
+        Draws the test results table.
+        - _build_time_series_table(data: dict[int, float]): 
+        Draws the time series data table
     """
 
     def __init__(
         self,
         metadata: Dict[str, Any],
-        test_data: dict[Any, Any],
+        test_data: list[dict[str, Any]],
         time_series: Dict[int, float],
         temperature: Optional[float],
         output_dir: Path,
@@ -121,7 +124,9 @@ class GenerateReport:
         There is 1 col for each label and 1 for each field.
 
         Args:
-            metadata(dict): Metadata dictionary containing test name, location, date and degasser serial #
+            metadata(dict): Metadata dictionary containing test name, 
+            location, date and degasser serial #
+
         """
         # Convert keys to more user-friendly labels
         metadata = {
@@ -176,11 +181,11 @@ class GenerateReport:
                 if len(pair) < 2:
                     row.cell("")
 
-    def _build_test_table(self, test_data: dict):
+    def _build_test_table(self, test_data: list[dict[str, Any]]):
         """Draws the 8 row x 5 col table for the test results and default values.
 
         Args:
-            test_data: Dictionary of the measured data as well as all pass/fail inputs
+            test_data: List of dictionaries containing measured data and pass/fail inputs
         """
         headers = TEST_TABLE_HEADERS
         # Set font styles for each section of the table

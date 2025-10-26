@@ -276,7 +276,7 @@ jobs:
         id: build-portable
         working-directory: ${{ env.WORKING_DIR }}
         env:
-          BUILD_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_VERSION: ${{ needs.validate-release.outputs.version }}
         run: |
           echo "Building version: $BUILD_VERSION"
           uv run pyinstaller ${{ env.BUILD_SPEC_FILE }} --clean

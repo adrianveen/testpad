@@ -6,6 +6,7 @@ or loaded from configuration files.
 """
 from datetime import date
 from pathlib import Path
+
 from .constants import (
     ABSOLUTE_ZERO_C,
     MAX_REASONABLE_TEMP_C,

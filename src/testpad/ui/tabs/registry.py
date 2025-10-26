@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Optional, Iterable, Iterator, Dict
+from typing import Dict, Iterable, Iterator, Optional
+
 
 @dataclass(frozen=True)
 class TabSpec:
