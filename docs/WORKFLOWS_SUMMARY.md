@@ -7,10 +7,10 @@
 on:
   pull_request:
     branches:
-      - develop
+      - dev
     types: [opened, synchronize, reopened]
 ```
-**When:** PR opened/updated from any `feature/*` branch → `develop`
+**When:** PR opened/updated from any `feat/*` branch → `dev`
 
 ### Actions
 1. Checkout code
@@ -27,16 +27,16 @@ on:
 
 ---
 
-## 2. **develop-merge.yml** (Optional but recommended)
+## 2. **dev-merge.yml** (Optional but recommended)
 
 ### Triggers
 ```yaml
 on:
   push:
     branches:
-      - develop
+      - dev
 ```
-**When:** Any code is merged into `develop` branch
+**When:** Any code is merged into `dev` branch
 
 ### Actions
 1. Checkout code
@@ -46,7 +46,7 @@ on:
 5. Send notification (Slack/email)
 
 ### Chains Into
-❌ **No chaining** - Just validates develop branch stays healthy
+❌ **No chaining** - Just validates dev branch stays healthy
 
 ---
 
@@ -150,9 +150,9 @@ on:
 
 | Workflow | Trigger | Manual Gate? | Chains To |
 |----------|---------|--------------|-----------|
-| feature-checks.yml | PR to develop | ✅ Yes (merge PR) | ❌ None |
-| develop-merge.yml | Push to develop | ❌ No | ❌ None |
-| release-prep.yml | PR from release/* to main/dev | ✅ Yes (merge PR) | ❌ None |
+| feature-checks.yml | PR to `dev` | ✅ Yes (merge PR) | ❌ None |
+| dev-merge.yml | Push to `dev` | ❌ No | ❌ None |
+| release-prep.yml | PR from release/* to `main`/`dev` | ✅ Yes (merge PR) | ❌ None |
 | publish-release.yml | Tag push (v*) from release/hotfix branch | ✅ Yes (publish draft) | ❌ None |
 | hotfix-checks.yml | PR from hotfix/* to main | ✅ Yes (merge PR) | ❌ None |
 

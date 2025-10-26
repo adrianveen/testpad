@@ -22,6 +22,7 @@ dependencies = [
 dev = [
     "ipykernel>=7.0.1",
     "pytest>=8.4.2",
+    "pytest-cov>=6.0.0",
     "ruff>=0.14.1",
     "pyinstaller>=6.16.0",
 ]

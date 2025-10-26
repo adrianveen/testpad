@@ -71,7 +71,7 @@ The release process is supported by several automated GitHub Actions workflows. 
 ## Quick Start
 
 ```bash
-# 1. Create a release branch from develop
+# 1. Create a release branch from dev
 git checkout dev
 git pull origin dev
 git checkout -b release/v1.11.1
