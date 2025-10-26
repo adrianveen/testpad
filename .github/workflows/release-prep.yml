@@ -1,0 +1,468 @@
+name: Release Preparation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types: [opened, synchronize, reopened]
+
+# Cancel in-progress runs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write  # For posting PR comments
+
+# Project-specific configuration - customize these for different projects
+env:
+  PROJECT_NAME: testpad
+  PYTHON_VERSION: "3.12"
+  VERSION_FILE_PATH: testpad/VERSION
+  WORKING_DIR: testpad
+  # Test configuration
+  TEST_PATTERN: "tests/"
+  # Coverage configuration
+  COVERAGE_SOURCE: src/testpad
+  # Build configuration
+  BUILD_SPEC_FILE: build_config/testpad_main-portable.spec
+
+jobs:
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+
+    # Only run for release/* or hotfix/* branches
+    if: startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/')
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      validation-passed: ${{ steps.validation-status.outputs.passed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for version comparison and tag checking
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate VERSION file exists
+        id: version-file
+        run: |
+          if [ ! -f "${{ env.VERSION_FILE_PATH }}" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ VERSION file not found at ${{ env.VERSION_FILE_PATH }}" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "message=✅ VERSION file exists" >> $GITHUB_OUTPUT
+
+      - name: Extract and validate version format
+        id: version
+        run: |
+          VERSION=$(cat ${{ env.VERSION_FILE_PATH }} | tr -d '[:space:]')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Validate semver format (MAJOR.MINOR.PATCH)
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Invalid version format: $VERSION (expected MAJOR.MINOR.PATCH, e.g., 1.2.3)" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "message=✅ Version format is valid: $VERSION" >> $GITHUB_OUTPUT
+
+      - name: Compare with base branch version
+        id: version-compare
+        if: github.base_ref == 'main'
+        run: |
+          # Get version from VERSION file in current branch
+          CURRENT_VERSION=$(cat ${{ env.VERSION_FILE_PATH }} | tr -d '[:space:]')
+
+          # Get version from base branch
+          git fetch origin ${{ github.base_ref }}
+          if git show origin/${{ github.base_ref }}:${{ env.VERSION_FILE_PATH }} > /tmp/base_version 2>/dev/null; then
+            BASE_VERSION=$(cat /tmp/base_version | tr -d '[:space:]')
+          else
+            BASE_VERSION="0.0.0"
+            echo "⚠️ No VERSION file in base branch, assuming 0.0.0"
+          fi
+
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "base=$BASE_VERSION" >> $GITHUB_OUTPUT
+
+          # Simple version comparison (works for semver)
+          IFS='.' read -r -a curr <<< "$CURRENT_VERSION"
+          IFS='.' read -r -a base <<< "$BASE_VERSION"
+
+          CURR_MAJOR=${curr[0]:-0}
+          CURR_MINOR=${curr[1]:-0}
+          CURR_PATCH=${curr[2]:-0}
+
+          BASE_MAJOR=${base[0]:-0}
+          BASE_MINOR=${base[1]:-0}
+          BASE_PATCH=${base[2]:-0}
+
+          VALID=false
+
+          if [ "$CURR_MAJOR" -gt "$BASE_MAJOR" ]; then
+            VALID=true
+          elif [ "$CURR_MAJOR" -eq "$BASE_MAJOR" ]; then
+            if [ "$CURR_MINOR" -gt "$BASE_MINOR" ]; then
+              VALID=true
+            elif [ "$CURR_MINOR" -eq "$BASE_MINOR" ]; then
+              if [ "$CURR_PATCH" -gt "$BASE_PATCH" ]; then
+                VALID=true
+              fi
+            fi
+          fi
+
+          if [ "$VALID" = false ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Version $CURRENT_VERSION is not higher than base version $BASE_VERSION" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "message=✅ Version is higher than base branch ($BASE_VERSION → $CURRENT_VERSION)" >> $GITHUB_OUTPUT
+
+      - name: Verify tag exists
+        id: tag-check
+        if: github.base_ref == 'main'
+        run: |
+          VERSION=$(cat ${{ env.VERSION_FILE_PATH }} | tr -d '[:space:]')
+          TAG="v$VERSION"
+
+          git fetch --tags
+
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Tag $TAG does not exist. Please create and push the tag before creating the PR." >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Check if tag points to a commit in this branch
+          TAG_COMMIT=$(git rev-parse "$TAG")
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" HEAD; then
+            echo "status=warning" >> $GITHUB_OUTPUT
+            echo "message=⚠️ Tag $TAG exists but is not in this branch's history" >> $GITHUB_OUTPUT
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+            echo "message=✅ Tag $TAG exists and is in branch history" >> $GITHUB_OUTPUT
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Run linting (ruff check)
+        id: lint
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "::group::Ruff Check"
+          uv run ruff check . --output-format=github
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Run code formatting check (ruff format)
+        id: format
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "::group::Ruff Format Check"
+          uv run ruff format --check .
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Run full test suite
+        id: test
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "::group::Running Tests with Coverage"
+          uv run pytest ${{ env.TEST_PATTERN }} -v --tb=short \
+            --junitxml=test-results.xml \
+            --cov=${{ env.COVERAGE_SOURCE }} \
+            --cov-report=term-missing \
+            --cov-report=xml || EXIT_CODE=$?
+
+          # Exit code 5 means no tests collected (acceptable for now)
+          if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+            echo "⚠️ No tests found - this is acceptable"
+            exit 0
+          elif [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "❌ Tests failed"
+            exit $EXIT_CODE
+          fi
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-prep-test-results
+          path: |
+            ${{ env.WORKING_DIR }}/test-results.xml
+            ${{ env.WORKING_DIR }}/coverage.xml
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Set validation status
+        id: validation-status
+        if: always()
+        run: |
+          failed=false
+
+          # Check required validations
+          if [ "${{ steps.version-file.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.version.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ github.base_ref }}" == "main" ] && [ "${{ steps.version-compare.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ github.base_ref }}" == "main" ] && [ "${{ steps.tag-check.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.lint.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.format.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.test.outcome }}" != "success" ]; then failed=true; fi
+
+          if [ "$failed" = true ]; then
+            echo "passed=false" >> $GITHUB_OUTPUT
+            echo "❌ One or more validation checks failed"
+          else
+            echo "passed=true" >> $GITHUB_OUTPUT
+            echo "✅ All validation checks passed"
+          fi
+
+  build-artifacts:
+    name: Build Release Artifacts
+    runs-on: windows-latest
+    needs: validate-release
+    if: needs.validate-release.outputs.validation-passed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Build portable executable
+        id: build-portable
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          echo "Building version: $BUILD_VERSION"
+          uv run pyinstaller ${{ env.BUILD_SPEC_FILE }} --clean
+        continue-on-error: true
+
+      - name: Verify build artifacts
+        id: verify-build
+        shell: pwsh
+        run: |
+          $version = "${{ needs.validate-release.outputs.version }}"
+          $portableExists = Test-Path "${{ env.WORKING_DIR }}/dist/*.exe"
+
+          if ($portableExists) {
+            Write-Output "✅ Build artifacts created successfully"
+            Write-Output "status=passed" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Output "❌ Build artifacts not found"
+            Write-Output "status=failed" >> $env:GITHUB_OUTPUT
+            exit 1
+          }
+
+      - name: Upload build artifacts
+        if: steps.verify-build.outputs.status == 'passed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-prep-build-v${{ needs.validate-release.outputs.version }}
+          path: ${{ env.WORKING_DIR }}/dist/*.exe
+          retention-days: 30
+          if-no-files-found: warn
+
+  post-pr-comment:
+    name: Post Validation Summary
+    runs-on: ubuntu-latest
+    needs: [validate-release, build-artifacts]
+    if: always()
+
+    steps:
+      - name: Generate PR comment
+        id: generate-comment
+        shell: bash
+        run: |
+          version="${{ needs.validate-release.outputs.version }}"
+          base_branch="${{ github.base_ref }}"
+          head_branch="${{ github.head_ref }}"
+
+          # Determine branch type
+          if [[ "$head_branch" == release/* ]]; then
+            branch_type="Release"
+            branch_icon="🚀"
+          else
+            branch_type="Hotfix"
+            branch_icon="🔥"
+          fi
+
+          # Determine statuses
+          if [ "${{ needs.validate-release.result }}" == "success" ]; then
+            version_file_status="✅ Passed"
+            version_format_status="✅ Passed"
+            lint_status="✅ Passed"
+            format_status="✅ Passed"
+            test_status="✅ Passed"
+
+            if [ "$base_branch" == "main" ]; then
+              version_compare_status="✅ Passed"
+              tag_check_status="✅ Passed"
+            fi
+
+            if [ "${{ needs.build-artifacts.result }}" == "success" ]; then
+              build_status="✅ Passed"
+              details_section="All validation checks passed! This ${branch_type,,} is ready for review."
+
+              if [ "$base_branch" == "main" ]; then
+                next_steps="1. ✅ Review the changes in this PR"$'\n'"2. ✅ Manually approve and merge this PR"$'\n'"3. ✅ Create PR to merge \`${head_branch}\` → \`dev\` (if not already done)"$'\n'"4. ✅ After both PRs are merged, publish the draft release on GitHub"
+              else
+                next_steps="1. ✅ Review the changes in this PR"$'\n'"2. ✅ Manually approve and merge this PR"$'\n'"3. ✅ Verify the ${branch_type,,} is synced to dev branch"
+              fi
+            else
+              build_status="❌ Failed"
+              details_section="⚠️ Validation passed but build failed. Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+              next_steps="1. 🔧 Fix the build issues"$'\n'"2. 🔄 Push the fixes to trigger a new validation"
+            fi
+          else
+            version_file_status="❌ Check logs"
+            version_format_status="❌ Check logs"
+            lint_status="❌ Check logs"
+            format_status="❌ Check logs"
+            test_status="❌ Check logs"
+            build_status="⏭️ Skipped"
+
+            if [ "$base_branch" == "main" ]; then
+              version_compare_status="❌ Check logs"
+              tag_check_status="❌ Check logs"
+            fi
+
+            details_section="❌ Some validation checks failed. Please review the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) and fix the issues."
+            next_steps="1. 🔧 Fix the validation issues listed above"$'\n'"2. 🔄 Push the fixes to trigger a new validation"$'\n'"3. 📖 See [RELEASE_WORKFLOW.md](../../blob/dev/${{ env.WORKING_DIR }}/docs/RELEASE_WORKFLOW.md) for guidance"
+          fi
+
+          # Build the comment with direct variable substitution
+          cat > pr-comment.md << EOF
+          ## ${branch_icon} ${branch_type} Preparation - Validation Summary
+
+          **Branch**: \`${head_branch}\` → \`${base_branch}\`
+          **Version**: \`${version}\`
+
+          ### 📋 Validation Checks
+
+          | Check | Status |
+          |-------|--------|
+          | 📄 VERSION file exists | ${version_file_status} |
+          | 🔢 Version format (semver) | ${version_format_status} |
+          EOF
+
+          # Add version comparison check only for main branch
+          if [ "$base_branch" == "main" ]; then
+            cat >> pr-comment.md << EOF
+          | 📈 Version comparison | ${version_compare_status} |
+          | 🏷️ Git tag exists | ${tag_check_status} |
+          EOF
+          fi
+
+          cat >> pr-comment.md << EOF
+          | 🔍 Linting (ruff check) | ${lint_status} |
+          | 🎨 Formatting (ruff format) | ${format_status} |
+          | 🧪 Test suite | ${test_status} |
+          | 🏗️ Build artifacts | ${build_status} |
+
+          ### 📊 Details
+
+          ${details_section}
+
+          ### 📦 Next Steps
+
+          ${next_steps}
+
+          ---
+          *Automated validation by [release-prep.yml](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*
+          EOF
+
+          cat pr-comment.md
+
+      - name: Post PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('pr-comment.md', 'utf8');
+
+            // Find existing comment from this workflow
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              (comment.body.includes('Release Preparation - Validation Summary') ||
+              comment.body.includes('Hotfix Preparation - Validation Summary'))
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Check overall status and fail if needed
+        if: always()
+        run: |
+          if [ "${{ needs.validate-release.result }}" != "success" ] || [ "${{ needs.build-artifacts.result }}" != "success" ]; then
+            echo "❌ Release preparation validation failed"
+            exit 1
+          else
+            echo "✅ Release preparation validation passed"
+          fi
