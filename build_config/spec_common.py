@@ -8,6 +8,9 @@ import glob
 import datetime
 from typing import List, Tuple, Optional
 
+# PyInstaller utilities for auto-collecting submodules
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+
 
 def get_base_dir() -> str:
     """Get the repository root directory."""
@@ -76,7 +79,7 @@ def validate_build_files(base_dir: str) -> None:
 
     if missing_files:
         raise FileNotFoundError(
-            f"Required build files missing:\n" +
+            "Required build files missing:\n" +
             "\n".join(f"  - {f}" for f in missing_files)
         )
 
@@ -243,21 +246,36 @@ def get_common_datas(base_dir: str) -> List[Tuple[str, str]]:
     """
     Get common data files that should be included in all builds.
 
+    Uses PyInstaller's collect_data_files to properly bundle resources
+    with correct package paths.
+
     Args:
         base_dir: Repository root directory
 
     Returns:
         List of (source_path, dest_dir) tuples for PyInstaller datas
     """
-    datas = [
-        # Application data files
-        (os.path.join(base_dir, 'src', 'testpad', 'core', 'matching_box', 'cap_across_load.jpg'), 'matching_box'),
-        (os.path.join(base_dir, 'src', 'testpad', 'core', 'matching_box', 'cap_across_source.jpg'), 'matching_box'),
-        (os.path.join(base_dir, 'src', 'testpad', 'resources'), 'resources'),
+    print("[spec_common] Collecting data files...")
 
-        # Qt configuration
-        (os.path.join(base_dir, 'build_config', 'qt.conf'), '.'),
-    ]
+    datas = []
+
+    # Collect all data files from testpad package (includes resources/)
+    # This preserves the package structure: testpad/resources/*, testpad/core/*/*, etc.
+    try:
+        testpad_data = collect_data_files('testpad')
+        print(f"[spec_common] Collected {len(testpad_data)} data files from testpad package")
+        datas.extend(testpad_data)
+    except Exception as e:
+        print(f"[spec_common] Warning: Could not auto-collect testpad data files: {e}")
+        # Fallback to manual specification
+        datas.extend([
+            (os.path.join(base_dir, 'src', 'testpad', 'core', 'matching_box', 'cap_across_load.jpg'), 'testpad/core/matching_box'),
+            (os.path.join(base_dir, 'src', 'testpad', 'core', 'matching_box', 'cap_across_source.jpg'), 'testpad/core/matching_box'),
+            (os.path.join(base_dir, 'src', 'testpad', 'resources'), 'testpad/resources'),
+        ])
+
+    # Qt configuration (goes to root)
+    datas.append((os.path.join(base_dir, 'build_config', 'qt.conf'), '.'))
 
     # Add Qt binaries
     datas.extend(get_qt_binaries())
@@ -272,24 +290,48 @@ def get_common_datas(base_dir: str) -> List[Tuple[str, str]]:
 def get_common_hiddenimports() -> List[str]:
     """
     Get list of modules that need to be explicitly imported.
-    These are dynamically loaded at runtime and PyInstaller won't detect them.
+
+    Uses PyInstaller's collect_submodules to automatically discover and include
+    all submodules in the testpad.ui.tabs and testpad.config packages.
+
+    This approach:
+    - Automatically includes new tabs without updating this file
+    - Catches all submodules and relative imports
+    - Is the PyInstaller-recommended approach for packages with dynamic imports
 
     Returns:
-        List of module names
+        List of module names to include as hidden imports
     """
-    return [
-        # UI tabs - dynamically imported at runtime
-        'testpad.ui.tabs.matching_box_tab',
-        'testpad.ui.tabs.transducer_calibration_tab',
-        'testpad.ui.tabs.transducer_linear_tab',
-        'testpad.ui.tabs.rfb_tab',
-        'testpad.ui.tabs.vol2press_tab',
-        'testpad.ui.tabs.burnin_tab',
-        'testpad.ui.tabs.nanobubbles_tab',
-        'testpad.ui.tabs.temp_analysis_tab',
-        'testpad.ui.tabs.hydrophone_tab',
-        'testpad.ui.tabs.sweep_plot_tab',
+    print("[spec_common] Auto-collecting submodules for tabs and config...")
+
+    # Automatically collect all submodules from these packages
+    # This ensures all tabs (including package-based ones like degasser_tab) are included
+    imports = []
+
+    # Collect all UI tabs and their submodules
+    tab_modules = collect_submodules('testpad.ui.tabs')
+    print(f"[spec_common] Collected {len(tab_modules)} modules from testpad.ui.tabs")
+    imports.extend(tab_modules)
+
+    # Collect all config modules
+    config_modules = collect_submodules('testpad.config')
+    print(f"[spec_common] Collected {len(config_modules)} modules from testpad.config")
+    imports.extend(config_modules)
+
+    # Collect core testpad modules (for comprehensive coverage)
+    core_modules = collect_submodules('testpad.core')
+    print(f"[spec_common] Collected {len(core_modules)} modules from testpad.core")
+    imports.extend(core_modules)
+
+    # Additional third-party modules that may be dynamically imported
+    extra_imports = [
+        'fpdf',           # PDF generation
+        'fpdf.fpdf',      # fpdf2 main module
     ]
+    print(f"[spec_common] Adding {len(extra_imports)} explicit third-party imports")
+    imports.extend(extra_imports)
+
+    return imports
 
 
 # ============================================================================
@@ -307,6 +349,7 @@ def get_runtime_hooks(base_dir: str) -> List[str]:
         List of runtime hook script paths
     """
     return [
+        os.path.join(base_dir, 'build_config', 'runtime_hook_debug.py'),  # Debug hook (first)
         os.path.join(base_dir, 'build_config', 'runtime_hook_qt.py'),
         os.path.join(base_dir, 'build_config', 'runtime_hook_mpl.py'),
     ]
