@@ -172,7 +172,7 @@ class GenerateReport:
                     if label == "Date":
                         value = value.strftime("%Y-%m-%d")
                     row.cell(
-                        text=f"{label}:-- {value} --",
+                        text=f"{label}: --{value}--",
                         border=False,
                         align="L",
                         style=value_font_style,
@@ -286,6 +286,13 @@ class GenerateReport:
         self.pdf.cell(
             text=title, align=Align.C, center=True, new_x="RIGHT", new_y="NEXT"
         )
+
+        # Set font style for measurements
+        data_style = FontFace(
+            emphasis=self.styling_config.values_text_style,
+            size_pt=self.styling_config.data_text_size,
+            color=self.styling_config.data_text_color,
+        )
         # Add spacer and get current y position of table
         self.pdf.ln(self.layout.section_spacing_mm)
         self.time_series_y = self.pdf.get_y()
@@ -300,7 +307,7 @@ class GenerateReport:
             for time, do_value in data.items():
                 row = table.row()
                 row.cell(str(time), align="C")
-                row.cell(f"{do_value:.2f}", align="C")
+                row.cell(f"{do_value:.2f}", align="C", style=data_style)
 
         # Add spacer and add temperature
         self.pdf.ln(self.layout.section_spacing_mm)
