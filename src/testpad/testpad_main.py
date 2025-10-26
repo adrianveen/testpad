@@ -198,7 +198,7 @@ def main() -> None:
     splash.update_progress(5, "Starting Testpad…")
     
     flags = {
-        "degasser_data": True  # Enable for testing
+        "degasser_tab": True  # Enable for testing
     }
     tabs_spec: List[TabSpec] = list(enabled_tabs(TABS_SPEC, flags))
 

@@ -14,7 +14,6 @@ from testpad.ui.tabs.degasser_tab.config import (
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
 )
-from testpad.ui.tabs.degasser_tab.model import DegasserModel
 from testpad.ui.tabs.degasser_tab.plotting import (
     make_time_series_figure,
     save_figure_to_temp_file,
@@ -49,7 +48,7 @@ class GenerateReport:
     def __init__(
         self,
         metadata: Dict[str, Any],
-        test_data: dict,
+        test_data: dict[Any, Any],
         time_series: Dict[int, float],
         temperature: Optional[float],
         output_dir: Path,
@@ -151,10 +150,6 @@ class GenerateReport:
         values = list(metadata.items())
         rows = [values[i : i + 2] for i in range(0, len(values), 2)]
 
-        label_font_style = FontFace(
-            emphasis=self.styling_config.subtitle_text_style,
-            size_pt=self.styling_config.metadata_text_size,
-        )
         value_font_style = FontFace(
             emphasis=self.styling_config.metadata_text_style,
             size_pt=self.styling_config.metadata_text_size,
