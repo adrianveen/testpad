@@ -30,3 +30,26 @@ dev = [
 [build-system]
 requires = ["setuptools>=80.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+# Set the line length (default: 88)
+line-length = 88
+
+# Target Python 3.12
+target-version = "py312"
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces (recommended by PEP 8)
+indent-style = "space"
+
+# Use `\n` line endings for all files
+line-ending = "lf"
+
+# Format code snippets in docstrings
+docstring-code-format = true
+
+# Respect magic trailing commas
+skip-magic-trailing-comma = false
