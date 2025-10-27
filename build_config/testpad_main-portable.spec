@@ -83,6 +83,6 @@ exe = EXE(
     icon=get_icon_path(base_dir),
 )
 
-print(f"\n✅ Portable build configuration complete")
+print(f"\n[OK] Portable build configuration complete")
 print(f"   Output will be: dist/testpad_main.exe")
 print(f"   Version: {VERSION}\n")

@@ -95,7 +95,7 @@ coll = COLLECT(
     name='testpad_main',  # Output directory: dist/testpad_main/ (workflow expects this name)
 )
 
-print(f"\n✅ Release build configuration complete")
+print(f"\n[OK] Release build configuration complete")
 print(f"   Output directory: dist/testpad_main/")
 print(f"   Main executable:  dist/testpad_main/testpad_main.exe")
 print(f"   Version: {VERSION}")

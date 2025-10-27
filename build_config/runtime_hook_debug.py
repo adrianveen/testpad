@@ -19,7 +19,7 @@ def _debug_import(name, *args, **kwargs):
     except ImportError as e:
         # Log failed imports that might be important
         if name.startswith('testpad') or name in ['fpdf', 'matplotlib', 'PySide6']:
-            print(f"[DEBUG] ⚠️  Failed to import: {name}")
+            print(f"[DEBUG] [WARN] Failed to import: {name}")
             print(f"[DEBUG]    Error: {e}")
             traceback.print_exc()
         raise
@@ -51,9 +51,9 @@ critical_imports = [
 for module_name in critical_imports:
     try:
         __import__(module_name)
-        print(f"[DEBUG] ✅ {module_name}")
+        print(f"[DEBUG] [OK] {module_name}")
     except ImportError as e:
-        print(f"[DEBUG] ❌ {module_name}: {e}")
+        print(f"[DEBUG] [FAIL] {module_name}: {e}")
 
 print("=" * 70)
 print()
