@@ -1,0 +1,356 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggered by tags like v1.2.0, v1.11.1, etc.
+
+# Ensure only one release workflow runs at a time
+concurrency:
+  group: publish-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # Required to create releases and upload artifacts
+
+# Project-specific configuration - customize these for different projects
+env:
+  PROJECT_NAME: testpad
+  PYTHON_VERSION: "3.12"
+  VERSION_FILE_PATH: testpad/VERSION
+  WORKING_DIR: testpad
+  # Build configuration
+  BUILD_SPEC_RELEASE: build_config/testpad_main-release.spec
+  BUILD_SPEC_PORTABLE: build_config/testpad_main-portable.spec
+  INSTALLER_CONFIG: build_config/testpad-release.iss
+  # Output directories
+  DIST_DIR: testpad/dist
+  INSTALLER_DIR: testpad/installers
+  # Release artifact naming (use {version} as placeholder)
+  RELEASE_BUNDLE_NAME: testpad_v{version}
+  INSTALLER_NAME: testpad-setup-v{version}.exe
+  RELEASE_ZIP_NAME: testpad-v{version}-windows-release.zip
+  PORTABLE_ZIP_NAME: testpad-v{version}-windows-portable.zip
+
+jobs:
+  publish-release:
+    name: Build and Publish Draft Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code at tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
+
+      - name: Read VERSION file
+        id: version
+        shell: pwsh
+        run: |
+          $versionPath = "${{ env.VERSION_FILE_PATH }}"
+
+          if (-not (Test-Path $versionPath)) {
+            Write-Error "VERSION file not found at $versionPath"
+            exit 1
+          }
+
+          $version = Get-Content -Path $versionPath -Raw
+          $version = $version.Trim()
+
+          Write-Output "VERSION=$version" >> $env:GITHUB_OUTPUT
+          Write-Output "Version: $version"
+
+      - name: Verify tag matches VERSION
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $expectedTag = "v$version"
+
+          if ($tag -ne $expectedTag) {
+            Write-Error "Tag $tag does not match VERSION file version v$version"
+            exit 1
+          }
+
+          Write-Output "✅ Tag and VERSION match: $tag"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Build Windows Release (one-directory bundle)
+        id: build-release
+        working-directory: ${{ env.WORKING_DIR }}
+        shell: pwsh
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          Write-Output "::group::Building Windows Release Bundle"
+          Write-Output "Building version: $env:BUILD_VERSION"
+          uv run pyinstaller ${{ env.BUILD_SPEC_RELEASE }} --clean
+          Write-Output "::endgroup::"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Release bundle build failed"
+            exit 1
+          }
+
+          Write-Output "✅ Release bundle built successfully"
+
+      - name: Build Windows Portable (single executable)
+        id: build-portable
+        working-directory: ${{ env.WORKING_DIR }}
+        shell: pwsh
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          Write-Output "::group::Building Windows Portable Executable"
+          Write-Output "Building version: $env:BUILD_VERSION"
+          uv run pyinstaller ${{ env.BUILD_SPEC_PORTABLE }} --clean
+          Write-Output "::endgroup::"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Portable executable build failed"
+            exit 1
+          }
+
+          Write-Output "✅ Portable executable built successfully"
+
+      - name: Verify build artifacts
+        id: verify-artifacts
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $errors = @()
+
+          # Check for release bundle directory
+          $releaseDir = "${{ env.DIST_DIR }}/${{ env.PROJECT_NAME }}_main"
+          if (-not (Test-Path $releaseDir)) {
+            $errors += "Release bundle directory not found: $releaseDir"
+          } else {
+            Write-Output "✅ Release bundle directory found"
+          }
+
+          # Check for portable executable
+          $portableExe = "${{ env.DIST_DIR }}/${{ env.PROJECT_NAME }}_main.exe"
+          if (-not (Test-Path $portableExe)) {
+            $errors += "Portable executable not found: $portableExe"
+          } else {
+            Write-Output "✅ Portable executable found"
+          }
+
+          if ($errors.Count -gt 0) {
+            foreach ($error in $errors) {
+              Write-Error $error
+            }
+            exit 1
+          }
+
+          Write-Output "✅ All build artifacts verified"
+
+      - name: Prepare release bundle for Inno Setup
+        id: prepare-inno
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $sourceDir = "${{ env.DIST_DIR }}/${{ env.PROJECT_NAME }}_main"
+          $targetDirName = "${{ env.RELEASE_BUNDLE_NAME }}" -replace '\{version\}', $version
+          $targetDir = "${{ env.DIST_DIR }}/$targetDirName"
+
+          Write-Output "::group::Preparing Release Bundle for Inno Setup"
+
+          # Rename the release bundle directory to match Inno Setup expectations
+          if (Test-Path $sourceDir) {
+            if (Test-Path $targetDir) {
+              Remove-Item -Path $targetDir -Recurse -Force
+            }
+            Rename-Item -Path $sourceDir -NewName $targetDirName
+            Write-Output "✅ Renamed $sourceDir to $targetDir"
+          } else {
+            Write-Error "Source directory not found: $sourceDir"
+            exit 1
+          }
+
+          # Rename the main executable to match Inno Setup expectations
+          $sourceExe = "$targetDir/${{ env.PROJECT_NAME }}_main.exe"
+          $targetExeName = "${{ env.PROJECT_NAME }}_v$version.exe"
+          $targetExe = "$targetDir/$targetExeName"
+
+          if (Test-Path $sourceExe) {
+            Rename-Item -Path $sourceExe -NewName $targetExeName
+            Write-Output "✅ Renamed ${{ env.PROJECT_NAME }}_main.exe to $targetExeName"
+          } else {
+            Write-Error "Main executable not found: $sourceExe"
+            exit 1
+          }
+
+          Write-Output "::endgroup::"
+          Write-Output "✅ Release bundle prepared for Inno Setup"
+
+      - name: Build Windows Installer with Inno Setup
+        id: build-installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
+        with:
+          path: ${{ env.INSTALLER_CONFIG }}
+          options: /DMyAppVersion=${{ steps.version.outputs.VERSION }}
+
+      - name: Verify installer artifact
+        id: verify-installer
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $installerName = "${{ env.INSTALLER_NAME }}" -replace '\{version\}', $version
+          $installerPath = "${{ env.INSTALLER_DIR }}/$installerName"
+
+          if (-not (Test-Path $installerPath)) {
+            Write-Error "Installer not found at: $installerPath"
+            exit 1
+          }
+
+          $sizeMB = [math]::Round((Get-Item $installerPath).Length / 1MB, 2)
+          Write-Output "✅ Installer created: $installerName ($sizeMB MB)"
+
+      - name: Package release artifacts
+        id: package
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+
+          Write-Output "::group::Packaging Release Artifacts"
+
+          # Package release bundle (one-directory)
+          $releaseBundleName = "${{ env.RELEASE_BUNDLE_NAME }}" -replace '\{version\}', $version
+          $releaseBundlePath = "${{ env.DIST_DIR }}/$releaseBundleName"
+          $releaseZipName = "${{ env.RELEASE_ZIP_NAME }}" -replace '\{version\}', $version
+
+          if (Test-Path $releaseBundlePath) {
+            Compress-Archive -Path "$releaseBundlePath/*" -DestinationPath $releaseZipName -Force
+            Write-Output "✅ Created: $releaseZipName"
+          } else {
+            Write-Error "Release bundle directory not found: $releaseBundlePath"
+            exit 1
+          }
+
+          # Package portable executable
+          $portableExePath = "${{ env.DIST_DIR }}/${{ env.PROJECT_NAME }}_main.exe"
+          $portableZipName = "${{ env.PORTABLE_ZIP_NAME }}" -replace '\{version\}', $version
+
+          if (Test-Path $portableExePath) {
+            Compress-Archive -Path $portableExePath -DestinationPath $portableZipName -Force
+            Write-Output "✅ Created: $portableZipName"
+          } else {
+            Write-Error "Portable executable not found: $portableExePath"
+            exit 1
+          }
+
+          # Copy installer to root for release upload
+          $installerName = "${{ env.INSTALLER_NAME }}" -replace '\{version\}', $version
+          $installerPath = "${{ env.INSTALLER_DIR }}/$installerName"
+
+          if (Test-Path $installerPath) {
+            Copy-Item -Path $installerPath -Destination $installerName
+            Write-Output "✅ Copied installer to: $installerName"
+          } else {
+            Write-Error "Installer not found: $installerPath"
+            exit 1
+          }
+
+          Write-Output "::endgroup::"
+
+          # List created artifacts
+          Write-Output "`n📦 Packaged artifacts:"
+          Get-ChildItem *.zip, *.exe -File | ForEach-Object {
+            $sizeMB = [math]::Round($_.Length / 1MB, 2)
+            Write-Output "  - $($_.Name) ($sizeMB MB)"
+          }
+
+      # Optional: Run smoke tests on built artifacts
+      # Uncomment and customize if you want to test the built executables
+      # - name: Run smoke tests (optional)
+      #   id: smoke-test
+      #   shell: pwsh
+      #   run: |
+      #     Write-Output "::group::Running Smoke Tests"
+      #     # Example: Test that the portable executable runs and shows help
+      #     $exe = "testpad/dist/testpad_main.exe"
+      #     & $exe --help
+      #     if ($LASTEXITCODE -ne 0) {
+      #       Write-Error "Smoke test failed"
+      #       exit 1
+      #     }
+      #     Write-Output "✅ Smoke tests passed"
+      #     Write-Output "::endgroup::"
+
+      - name: Create GitHub Draft Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $tag = "v$version"
+          $releaseZip = "${{ env.RELEASE_ZIP_NAME }}" -replace '\{version\}', $version
+          $portableZip = "${{ env.PORTABLE_ZIP_NAME }}" -replace '\{version\}', $version
+          $installerExe = "${{ env.INSTALLER_NAME }}" -replace '\{version\}', $version
+
+          Write-Output "::group::Creating Draft Release"
+
+          # Create draft release with auto-generated changelog
+          # GitHub automatically generates release notes from commits since last tag
+          gh release create $tag `
+            --draft `
+            --title "Release v$version" `
+            --generate-notes `
+            $releaseZip `
+            $portableZip `
+            $installerExe
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create draft release"
+            exit 1
+          }
+
+          Write-Output "::endgroup::"
+          Write-Output ""
+          Write-Output "✅ Draft release created successfully!"
+          Write-Output ""
+          Write-Output "📋 Release Details:"
+          Write-Output "  - Version: v$version"
+          Write-Output "  - Tag: $tag"
+          Write-Output "  - Status: DRAFT (not published)"
+          Write-Output "  - Artifacts: 3 files attached"
+          Write-Output "    • $installerExe (Windows Installer)"
+          Write-Output "    • $releaseZip (Full release bundle)"
+          Write-Output "    • $portableZip (Portable executable)"
+          Write-Output ""
+          Write-Output "🔗 View draft release: ${{ github.server_url }}/${{ github.repository }}/releases"
+          Write-Output ""
+          Write-Output "📖 Next steps (see RELEASE_WORKFLOW.md):"
+          Write-Output "  1. Test the draft release artifacts"
+          Write-Output "  2. Create PR: release branch → main"
+          Write-Output "  3. Create PR: release branch → dev"
+          Write-Output "  4. Merge both PRs after validation"
+          Write-Output "  5. Publish the draft release on GitHub"
+
+      - name: Upload artifacts to workflow (for backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-v${{ steps.version.outputs.VERSION }}
+          path: |
+            ${{ env.RELEASE_ZIP_NAME }}
+            ${{ env.PORTABLE_ZIP_NAME }}
+            ${{ env.INSTALLER_NAME }}
+          retention-days: 90
+          if-no-files-found: warn
