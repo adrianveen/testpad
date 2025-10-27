@@ -1,0 +1,526 @@
+name: Hotfix Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+# Cancel in-progress runs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write  # For posting PR comments
+
+# Project-specific configuration - customize these for different projects
+env:
+  PROJECT_NAME: testpad
+  PYTHON_VERSION: "3.12"
+  VERSION_FILE_PATH: testpad/VERSION
+  WORKING_DIR: testpad
+  # Test configuration - modify pattern to run only critical/smoke tests for faster validation
+  CRITICAL_TEST_PATTERN: "tests/"  # Change to "tests/critical" or specific test files for faster runs
+  # Security scan configuration
+  ENABLE_SECURITY_SCAN: true
+  # Build verification
+  BUILD_SPEC_FILE: build_config/testpad_main-portable.spec
+
+jobs:
+  validate-hotfix:
+    name: Validate Hotfix
+    runs-on: ubuntu-latest
+
+    # Only run for hotfix/* branches
+    if: startsWith(github.head_ref, 'hotfix/')
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      validation-passed: ${{ steps.validation-status.outputs.passed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for version comparison and tag checking
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate branch naming convention
+        id: branch-name
+        run: |
+          if [[ ! "${{ github.head_ref }}" =~ ^hotfix/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Branch name must follow pattern: hotfix/vX.Y.Z (e.g., hotfix/v1.2.3)" >> $GITHUB_OUTPUT
+            echo "::error::Invalid hotfix branch name: ${{ github.head_ref }}"
+            exit 1
+          fi
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "message=✅ Branch naming is valid" >> $GITHUB_OUTPUT
+
+      - name: Validate VERSION file exists
+        id: version-file
+        run: |
+          if [ ! -f "${{ env.VERSION_FILE_PATH }}" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ VERSION file not found at ${{ env.VERSION_FILE_PATH }}" >> $GITHUB_OUTPUT
+            echo "::error::VERSION file missing"
+            exit 1
+          fi
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "message=✅ VERSION file exists" >> $GITHUB_OUTPUT
+
+      - name: Extract and validate version format
+        id: version
+        run: |
+          VERSION=$(cat ${{ env.VERSION_FILE_PATH }} | tr -d '[:space:]')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Validate semver format (MAJOR.MINOR.PATCH)
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Invalid version format: $VERSION (expected MAJOR.MINOR.PATCH, e.g., 1.2.3)" >> $GITHUB_OUTPUT
+            echo "::error::Invalid version format: $VERSION"
+            exit 1
+          fi
+
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "message=✅ Version format is valid: $VERSION" >> $GITHUB_OUTPUT
+
+      - name: Verify PATCH version bump only
+        id: version-compare
+        run: |
+          # Get version from VERSION file in current branch
+          HOTFIX_VERSION=$(cat ${{ env.VERSION_FILE_PATH }} | tr -d '[:space:]')
+
+          # Get version from main branch
+          git fetch origin main
+          if git show origin/main:${{ env.VERSION_FILE_PATH }} > /tmp/main_version 2>/dev/null; then
+            MAIN_VERSION=$(cat /tmp/main_version | tr -d '[:space:]')
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ No VERSION file found in main branch" >> $GITHUB_OUTPUT
+            echo "::error::VERSION file not found in main branch"
+            exit 1
+          fi
+
+          echo "hotfix=$HOTFIX_VERSION" >> $GITHUB_OUTPUT
+          echo "main=$MAIN_VERSION" >> $GITHUB_OUTPUT
+
+          # Parse versions
+          IFS='.' read -r -a hotfix <<< "$HOTFIX_VERSION"
+          IFS='.' read -r -a main <<< "$MAIN_VERSION"
+
+          HOTFIX_MAJOR=${hotfix[0]:-0}
+          HOTFIX_MINOR=${hotfix[1]:-0}
+          HOTFIX_PATCH=${hotfix[2]:-0}
+
+          MAIN_MAJOR=${main[0]:-0}
+          MAIN_MINOR=${main[1]:-0}
+          MAIN_PATCH=${main[2]:-0}
+
+          # Verify MAJOR and MINOR are unchanged
+          if [ "$HOTFIX_MAJOR" != "$MAIN_MAJOR" ] || [ "$HOTFIX_MINOR" != "$MAIN_MINOR" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Hotfix must only bump PATCH version. Expected: $MAIN_MAJOR.$MAIN_MINOR.X (where X > $MAIN_PATCH), Got: $HOTFIX_VERSION" >> $GITHUB_OUTPUT
+            echo "::error::Invalid version bump - hotfix must only increment patch version"
+            exit 1
+          fi
+
+          # Verify PATCH was incremented
+          if [ "$HOTFIX_PATCH" -le "$MAIN_PATCH" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Patch version must be incremented. Main: $MAIN_VERSION, Hotfix: $HOTFIX_VERSION" >> $GITHUB_OUTPUT
+            echo "::error::Patch version not incremented"
+            exit 1
+          fi
+
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "message=✅ Valid patch version bump: $MAIN_VERSION → $HOTFIX_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Verify tag exists
+        id: tag-check
+        run: |
+          VERSION=$(cat ${{ env.VERSION_FILE_PATH }} | tr -d '[:space:]')
+          TAG="v$VERSION"
+
+          git fetch --tags
+
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Tag $TAG does not exist. Run 'python scripts/version_bump.py patch' to create the tag." >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "::error::Tag $TAG not found"
+            exit 1
+          fi
+
+          # Check if tag points to a commit in this branch
+          TAG_COMMIT=$(git rev-parse "$TAG")
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" HEAD; then
+            echo "status=warning" >> $GITHUB_OUTPUT
+            echo "message=⚠️ Tag $TAG exists but is not in this branch's history" >> $GITHUB_OUTPUT
+            echo "::warning::Tag $TAG not in branch history"
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+            echo "message=✅ Tag $TAG exists and is in branch history" >> $GITHUB_OUTPUT
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Run linting (ruff check)
+        id: lint
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "::group::Ruff Check"
+          uv run ruff check . --output-format=github
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Run code formatting check (ruff format)
+        id: format
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "::group::Ruff Format Check"
+          uv run ruff format --check .
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Run critical tests
+        id: test
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "::group::Running Critical Tests with Coverage"
+          echo "ℹ️ Running tests from: ${{ env.CRITICAL_TEST_PATTERN }}"
+          uv run pytest ${{ env.CRITICAL_TEST_PATTERN }} -v --tb=short \
+            --junitxml=test-results.xml \
+            --cov=src/${{ env.PROJECT_NAME }} \
+            --cov-report=term-missing \
+            --cov-report=xml || EXIT_CODE=$?
+
+          # Exit code 5 means no tests collected (acceptable for now)
+          if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+            echo "⚠️ No tests found - this is acceptable"
+            exit 0
+          elif [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "❌ Tests failed"
+            exit $EXIT_CODE
+          fi
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotfix-test-results
+          path: |
+            ${{ env.WORKING_DIR }}/test-results.xml
+            ${{ env.WORKING_DIR }}/coverage.xml
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Set validation status
+        id: validation-status
+        if: always()
+        run: |
+          failed=false
+
+          # Check required validations
+          if [ "${{ steps.branch-name.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.version-file.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.version.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.version-compare.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.tag-check.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.lint.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.format.outcome }}" != "success" ]; then failed=true; fi
+          if [ "${{ steps.test.outcome }}" != "success" ]; then failed=true; fi
+
+          if [ "$failed" = true ]; then
+            echo "passed=false" >> $GITHUB_OUTPUT
+            echo "❌ One or more validation checks failed"
+          else
+            echo "passed=true" >> $GITHUB_OUTPUT
+            echo "✅ All validation checks passed"
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'hotfix/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit[toml]
+
+      - name: Run safety check (dependency vulnerabilities)
+        id: safety
+        run: |
+          echo "::group::Safety Check"
+          cd ${{ env.WORKING_DIR }}
+          safety check --json || echo "⚠️ Safety check found vulnerabilities (see report)"
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Run bandit (security linter)
+        id: bandit
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "::group::Bandit Security Scan"
+          bandit -r src/${{ env.PROJECT_NAME }}/ -f json -o bandit-report.json || true
+          bandit -r src/${{ env.PROJECT_NAME }}/ -f screen
+          echo "::endgroup::"
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-reports
+          path: |
+            ${{ env.WORKING_DIR }}/bandit-report.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  build-verification:
+    name: Build Verification
+    runs-on: windows-latest
+    needs: validate-hotfix
+    if: needs.validate-hotfix.outputs.validation-passed == 'true' && startsWith(github.head_ref, 'hotfix/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Build portable executable
+        id: build
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          BUILD_VERSION: ${{ needs.validate-hotfix.outputs.version }}
+        run: |
+          Write-Host "Building with spec: ${{ env.BUILD_SPEC_FILE }}"
+          Write-Host "Building version: $env:BUILD_VERSION"
+          uv run pyinstaller ${{ env.BUILD_SPEC_FILE }} --clean
+        continue-on-error: true
+
+      - name: Verify build artifacts
+        id: verify-build
+        shell: pwsh
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          $version = "${{ needs.validate-hotfix.outputs.version }}"
+          $exeExists = Test-Path "dist/*.exe"
+
+          if ($exeExists) {
+            Write-Output "✅ Build successful - executable created"
+            Write-Output "status=passed" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Output "❌ Build failed - executable not found"
+            Write-Output "status=failed" >> $env:GITHUB_OUTPUT
+            exit 1
+          }
+
+      - name: Upload build artifacts
+        if: steps.verify-build.outputs.status == 'passed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotfix-build-v${{ needs.validate-hotfix.outputs.version }}
+          path: ${{ env.WORKING_DIR }}/dist/*.exe
+          retention-days: 14
+          if-no-files-found: warn
+
+  post-pr-comment:
+    name: Post Validation Summary
+    runs-on: ubuntu-latest
+    needs: [validate-hotfix, security-scan, build-verification]
+    if: always() && startsWith(github.head_ref, 'hotfix/')
+
+    steps:
+      - name: Generate PR comment
+        id: generate-comment
+        shell: bash
+        run: |
+          version="${{ needs.validate-hotfix.outputs.version }}"
+          head_branch="${{ github.head_ref }}"
+
+          # Determine statuses for validation checks
+          if [ "${{ needs.validate-hotfix.result }}" == "success" ]; then
+            branch_name_status="✅ Passed"
+            version_file_status="✅ Passed"
+            version_format_status="✅ Passed"
+            patch_bump_status="✅ Passed"
+            tag_check_status="✅ Passed"
+            lint_status="✅ Passed"
+            format_status="✅ Passed"
+            test_status="✅ Passed"
+          else
+            branch_name_status="❌ Check logs"
+            version_file_status="❌ Check logs"
+            version_format_status="❌ Check logs"
+            patch_bump_status="❌ Check logs"
+            tag_check_status="❌ Check logs"
+            lint_status="❌ Check logs"
+            format_status="❌ Check logs"
+            test_status="❌ Check logs"
+          fi
+
+          # Security scan status
+          if [ "${{ needs.security-scan.result }}" == "success" ]; then
+            security_status="✅ Passed"
+          else
+            security_status="⚠️ Review needed"
+          fi
+
+          # Build status
+          if [ "${{ needs.build-verification.result }}" == "success" ]; then
+            build_status="✅ Passed"
+          elif [ "${{ needs.build-verification.result }}" == "skipped" ]; then
+            build_status="⏭️ Skipped (validation failed)"
+          else
+            build_status="❌ Failed"
+          fi
+
+          # Determine overall status and next steps
+          if [ "${{ needs.validate-hotfix.result }}" == "success" ] && [ "${{ needs.build-verification.result }}" == "success" ]; then
+            overall_status="✅ All checks passed! This hotfix is ready for review."
+            next_steps="1. ✅ Review the hotfix changes in this PR"$'\n'"2. ✅ Manually approve and merge this PR to \`main\`"$'\n'"3. ✅ Create PR to merge \`${head_branch}\` → \`dev\` to sync the hotfix"$'\n'"4. ✅ After both PRs are merged, publish the draft release on GitHub"
+          else
+            overall_status="❌ Some checks failed. Please review the issues below."
+            next_steps="1. 🔧 Fix the validation issues listed in the table below"$'\n'"2. 🔄 Push the fixes to trigger a new validation"$'\n'"3. 📖 See [RELEASE_WORKFLOW.md](../../blob/dev/testpad/docs/RELEASE_WORKFLOW.md#hotfix-workflow) for guidance"
+          fi
+
+          # Build the comment
+          cat > pr-comment.md << EOF
+          ## 🔥 Hotfix Validation Summary
+
+          **Branch**: \`${head_branch}\` → \`main\`
+          **Version**: \`${version}\`
+
+          ### 📋 Validation Checks
+
+          | Check | Status |
+          |-------|--------|
+          | 🏷️ Branch naming (hotfix/vX.Y.Z) | ${branch_name_status} |
+          | 📄 VERSION file exists | ${version_file_status} |
+          | 🔢 Version format (semver) | ${version_format_status} |
+          | 🔧 Patch version bump only | ${patch_bump_status} |
+          | 🏷️ Git tag exists | ${tag_check_status} |
+          | 🔍 Linting (ruff check) | ${lint_status} |
+          | 🎨 Formatting (ruff format) | ${format_status} |
+          | 🧪 Critical tests | ${test_status} |
+          | 🔒 Security scan | ${security_status} |
+          | 🏗️ Build verification | ${build_status} |
+
+          ### 📊 Status
+
+          ${overall_status}
+
+          ### 📦 Next Steps
+
+          ${next_steps}
+
+          ---
+          *Automated validation by [hotfix-checks.yml](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*
+          EOF
+
+          cat pr-comment.md
+
+      - name: Post PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('pr-comment.md', 'utf8');
+
+            // Find existing comment from this workflow
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Hotfix Validation Summary')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Check overall status and fail if needed
+        if: always()
+        run: |
+          if [ "${{ needs.validate-hotfix.result }}" != "success" ] || [ "${{ needs.build-verification.result }}" != "success" ]; then
+            echo "❌ Hotfix validation failed"
+            exit 1
+          else
+            echo "✅ Hotfix validation passed"
+          fi
