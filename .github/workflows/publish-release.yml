@@ -203,7 +203,7 @@ jobs:
         id: build-installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
-          path: ${{ env.INSTALLER_CONFIG }}
+          path: ${{ env.WORKING_DIR }}/${{ env.INSTALLER_CONFIG }}
           options: /DMyAppVersion=${{ steps.version.outputs.VERSION }}
 
       - name: Verify installer artifact

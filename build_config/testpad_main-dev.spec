@@ -98,7 +98,7 @@ coll = COLLECT(
     name='testpad_main_dev',  # Output directory: dist/testpad_main_dev/
 )
 
-print(f"\n✅ Development build configuration complete")
+print(f"\n[OK] Development build configuration complete")
 print(f"   Output directory: dist/testpad_main_dev/")
 print(f"   Main executable:  dist/testpad_main_dev/testpad_main_dev.exe")
 print(f"   Version: {VERSION}")

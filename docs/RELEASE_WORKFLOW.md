@@ -77,7 +77,7 @@ git pull origin dev
 git checkout -b release/v1.11.1
 
 # 2. Run version bump script on release branch (creates local commit + tag)
-python scripts/version_bump.py patch
+python scripts/bump_version.py patch
 
 # 3. Review changes and push to trigger release workflow
 git log -1 --stat

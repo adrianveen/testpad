@@ -89,7 +89,7 @@ def validate_build_files(base_dir: str) -> None:
             "\n".join(f"  - {f}" for f in missing_files),
         )
 
-    print("[spec_common] All required build files validated ✓")
+    print("[spec_common] All required build files validated [OK]")
 
 
 def get_build_metadata() -> dict:
