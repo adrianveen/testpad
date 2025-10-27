@@ -1,0 +1,161 @@
+name: Dev Branch Health Check
+
+on:
+  push:
+    branches:
+      - dev
+      - develop  # Support both naming conventions
+
+permissions:
+  contents: read
+
+# Project-specific configuration - customize these for different projects
+env:
+  PROJECT_NAME: testpad
+  PYTHON_VERSION: "3.12"
+  WORKING_DIR: testpad
+  # Test configuration
+  TEST_PATTERN: "tests/"
+  # Coverage configuration
+  COVERAGE_SOURCE: src/testpad
+  # Build configuration
+  BUILD_SPEC_FILE: build_config/testpad_main-portable.spec
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Run tests and checks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Run linter (ruff)
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv run ruff check . --output-format=github
+
+      - name: Run formatter check (ruff)
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv run ruff format --check .
+
+      - name: Run full test suite with coverage
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv run pytest ${{ env.TEST_PATTERN }} -v --tb=short \
+            --junitxml=test-results.xml \
+            --cov=${{ env.COVERAGE_SOURCE }} \
+            --cov-report=term-missing \
+            --cov-report=xml || EXIT_CODE=$?
+
+          # Exit code 5 means no tests collected (acceptable for now)
+          if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+            echo "⚠️ No tests found - this is acceptable"
+            exit 0
+          elif [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "❌ Tests failed"
+            exit $EXIT_CODE
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-test-results
+          path: |
+            ${{ env.WORKING_DIR }}/test-results.xml
+            ${{ env.WORKING_DIR }}/coverage.xml
+          if-no-files-found: ignore
+
+      - name: Create workflow summary
+        if: always()
+        run: |
+          echo "## Dev Branch Health Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ All checks passed - dev branch is healthy" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Checks failed - dev branch may have issues" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  build:
+    runs-on: windows-latest
+    name: Build dev executable
+    needs: validate
+    if: success()  # Only build if validate passes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "${{ env.WORKING_DIR }}/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          uv sync --all-extras
+
+      - name: Build portable executable
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "Building dev version (from VERSION file)"
+          uv run pyinstaller ${{ env.BUILD_SPEC_FILE }} --clean
+
+      - name: Upload dev build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-dev-build-${{ github.run_number }}
+          path: ${{ env.WORKING_DIR }}/dist/*.exe
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Create build summary
+        if: always()
+        shell: pwsh
+        run: |
+          echo "## Build Results" >> $env:GITHUB_STEP_SUMMARY
+          echo "" >> $env:GITHUB_STEP_SUMMARY
+          echo "**Build Type:** Portable executable (dev)" >> $env:GITHUB_STEP_SUMMARY
+          echo "**Commit:** ``${{ github.sha }}``" >> $env:GITHUB_STEP_SUMMARY
+          echo "**Run Number:** ${{ github.run_number }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "" >> $env:GITHUB_STEP_SUMMARY
+
+          if ('${{ job.status }}' -eq 'success') {
+            echo "✅ Build completed successfully" >> $env:GITHUB_STEP_SUMMARY
+            echo "" >> $env:GITHUB_STEP_SUMMARY
+            echo "📦 Download artifact: ``${{ env.PROJECT_NAME }}-dev-build-${{ github.run_number }}``" >> $env:GITHUB_STEP_SUMMARY
+          } else {
+            echo "❌ Build failed" >> $env:GITHUB_STEP_SUMMARY
+          }
