@@ -1,4 +1,3 @@
-from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames
 from PySide6.QtWidgets import QTextBrowser
 from testpad.core.transducer.calibration_resources import line_graph, plt, fetch_data, np
 
@@ -6,7 +5,7 @@ from testpad.core.transducer.calibration_resources import line_graph, plt, fetch
 A script to create linear graphs for analysis during transducer calibration. 
 """
 
-class linear_scan():
+class LinearScan():
     def __init__(self, variables_dict: list, textbox: QTextBrowser):
         plt.close("all") # closes previous graphs 
 

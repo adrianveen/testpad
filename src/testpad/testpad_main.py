@@ -2,8 +2,6 @@ import sys
 import os
 import importlib
 from contextlib import contextmanager
-import time 
-import logging
 from importlib.abc import MetaPathFinder as _MetaPathFinder
 from importlib.machinery import PathFinder as _PathFinder
 from typing import Callable, List, Tuple, Set, Optional
@@ -13,15 +11,16 @@ from PySide6.QtCore import QCoreApplication, QTimer, QSignalBlocker
 
 from testpad.resources.palette.custom_palette import load_custom_palette
 from testpad.ui.splash import SplashScreen
+from testpad.ui.tabs.registry import TABS_SPEC, enabled_tabs, TabSpec
 from testpad.version import __version__ 
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
     def __init__(self, parent: QWidget=None, *,
                  progress_cb: Optional[Callable[[str], None]] = None,
-                 tabs_spec: Optional[List[Tuple[str, str, str]]] = None,
+                 tabs_spec: Optional[List[TabSpec]] = None,
                  on_first_show: Optional[Callable[[], None]] = None,
-                 per_file_cb: Optional[Callable[[int], None]] = None): 
+                 per_file_cb: Optional[Callable[[int], None]] = None) -> None: 
 
         super().__init__(parent)
         pkg_dir = os.path.dirname(__file__)
@@ -38,7 +37,7 @@ class ApplicationWindow(QMainWindow):
         self.resize(800, 600)
 
         self._tab_widget = QTabWidget()
-        self._lazy_specs: List[Tuple[str, str, str]] = []  # (label, module_path, class_name)
+        self._lazy_specs: List[TabSpec] = []
         self._loaded: dict[int, bool] = {}
         self._on_first_show: Optional[Callable[[], None]] = on_first_show
         self._shown_once: bool = False
@@ -64,27 +63,16 @@ class ApplicationWindow(QMainWindow):
 
     def _setup_lazy_tabs(self, progress_cb: Callable[[str], None] | None,
                          tabs_spec: List[Tuple[str, str, str]] | None) -> None:
-        # tabs_spec: list of (module_path, class_name, label)
-        if tabs_spec is None:
-            tabs_spec = [
-                ("testpad.ui.tabs.matching_box_tab", "MatchingBoxTab", "Matching Box"),
-                ("testpad.ui.tabs.transducer_calibration_tab", "TransducerCalibrationTab", "Transducer Calibration Report"),
-                ("testpad.ui.tabs.transducer_linear_tab", "TransducerLinearTab", "Transducer Linear Graphs"),
-                ("testpad.ui.tabs.rfb_tab", "RFBTab", "Radiation Force Balance"),
-                ("testpad.ui.tabs.vol2press_tab", "Vol2PressTab", "Sweep Analysis"),
-                ("testpad.ui.tabs.burnin_tab", "BurninTab", "Burn-in Graph Viewer"),
-                ("testpad.ui.tabs.nanobubbles_tab", "NanobubblesTab", "Nanobubbles Tab"),
-                ("testpad.ui.tabs.temp_analysis_tab", "TempAnalysisTab", "Temperature Analysis"),
-                ("testpad.ui.tabs.hydrophone_tab", "HydrophoneAnalysisTab", "Hydrophone Analysis"),
-                ("testpad.ui.tabs.sweep_plot_tab", "SweepGraphTab", "Sweep Graphs"),
-            ]
 
-        # Store spec as (label, module_path, class_name)
-        self._lazy_specs = [(label, module, cls) for module, cls, label in tabs_spec]
+        if tabs_spec is None:
+            tabs_spec = list(TABS_SPEC)
+        self._lazy_specs = list(tabs_spec)
 
         # Add lightweight placeholders (so the UI can show immediately)
         from PySide6.QtWidgets import QLabel
-        for label, _module, _cls in self._lazy_specs:
+        
+        for spec in self._lazy_specs:
+            label = spec.label
             placeholder = QWidget()
             layout = QVBoxLayout(placeholder)
             layout.addWidget(QLabel("Tab loads on first open…"))
@@ -151,7 +139,11 @@ class ApplicationWindow(QMainWindow):
         # Skip work if the tab is already loaded or the index falls outside the spec list.
         if index in self._loaded or index < 0 or index >= len(self._lazy_specs):
             return
-        label, module_path, class_name = self._lazy_specs[index]
+        spec = self._lazy_specs[index]
+        label = spec.label
+        module_path = spec.module
+        class_name = spec.cls
+
         try:
             # Provide immediate feedback that this tab is the one being resolved.
             if progress_cb:
@@ -186,7 +178,8 @@ class ApplicationWindow(QMainWindow):
         # Remember that this tab has been resolved so future activations are no-ops.
         self._loaded[index] = True
     
-if __name__ == "__main__":
+def main() -> None:
+    """Main entry point for the Testpad application."""
     app = QApplication(sys.argv)
 
     QCoreApplication.setOrganizationName("FUS Instruments")
@@ -203,20 +196,11 @@ if __name__ == "__main__":
     splash = SplashScreen(version_text=f"v{__version__}")
     splash.show_centered()
     splash.update_progress(5, "Starting Testpad…")
-
-    # Define tabs spec here so we can compute progress based on real work
-    tabs_spec = [
-        ("testpad.ui.tabs.matching_box_tab", "MatchingBoxTab", "Matching Box"),
-        ("testpad.ui.tabs.transducer_calibration_tab", "TransducerCalibrationTab", "Transducer Calibration Report"),
-        ("testpad.ui.tabs.transducer_linear_tab", "TransducerLinearTab", "Transducer Linear Graphs"),
-        ("testpad.ui.tabs.rfb_tab", "RFBTab", "Radiation Force Balance"),
-        ("testpad.ui.tabs.vol2press_tab", "Vol2PressTab", "Sweep Analysis"),
-        ("testpad.ui.tabs.burnin_tab", "BurninTab", "Burn-in Graph Viewer"),
-        ("testpad.ui.tabs.nanobubbles_tab", "NanobubblesTab", "Nanobubbles Tab"),
-        ("testpad.ui.tabs.temp_analysis_tab", "TempAnalysisTab", "Temperature Analysis"),
-        ("testpad.ui.tabs.hydrophone_tab", "HydrophoneAnalysisTab", "Hydrophone Analysis"),
-        ("testpad.ui.tabs.sweep_plot_tab", "SweepGraphTab", "Sweep Graphs"),
-    ]
+    
+    flags = {
+        "degasser_tab": True  # Enable for testing
+    }
+    tabs_spec: List[TabSpec] = list(enabled_tabs(TABS_SPEC, flags))
 
     # Staged progress with granular updates during first tab import
     prog = {"p": 5}
@@ -247,15 +231,18 @@ if __name__ == "__main__":
         splash.update_progress(100, "Ready")
         QTimer.singleShot(200, splash.close)
 
-    tab_dialog = ApplicationWindow(progress_cb=tab_cb, tabs_spec=tabs_spec, on_first_show=finalize_ready, per_file_cb=per_file_cb)
-    tab_dialog.resize(1200, 800)
-
     # Mention a few remaining tabs without loading them
-    remaining = [label for (_m, _c, label) in tabs_spec][1:]
+    remaining = [spec.label for spec in tabs_spec][1:]
     for name in remaining[:3]:
         tab_cb(f"Ready: {name}")
+
+    tab_dialog = ApplicationWindow(progress_cb=tab_cb, tabs_spec=tabs_spec, on_first_show=finalize_ready, per_file_cb=per_file_cb)
+    tab_dialog.resize(1200, 800)
 
     # Show the window, then mark 100% when it is actually exposed (interactable)
     setp(95, "Finalizing UI…")
     tab_dialog.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

@@ -1,13 +1,15 @@
-import numpy as np
 import os
 import sys
-from PIL import Image
 from io import StringIO
-import pandas as pd
+
 import matplotlib.pyplot as plt
-from matplotlib.ticker import ScalarFormatter, MultipleLocator
-from matplotlib.colors import to_rgb, to_hex
+import numpy as np
+import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.colors import to_hex, to_rgb
+from matplotlib.ticker import MultipleLocator, ScalarFormatter
+from PIL import Image
+
 
 class HydrophoneGraph:
     def __init__(self, hydrophone_csv) -> None:

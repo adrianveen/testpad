@@ -2,7 +2,7 @@ from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
-from testpad.core.transducer.linear_scan_graph_generator import linear_scan
+from testpad.core.transducer.linear_scan_graph_generator import LinearScan
 
 class TransducerLinearTab(QWidget):
     def __init__(self, parent: QWidget):
@@ -94,7 +94,7 @@ class TransducerLinearTab(QWidget):
         self.graph_display.clear()
         # print(self.selected_data_files, self.selected_save_folder)
         variables_dict = [self.selected_data_files, self.save_graph.isChecked(), self.selected_save_folder, self.x_graph_box.isChecked(), self.y_graph_box.isChecked(), self.z_graph_box.isChecked()]
-        x_graph, y_graph, z_graph = linear_scan(variables_dict, self.text_display).getGraphs()
+        x_graph, y_graph, z_graph = LinearScan(variables_dict, self.text_display).getGraphs()
 
         if x_graph is not None: 
             self.graph_display.addTab(x_graph, "X Linear")

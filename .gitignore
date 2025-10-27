@@ -1,0 +1,13 @@
+# Testpad specific .gitignore
+.claude/ 
+.pixi/* # pixi environments
+!.pixi/config.toml
+pixi.*
+planning/
+planning/ignore/*
+.vscode/
+AGENTS.*
+.python-version
+# Some specific test files
+minimal_example.py
+test.pdf

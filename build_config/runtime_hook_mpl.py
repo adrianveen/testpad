@@ -11,10 +11,10 @@ Behavior:
 """
 from __future__ import annotations
 
-import os
-import sys
-import shutil
 import glob
+import os
+import shutil
+import sys
 import tempfile
 
 

@@ -1,8 +1,8 @@
 import h5py
 import numpy as np
 import pandas as pd
-from scipy.signal import find_peaks
 from PySide6.QtWidgets import QTextBrowser
+from scipy.signal import find_peaks
 
 #placeholder file name for testing
 filename = "_axis_A_complete_raw_error_29.hdf5"

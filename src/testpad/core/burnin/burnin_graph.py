@@ -1,9 +1,9 @@
+import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import h5py
-
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+
 
 class BurninGraph():
     def __init__(self, burnin_file, separate_errors_flags=None) -> None:

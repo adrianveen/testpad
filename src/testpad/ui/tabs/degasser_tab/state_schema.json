@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "description": "Baseline persisted state for the Dissolved O₂ tab.",
+  "fields": {
+    "oxygen_data": "Mapping of minute (str) to dissolved oxygen reading (float)",
+    "temperature_c": "Optional float representing the shared temperature",
+    "test_rows": "List of test result rows captured from the table",
+    "source_path": "Optional string referencing the last imported CSV path",
+    "serial_number": "Serial number for the current DS-50 unit under test",
+    "tester_name": "Name of the technician performing the test",
+    "test_location": "Location where the test is performed",
+    "test_date": "Date selected from calendar widget"
+  }
+}
