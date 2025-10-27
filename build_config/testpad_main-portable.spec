@@ -59,7 +59,7 @@ a = Analysis(
     runtime_hooks=get_runtime_hooks(base_dir),
     excludes=['PyQt5'],  # Exclude PyQt5 if present
     noarchive=False,
-    optimize=2,  # Maximum bytecode optimization for production
+    optimize=0,  # Maximum bytecode optimization for production
 )
 
 pyz = PYZ(a.pure)
