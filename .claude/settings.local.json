@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(dir \"C:\\Users\\Adrian\\Documents\\fus_instruments_repos\\summer_2024\\testpad\\src\\testpad\\config\")",
+      "Bash(python -c \"import sys; print(''\\n''.join(sys.path))\")",
+      "Bash(uv run python -c \"import setuptools; print(''setuptools version:'', setuptools.__version__)\")",
+      "Bash(findstr \"setup\\|pyproject\")",
+      "Bash(python:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(gh api:*)",
+      "Bash(git rev-parse:*)",
+      "Read(//c/Users/Adrian/Documents/fus_instruments_repos/summer_2024/**)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "outputStyle": "Learning"
+}
