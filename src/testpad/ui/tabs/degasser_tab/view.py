@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 import PySide6.QtCore
 from PySide6.QtCore import QDate, QSignalBlocker, Qt, QTimer
@@ -21,6 +21,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+if TYPE_CHECKING:
+    from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex
+    from PySide6.QtGui import QKeyEvent
+    from PySide6.QtWidgets import QStyleOptionViewItem
 
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
 from testpad.ui.tabs.base_tab import BaseTab
@@ -105,14 +110,14 @@ class ColumnMajorTableWidget(QTableWidget):
         """
         key = event.key()
 
-        if key in (Qt.Key_Tab, Qt.Key_Return, Qt.Key_Enter):
+        if key in (Qt.Key.Key_Tab, Qt.Key.Key_Return, Qt.Key.Key_Enter):
             # Tab and Enter both move forward in column-major order
             event.accept()  # Prevent Qt's default row-major navigation
             new_row, new_col = self._get_next_cell(
                 self.currentRow(), self.currentColumn(), forward=True
             )
             self.setCurrentCell(new_row, new_col)
-        elif key == Qt.Key_Backtab:
+        elif key == Qt.Key.Key_Backtab:
             # Shift+Tab moves backward in column-major order
             event.accept()  # Prevent Qt's default behavior
             new_row, new_col = self._get_next_cell(
@@ -135,14 +140,14 @@ class ColumnMajorNavigationMixin:
     Note: Mixin must come BEFORE QStyledItemDelegate in the inheritance list for proper MRO.
     """
 
-    def eventFilter(self, editor, event):
+    def eventFilter(self, watched: "QObject", event: "QEvent") -> bool:
         """Intercept key events from editor widgets and redirect navigation keys.
 
         When we detect Tab/Enter, we bypass the editor and send the event directly
         to the table's keyPressEvent for custom handling.
 
         Args:
-            editor: The editor widget (e.g., QLineEdit) that received the event
+            watched: The object being watched (the editor widget)
             event: The QEvent being processed
 
         Returns:
@@ -150,22 +155,29 @@ class ColumnMajorNavigationMixin:
             False to allow normal event propagation
         """
         if event.type() == PySide6.QtCore.QEvent.Type.KeyPress:
-            if event.key() in (
-                Qt.Key_Tab,
-                Qt.Key_Backtab,
-                Qt.Key_Return,
-                Qt.Key_Enter,
+            # Cast to QKeyEvent to access key()
+            key_event: "QKeyEvent" = event  # type: ignore[assignment]
+            if key_event.key() in (
+                Qt.Key.Key_Tab,
+                Qt.Key.Key_Backtab,
+                Qt.Key.Key_Return,
+                Qt.Key.Key_Enter,
             ):
                 # This is a navigation key - don't let the editor process it
-                table = self.parent()  # Delegate's parent is the table widget
+                table = self.parent()  # type: ignore[attr-defined]  # Delegate's parent is the table widget
                 if isinstance(table, ColumnMajorTableWidget):
                     # Forward the event to the table's custom navigation handler
                     table.keyPressEvent(event)
                     return True  # Event handled, stop propagation
         # Not a navigation key, or not our custom table - use default behavior
-        return super().eventFilter(editor, event)
+        return super().eventFilter(watched, event)  # type: ignore[misc]
 
-    def createEditor(self, parent, option, index):
+    def createEditor(
+        self,
+        parent: QWidget,
+        option: "QStyleOptionViewItem",
+        index: "QModelIndex | QPersistentModelIndex",
+    ) -> QWidget:
         """Create editor widget and install this delegate as an event filter.
         Qt calls this method when a cell begins editing.
 
@@ -177,11 +189,11 @@ class ColumnMajorNavigationMixin:
         Returns:
             The editor widget with event filter installed
         """
-        editor = super().createEditor(parent, option, index)
+        editor = super().createEditor(parent, option, index)  # type: ignore[misc]
         if editor:
             # Install this delegate as an event filter on the editor
             # Now our eventFilter() method will intercept the editor's key events
-            editor.installEventFilter(self)
+            editor.installEventFilter(self)  # type: ignore[attr-defined]
         return editor
 
 
@@ -774,13 +786,20 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
 class ValidatedFloatDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
     """Delegate enforcing numeric-only, visually validated input in table cells."""
 
-    def createEditor(self, parent, option, index):
+    def createEditor(
+        self,
+        parent: QWidget,
+        option: "QStyleOptionViewItem",
+        index: "QModelIndex | QPersistentModelIndex",
+    ) -> QWidget:
+        """Create a validated line edit for numeric input."""
         editor = ValidatedLineEdit(parent)
         validator = FixupDoubleValidator(
             0.0, 100.0, 3, editor
         )  # adjust range/precision as needed
         editor.setValidator(validator)
         editor.setPlaceholderText("Enter number")
-        # Install event filter via mixin
+        # Install event filter for column-major navigation
+        # (Since we create a custom editor, we bypass mixin's createEditor)
         editor.installEventFilter(self)
         return editor
