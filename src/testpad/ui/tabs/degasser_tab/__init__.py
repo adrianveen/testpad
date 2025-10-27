@@ -20,6 +20,7 @@ def create_degasser_tab(parent=None) -> DegasserTab:
     try:
         from testpad.config.defaults import DEFAULT_FUS_LOGO_PATH
         import os
+
         logo_exists = os.path.exists(DEFAULT_FUS_LOGO_PATH)
         print(f"[degasser_tab] Logo file check: {DEFAULT_FUS_LOGO_PATH}")
         print(f"[degasser_tab]   Exists: {logo_exists}")
@@ -49,7 +50,9 @@ def create_degasser_tab(parent=None) -> DegasserTab:
     except Exception as e:
         print(f"[degasser_tab] ❌ ERROR creating tab: {e}")
         import traceback
+
         traceback.print_exc()
         raise
+
 
 __all__ = ["create_degasser_tab", "plotting"]

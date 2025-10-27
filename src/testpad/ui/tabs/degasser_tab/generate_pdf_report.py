@@ -40,11 +40,11 @@ class GenerateReport:
         - generate_report(): Generates and saves the PDF report.
         - _build_report_base(margins: float): Initializes the PDF report with margins.
         - _build_header(): Draws the header for the report.
-        - _build_title_block(metadata: dict | None = None): 
+        - _build_title_block(metadata: dict | None = None):
         Draws the title block with metadata
-        - _build_test_table(test_data: list[dict[str, Any]]): 
+        - _build_test_table(test_data: list[dict[str, Any]]):
         Draws the test results table.
-        - _build_time_series_table(data: dict[int, float]): 
+        - _build_time_series_table(data: dict[int, float]):
         Draws the time series data table
     """
 
@@ -124,7 +124,7 @@ class GenerateReport:
         There is 1 col for each label and 1 for each field.
 
         Args:
-            metadata(dict): Metadata dictionary containing test name, 
+            metadata(dict): Metadata dictionary containing test name,
             location, date and degasser serial #
 
         """

@@ -9,6 +9,7 @@ from testpad.ui.tabs.degasser_tab.plotting import plot_time_series_on_axis
 
 class TimeSeriesChartWidget(QWidget):
     """A QWidget that contains a Matplotlib time series plot."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -22,10 +23,8 @@ class TimeSeriesChartWidget(QWidget):
         layout.addWidget(self._canvas)
 
     def update_plot(
-            self,
-            measurements: Sequence[tuple[int, float]],
-            temperature_c: Optional[float]
-        ) -> None:
+        self, measurements: Sequence[tuple[int, float]], temperature_c: Optional[float]
+    ) -> None:
         """Update the matplotlib plot with new time series data.
 
         Args:

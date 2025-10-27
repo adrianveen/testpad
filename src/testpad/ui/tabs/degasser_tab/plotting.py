@@ -3,6 +3,7 @@
 This module provides pure functions for creating matplotlib figures without
 any Qt dependencies, following separation of concerns principles.
 """
+
 import os
 import tempfile
 from typing import Mapping, Optional, Sequence, Tuple
@@ -52,23 +53,24 @@ def make_time_series_figure(
 
     return fig
 
+
 def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
     """Save a matplotlib figure to a temporary PNG file.
-    
+
     Args:
         figure: matplotlib Figure to save
         output_dir: Directory to save the temporary file
-        
+
     Returns:
         Path to the saved PNG file
     """
-    
+
     # Create temporary file
-    temp_fd, temp_path = tempfile.mkstemp(suffix='.png', dir=output_dir)
+    temp_fd, temp_path = tempfile.mkstemp(suffix=".png", dir=output_dir)
     os.close(temp_fd)  # Close the file descriptor
-    
+
     try:
-        figure.savefig(temp_path, dpi=figure.get_dpi(), bbox_inches='tight')
+        figure.savefig(temp_path, dpi=figure.get_dpi(), bbox_inches="tight")
         return temp_path
     except Exception:
         # Clean up on error
@@ -78,12 +80,13 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
             pass
         raise
 
+
 def normalize_time_series_data(
-    data: Mapping[int, float] | Sequence[Tuple[int, float]]
-    ) -> list[tuple[int, float]]:
+    data: Mapping[int, float] | Sequence[Tuple[int, float]],
+) -> list[tuple[int, float]]:
     """Normalize data to sorted list of (minute, oxygen) tuples."""
     if hasattr(data, "items"):
-          return sorted((int(k), float(v)) for k, v in data.items())
+        return sorted((int(k), float(v)) for k, v in data.items())
     return sorted((int(k), float(v)) for k, v in data)
 
 
@@ -110,16 +113,17 @@ def plot_time_series_on_axis(
     if pairs:
         time_min, ox_level = zip(*pairs)
         ax.plot(
-            time_min, ox_level,
-            color='k',
+            time_min,
+            ox_level,
+            color="k",
             marker=DEFAULT_MARKER,
             markersize=DEFAULT_MARKER_SIZE,
             mew=1,
-            mec='k',
+            mec="k",
             mfc=PRIMARY_COLOR,
             linestyle=DEFAULT_LINE_STYLE,
             linewidth=DEFAULT_LINE_WIDTH,
-            label='Oxygen Level (mg/L)'
+            label="Oxygen Level (mg/L)",
         )
 
     # Set title with optional temperature
@@ -133,4 +137,9 @@ def plot_time_series_on_axis(
     ax.set_ylabel("Dissolved O2 (mg/L)")
 
     # Add grid
-    ax.grid(GRID_ENABLED, alpha=GRID_ALPHA, linestyle=GRID_LINE_STYLE, linewidth=GRID_LINE_WIDTH)
+    ax.grid(
+        GRID_ENABLED,
+        alpha=GRID_ALPHA,
+        linestyle=GRID_LINE_STYLE,
+        linewidth=GRID_LINE_WIDTH,
+    )

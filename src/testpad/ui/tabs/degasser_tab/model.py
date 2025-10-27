@@ -17,10 +17,11 @@ from .config import (
 @dataclass
 class TestResultRow:
     description: str
-    pass_fail: str = ""          # "Pass" / "Fail" / "" (UI enforces)
+    pass_fail: str = ""  # "Pass" / "Fail" / "" (UI enforces)
     spec_min: Optional[float] = None
     spec_max: Optional[float] = None
     measured: Optional[float] = None
+
 
 @dataclass
 class TimeSeriesState:
@@ -28,13 +29,15 @@ class TimeSeriesState:
     points_filled: int
     minutes_with_data: List[int]
     temperature_c: float | None = None
-    
+
+
 @dataclass
 class Metadata:
     tester_name: str = ""
-    test_date: date | None = None # Will be a datetime.date or QDate
+    test_date: date | None = None  # Will be a datetime.date or QDate
     ds50_serial: str = ""
     location: str = ""
+
 
 # ------------------ Model ------------------
 class DegasserModel:
@@ -45,7 +48,7 @@ class DegasserModel:
       - 4 rows.
       - Columns: Description (static), Pass/Fail, Spec_Min, Spec_Max, Data Measured.
       - Only non-description fields user-editable.
-    
+
     Table B (Time Series):
       - Minutes fixed: 0..10 (inclusive).
       - oxygen_mg_per_L > 0 (float).
@@ -75,7 +78,7 @@ class DegasserModel:
         self._source_path: str | None = None
 
         self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
-        
+
     # -------- Validation Helpers --------
     @staticmethod
     def _validate_minute(minute: int) -> None:
@@ -113,9 +116,11 @@ class DegasserModel:
         if not hasattr(self._metadata, field):
             raise ValueError(f"Unknown metadata field: {field}")
         setattr(self._metadata, field, value)
+
     def get_metadata(self) -> Metadata:
         """Return a copy of the current metadata."""
         return Metadata(**asdict(self._metadata))
+
     # -------- Time Series API --------
     def set_measurement(self, minute: int, oxygen_mg_per_L: float) -> TimeSeriesState:
         """Insert or update the oxygen reading for a specific minute slot."""
@@ -135,7 +140,9 @@ class DegasserModel:
 
     def build_time_series_rows(self) -> List[tuple[int, Optional[float]]]:
         """Generate an 11-row minute grid with gaps filled by ``None`` for the UI table."""
-        return [(m, self._oxygen_data.get(m)) for m in range(MIN_MINUTE, MAX_MINUTE + 1)]
+        return [
+            (m, self._oxygen_data.get(m)) for m in range(MIN_MINUTE, MAX_MINUTE + 1)
+        ]
 
     # -------- Temperature --------
     def set_temperature(self, temperature_c: float | str | int) -> TimeSeriesState:
@@ -151,17 +158,20 @@ class DegasserModel:
         """Reset the optional temperature reading back to an unset state."""
         self._temperature_c = None
         return self.get_state()
+
     def get_temperature_c(self) -> float | None:
         """Return the current temperature reading, or None if unset."""
         return self._temperature_c
 
     # -------- Test Results Table --------
-    def update_test_row(self,
-                        index: int,
-                        pass_fail: Optional[str] = None,
-                        spec_min: Optional[float | str] = None,
-                        spec_max: Optional[float | str] = None,
-                        measured: Optional[float | str] = None) -> List[TestResultRow]:
+    def update_test_row(
+        self,
+        index: int,
+        pass_fail: Optional[str] = None,
+        spec_min: Optional[float | str] = None,
+        spec_max: Optional[float | str] = None,
+        measured: Optional[float | str] = None,
+    ) -> List[TestResultRow]:
         """Mutate a single test-result row, coercing numerics and returning a copy list."""
         if not (0 <= index < len(self._test_rows)):
             raise ValueError("Test row index out of range.")
@@ -188,10 +198,10 @@ class DegasserModel:
           time aliases: time, Time, minute, minutes, t_min
           oxygen aliases: oxygen, oxygen_mg_per_L, o2, O2, do2, DO2
           temperature (optional): temperature_c, temp_c, Temperature, temp
-        
+
         Args:
             path (str): The file path to load the CSV data from.
-            
+
         Raises:
             ValueError on first invalid row.
         """
@@ -211,7 +221,9 @@ class DegasserModel:
                     if h in candidates:
                         return h
                 if required:
-                    raise ValueError(f"Missing required column; expected one of: {sorted(candidates)}")
+                    raise ValueError(
+                        f"Missing required column; expected one of: {sorted(candidates)}"
+                    )
                 return None
 
             time_col = resolve(time_aliases, True)
@@ -235,13 +247,15 @@ class DegasserModel:
                         try:
                             self._temperature_c = float(raw_temp)
                         except ValueError:
-                            raise ValueError(f"Invalid temperature at line {line_no}: {raw_temp}")
+                            raise ValueError(
+                                f"Invalid temperature at line {line_no}: {raw_temp}"
+                            )
 
         return self.get_state()
 
     def export_csv(self, path: str, include_temperature: bool = True) -> None:
         """Write the time-series data (and optional temperature) to a tidy CSV file.
-        
+
         Args:
             path (str): The file path to write the CSV data to.
             include_temperature (bool): If True, includes the temperature column if set.
@@ -280,10 +294,10 @@ class DegasserModel:
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize the model to primitive types for persistence or debugging.
-        
+
         Returns:
             Dict: A dictionary representation of the model state.
-        
+
         Dict Keys:
             - "time_series": Dict[int, float] - minute to oxygen mapping.
             - "temperature_c": float | None - the bath temperature.

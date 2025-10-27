@@ -1,8 +1,10 @@
-from pathlib import Path
-import sys
-import numpy as np
 import math
 import os
+import sys
+from pathlib import Path
+
+import numpy as np
+
 
 class Calculations():
     def __init__(self):

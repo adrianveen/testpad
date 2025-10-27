@@ -3,6 +3,7 @@
 This module defines the ViewState pattern data structures used to communicate
 between the Presenter and View layers.
 """
+
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
@@ -33,4 +34,6 @@ class DegasserViewState:
     test_rows: list[TestResultRow] = field(default_factory=list)
 
     # Time Series Table Data (we'll expand this in Phase 3)
-    time_series_table_rows: list[tuple[int, Optional[float]]] = field(default_factory=list)
+    time_series_table_rows: list[tuple[int, Optional[float]]] = field(
+        default_factory=list
+    )

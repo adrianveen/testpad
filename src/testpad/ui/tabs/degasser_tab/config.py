@@ -8,8 +8,8 @@ Contains DS-50 specifications, test descriptions, and validation rules.
 from PySide6.QtGui import QColor
 
 from testpad.config.defaults import (
-        DEFAULT_TEMPERATURE_C,
-        default_date,
+    DEFAULT_TEMPERATURE_C,
+    default_date,
 )
 
 MIN_MINUTE = 0
@@ -65,13 +65,13 @@ NO_LIMIT_SYMBOL = "--"
 # Maintains the order that specs appear in the test table
 # Row 3 is None because it's the header row
 ROW_SPEC_MAPPING = [
-    "vacuum_pressure",      # Row 0
-    "flow_rate",           # Row 1
-    "do_level",            # Row 2
-    None,                  # Row 3 - Header row
-    "recirculation_start", # Row 4
-    "recirculation_to_4mg",# Row 5
-    "recirculation_to_2mg",# Row 6
+    "vacuum_pressure",  # Row 0
+    "flow_rate",  # Row 1
+    "do_level",  # Row 2
+    None,  # Row 3 - Header row
+    "recirculation_start",  # Row 4
+    "recirculation_to_4mg",  # Row 5
+    "recirculation_to_2mg",  # Row 6
 ]
 
 # === CSV Import Configuration ===
@@ -97,6 +97,6 @@ TEST_TABLE_HEADERS = [
     "Pass/Fail",
     "Minimum Spec",
     "Maximum Spec",
-    "Data Measured"
+    "Data Measured",
 ]
 DEFAULT_TEST_DATE = default_date
