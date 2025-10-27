@@ -18,7 +18,8 @@ import os
 import sys
 
 # Add build_config to path for imports
-sys.path.insert(0, os.path.join(os.getcwd(), 'build_config'))
+build_config_path = os.path.join(os.getcwd(), 'build_config')
+sys.path.insert(0, build_config_path)
 from spec_common import (
     get_base_dir,
     get_version,
@@ -29,6 +30,8 @@ from spec_common import (
     get_icon_path,
     print_build_info,
 )
+# Remove from path to prevent PyInstaller from auto-discovering runtime hooks
+sys.path.remove(build_config_path)
 
 # Get configuration
 base_dir = get_base_dir()

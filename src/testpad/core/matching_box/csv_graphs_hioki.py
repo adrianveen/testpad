@@ -6,10 +6,10 @@ import os
 import matplotlib.pyplot as plt
 # import numpy as np
 import pandas as pd 
-from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 class csv_graph():
-    def __init__(self, frequency, unit, filename, save, save_folder: str = None):
+    def __init__(self, frequency, unit, filename, save, save_folder: str = "") -> None:
         plt.close("all")
         self.selected_freq = float(frequency)
         if unit == "kHz":
@@ -43,7 +43,7 @@ class csv_graph():
         # plt.draw()
 
     # graphing function 
-    def graph(self, x, y, xlabel:str=None, ylabel:str=None, title:str=None, type:str=None):
+    def graph(self, x, y, xlabel: str="", ylabel: str="", title: str="", type: str="") -> FigureCanvas:
         fig, ax = plt.subplots(1, 1)
         canvas = FigureCanvas(fig)
 
@@ -74,5 +74,5 @@ class csv_graph():
         # fig.show()
     
     # return graphs to UI 
-    def returnGraphs(self):
+    def returnGraphs(self) -> tuple[FigureCanvas, FigureCanvas]:
         return(self.impedance_graph, self.phase_graph)

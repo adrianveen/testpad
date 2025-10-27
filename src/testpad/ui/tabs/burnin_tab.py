@@ -3,7 +3,7 @@ from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
                                 QLabel, QTabWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 
 from testpad.core.burnin.burnin_graph import BurninGraph
 from testpad.core.burnin.burnin_stats import BurninStats

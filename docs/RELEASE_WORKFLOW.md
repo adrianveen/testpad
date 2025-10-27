@@ -69,7 +69,28 @@ The release process is supported by several automated GitHub Actions workflows. 
 **Note:** For complete details on all workflows, see [WORKFLOWS_SUMMARY.md](WORKFLOWS_SUMMARY.md).
 
 ## Quick Start
+  Feature Development
 
+  1. Create feature branch from dev (git checkout -b feat/my-feature)
+  2. Develop and commit changes
+  3. Push feature branch (git push origin feat/my-feature)
+  4. Create PR: feat/my-feature → dev → triggers feature-checks.yml (runs tests)
+  5. Review and merge PR to dev
+  6. Delete feature branch
+
+  Release Process
+
+  7. Create release branch from dev (git checkout -b release/v1.11.1)
+  8. Bump version (python scripts/bump_version.py patch)
+  9. Push branch and tag (git push origin release/v1.11.1 --follow-tags) → triggers publish-release.yml (creates draft
+  release)
+  10. Test draft release artifacts (download and verify)
+  11. Create PR: release → main → triggers release-prep.yml (validates)
+  12. Merge PR to main
+  13. Create PR: release → dev → triggers release-prep.yml (validates)
+  14. Merge PR to dev
+  15. Delete release branch
+  16. Publish the draft release (GitHub UI)
 ```bash
 # 1. Create a release branch from dev
 git checkout dev

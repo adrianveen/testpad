@@ -2,11 +2,13 @@
 Runtime debugging hook for PyInstaller builds.
 Logs import attempts and helps diagnose missing modules.
 """
+
 import sys
 import traceback
 
 # Store original import for debugging
 _original_import = __builtins__.__import__
+
 
 def _debug_import(name, *args, **kwargs):
     """Wrapper around import to log failed imports."""
@@ -18,14 +20,15 @@ def _debug_import(name, *args, **kwargs):
         return module
     except ImportError as e:
         # Log failed imports that might be important
-        if name.startswith('testpad') or name in ['fpdf', 'matplotlib', 'PySide6']:
+        if name.startswith("testpad") or name in ["fpdf", "matplotlib", "PySide6"]:
             print(f"[DEBUG] [WARN] Failed to import: {name}")
             print(f"[DEBUG]    Error: {e}")
             traceback.print_exc()
         raise
 
+
 # Uncomment to enable import debugging (WARNING: very verbose)
-# __builtins__.__import__ = _debug_import
+__builtins__.__import__ = _debug_import
 
 # Log environment info at startup
 print("=" * 70)
@@ -40,12 +43,12 @@ print("=" * 70)
 # Check critical imports
 print("\n[DEBUG] Checking critical imports...")
 critical_imports = [
-    'testpad.config',
-    'testpad.config.defaults',
-    'testpad.ui.tabs.degasser_tab',
-    'fpdf',
-    'matplotlib',
-    'PySide6',
+    "testpad.config",
+    "testpad.config.defaults",
+    "testpad.ui.tabs.degasser_tab",
+    "fpdf",
+    "matplotlib",
+    "PySide6",
 ]
 
 for module_name in critical_imports:

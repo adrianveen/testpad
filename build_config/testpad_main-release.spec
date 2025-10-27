@@ -21,7 +21,8 @@ import os
 import sys
 
 # Add build_config to path for imports
-sys.path.insert(0, os.path.join(os.getcwd(), 'build_config'))
+build_config_path = os.path.join(os.getcwd(), 'build_config')
+sys.path.insert(0, build_config_path)
 from spec_common import (
     get_base_dir,
     get_version,
@@ -32,6 +33,8 @@ from spec_common import (
     get_icon_path,
     print_build_info,
 )
+# Remove from path to prevent PyInstaller from auto-discovering runtime hooks
+sys.path.remove(build_config_path)
 
 # Get configuration
 base_dir = get_base_dir()
@@ -59,7 +62,7 @@ a = Analysis(
     runtime_hooks=get_runtime_hooks(base_dir),
     excludes=['PyQt5'],  # Exclude PyQt5 if present
     noarchive=False,
-    optimize=2,  # Maximum bytecode optimization for production
+    optimize=0,  
 )
 
 pyz = PYZ(a.pure)

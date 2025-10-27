@@ -285,6 +285,9 @@ def get_common_datas(base_dir: str) -> list[tuple[str, str]]:
     # Qt configuration (goes to root)
     datas.append((os.path.join(base_dir, "build_config", "qt.conf"), "."))
 
+    # VERSION file (for runtime version detection)
+    datas.append((os.path.join(base_dir, "VERSION"), "."))
+
     # Add Qt binaries
     datas.extend(get_qt_binaries())
 
@@ -332,7 +335,22 @@ def get_common_hiddenimports() -> list[str]:
     imports.extend(core_modules)
 
     # Additional third-party modules that may be dynamically imported
+    # Explicitly include C-extension libraries to ensure proper initialization
     extra_imports = [
+        # Scientific computing stack (C extensions)
+        "numpy",          # Numerical computing (fixes docstring initialization errors)
+        "numpy.core",     # Numpy core modules
+        "pandas",         # Data analysis (used in hydrophone, sweep, nanobubbles, temp_analysis)
+        "scipy",          # Scientific computing (used in vpp_stats)
+        "scipy.stats",    # Statistics submodule
+        "h5py",           # HDF5 file format (used in sweep_graphs, add_ncycle utilities)
+
+        # Matplotlib and backends
+        "matplotlib",     # Plotting library (used across all graph tabs)
+        "matplotlib.backends.backend_qtagg",  # Qt backend
+
+        # Other dependencies
+        "yaml",           # YAML parsing (used in vol2press_calcs)
         "fpdf",           # PDF generation
         "fpdf.fpdf",      # fpdf2 main module
     ]
@@ -349,6 +367,9 @@ def get_common_hiddenimports() -> list[str]:
 def get_runtime_hooks(base_dir: str) -> list[str]:
     """Get paths to runtime hook scripts.
 
+    Auto-detects whether to include debug hook based on build type.
+    Debug hook is only included for dev builds (when spec file contains 'dev').
+
     Args:
         base_dir: Repository root directory
 
@@ -356,11 +377,25 @@ def get_runtime_hooks(base_dir: str) -> list[str]:
         List of runtime hook script paths
 
     """
-    return [
-        os.path.join(base_dir, "build_config", "runtime_hook_debug.py"),  # Debug hook (first)
+    hooks = []
+
+    # Auto-detect dev build from spec file name (must end with 'dev.spec')
+    is_dev_build = any(arg.endswith('dev.spec') for arg in sys.argv)
+
+    # Only include debug hook for development builds
+    if is_dev_build:
+        hooks.append(os.path.join(base_dir, "build_config", "runtime_hook_debug.py"))
+        print("[spec_common] Including debug runtime hook (dev build detected)")
+    else:
+        print("[spec_common] Excluding debug runtime hook (release/portable build)")
+
+    # Always include Qt and matplotlib hooks
+    hooks.extend([
         os.path.join(base_dir, "build_config", "runtime_hook_qt.py"),
         os.path.join(base_dir, "build_config", "runtime_hook_mpl.py"),
-    ]
+    ])
+
+    return hooks
 
 
 # ============================================================================
