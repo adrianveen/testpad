@@ -1348,6 +1348,7 @@ dependencies = [
     { name = "pyside6" },
     { name = "pyyaml" },
     { name = "scipy" },
+    { name = "shiboken6" },
 ]
 
 [package.optional-dependencies]
@@ -1374,6 +1375,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.1" },
     { name = "scipy", specifier = ">=1.11" },
+    { name = "shiboken6", specifier = "==6.9.3" },
 ]
 provides-extras = ["dev"]
 

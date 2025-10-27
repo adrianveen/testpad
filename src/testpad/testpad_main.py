@@ -5,33 +5,52 @@ from contextlib import contextmanager
 from importlib.abc import MetaPathFinder as _MetaPathFinder
 from importlib.machinery import PathFinder as _PathFinder
 from typing import Callable, List, Tuple, Set, Optional
-from PySide6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget
+    )
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QCoreApplication, QTimer, QSignalBlocker
 
 from testpad.resources.palette.custom_palette import load_custom_palette
 from testpad.ui.splash import SplashScreen
 from testpad.ui.tabs.registry import TABS_SPEC, enabled_tabs, TabSpec
-from testpad.version import __version__ 
+from testpad.version import __version__
+
+# Helper function to get icon_path
+def get_icon_path() -> str:
+    """Get the path to the application icon, handling both dev and compiled environments.
+    
+    Returns:
+        str: The path to the application icon.
+    
+    """
+    pkg_dir = os.path.dirname(__file__)
+    icon_path_pkg = os.path.join(pkg_dir, 'resources', 'fus_icon_transparent.ico')
+    meipass = getattr(sys, '_MEIPASS', '')
+    if os.path.exists(icon_path_pkg):
+        icon_path = icon_path_pkg
+    elif meipass:
+        icon_path = os.path.join(meipass, 'testpad', 'resources', 'fus_icon_transparent.ico')
+    else:
+        icon_path = os.path.join(os.getcwd(), 'src', 'testpad', 'resources', 'fus_icon_transparent.ico')
+    return icon_path
 
 # application window (subclass of QMainWindow)
 class ApplicationWindow(QMainWindow): 
-    def __init__(self, parent: QWidget=None, *,
+    def __init__(self, parent: QWidget | None = None, *,
                  progress_cb: Optional[Callable[[str], None]] = None,
                  tabs_spec: Optional[List[TabSpec]] = None,
                  on_first_show: Optional[Callable[[], None]] = None,
                  per_file_cb: Optional[Callable[[int], None]] = None) -> None: 
 
         super().__init__(parent)
-        pkg_dir = os.path.dirname(__file__)
-        icon_path_pkg = os.path.join(pkg_dir, 'resources', 'fus_icon_transparent.ico')
-        meipass = getattr(sys, '_MEIPASS', '')
-        if os.path.exists(icon_path_pkg):
-            icon_path = icon_path_pkg
-        elif meipass:
-            icon_path = os.path.join(meipass, 'resources', 'fus_icon_transparent.ico')
-        else:
-            icon_path = os.path.join(os.getcwd(), 'src', 'testpad', 'resources', 'fus_icon_transparent.ico')
+
+        icon_path = get_icon_path()
+        
         self.setWindowIcon(QIcon(icon_path))
         self.setWindowTitle(f"FUS Testpad v{__version__}")
         self.resize(800, 600)
@@ -185,6 +204,12 @@ def main() -> None:
     QCoreApplication.setOrganizationName("FUS Instruments")
     QCoreApplication.setOrganizationDomain("fusinstruments.com")
     QCoreApplication.setApplicationName("Testpad")
+
+    # Set application-wide window icon here using the helper function
+    # This ensures all windows and dialogs inherit the icon
+    icon_path = get_icon_path()
+    app_icon = QIcon(icon_path)
+    app.setWindowIcon(app_icon)
 
     app.setStyleSheet("QLabel{font-size: 11pt;}")  # increase font size slightly of QLabels
     app.setStyle("Fusion")

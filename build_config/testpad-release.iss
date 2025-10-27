@@ -8,7 +8,7 @@
 
 #ifndef MyAppVersion
   ; Fallback version for manual builds (overridden in CI/CD from VERSION file)
-  #define MyAppVersion "1.10.0"
+  #define MyAppVersion "1.11.0"
 #endif
 
 #define MyCompany       "FUS Instruments"
@@ -17,8 +17,8 @@
 #define MyAppShort      "Testpad"
 #define RepoRoot        AddBackslash(SourcePath) + ".."
 #define DistDir         AddBackslash(SourcePath) + "..\\dist"
-#define BuildFolder     "testpad_v" + MyAppVersion
-#define MyAppExeName    "testpad_v" + MyAppVersion + ".exe"
+#define BuildFolder     "testpad_main"
+#define MyAppExeName    "testpad_main.exe"
 
 [Setup]
 AppId={{6a3fbb27-776f-491b-8b0f-cea3c10fc0a7}}
@@ -47,8 +47,16 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "Create a &Desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 
+[InstallDelete]
+; Clean up old files before installing (runs during upgrades)
+Type: filesandordirs; Name: "{app}\*"
+
 [Files]
 Source: "{#DistDir}\{#BuildFolder}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+
+[UninstallDelete]
+; Remove everything during uninstall (including user-generated files)
+Type: filesandordirs; Name: "{app}"
 
 [Icons]
 Name: "{group}\{#MyAppShort}"; Filename: "{app}\{#MyAppExeName}"

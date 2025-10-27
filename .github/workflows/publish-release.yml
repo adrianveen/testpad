@@ -27,7 +27,6 @@ env:
   DIST_DIR: testpad/dist
   INSTALLER_DIR: testpad/installers
   # Release artifact naming (use {version} as placeholder)
-  RELEASE_BUNDLE_NAME: testpad_v{version}
   INSTALLER_NAME: testpad-setup-v{version}.exe
   RELEASE_ZIP_NAME: testpad-v{version}-windows-release.zip
   PORTABLE_ZIP_NAME: testpad-v{version}-windows-portable.zip
@@ -160,45 +159,6 @@ jobs:
 
           Write-Output "✅ All build artifacts verified"
 
-      - name: Prepare release bundle for Inno Setup
-        id: prepare-inno
-        shell: pwsh
-        run: |
-          $version = "${{ steps.version.outputs.VERSION }}"
-          $sourceDir = "${{ env.DIST_DIR }}/${{ env.PROJECT_NAME }}_main"
-          $targetDirName = "${{ env.RELEASE_BUNDLE_NAME }}" -replace '\{version\}', $version
-          $targetDir = "${{ env.DIST_DIR }}/$targetDirName"
-
-          Write-Output "::group::Preparing Release Bundle for Inno Setup"
-
-          # Rename the release bundle directory to match Inno Setup expectations
-          if (Test-Path $sourceDir) {
-            if (Test-Path $targetDir) {
-              Remove-Item -Path $targetDir -Recurse -Force
-            }
-            Rename-Item -Path $sourceDir -NewName $targetDirName
-            Write-Output "✅ Renamed $sourceDir to $targetDir"
-          } else {
-            Write-Error "Source directory not found: $sourceDir"
-            exit 1
-          }
-
-          # Rename the main executable to match Inno Setup expectations
-          $sourceExe = "$targetDir/${{ env.PROJECT_NAME }}_main.exe"
-          $targetExeName = "${{ env.PROJECT_NAME }}_v$version.exe"
-          $targetExe = "$targetDir/$targetExeName"
-
-          if (Test-Path $sourceExe) {
-            Rename-Item -Path $sourceExe -NewName $targetExeName
-            Write-Output "✅ Renamed ${{ env.PROJECT_NAME }}_main.exe to $targetExeName"
-          } else {
-            Write-Error "Main executable not found: $sourceExe"
-            exit 1
-          }
-
-          Write-Output "::endgroup::"
-          Write-Output "✅ Release bundle prepared for Inno Setup"
-
       - name: Build Windows Installer with Inno Setup
         id: build-installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
@@ -231,8 +191,7 @@ jobs:
           Write-Output "::group::Packaging Release Artifacts"
 
           # Package release bundle (one-directory)
-          $releaseBundleName = "${{ env.RELEASE_BUNDLE_NAME }}" -replace '\{version\}', $version
-          $releaseBundlePath = "${{ env.DIST_DIR }}/$releaseBundleName"
+          $releaseBundlePath = "${{ env.DIST_DIR }}/${{ env.PROJECT_NAME }}_main"
           $releaseZipName = "${{ env.RELEASE_ZIP_NAME }}" -replace '\{version\}', $version
 
           if (Test-Path $releaseBundlePath) {
