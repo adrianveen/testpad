@@ -1,13 +1,13 @@
 from datetime import datetime
-from typing import Any, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import PySide6.QtWidgets
 
 from testpad.config import DEFAULT_EXPORT_DIR
 
+from .generate_pdf_report import GenerateReport
 from .model import DegasserModel
 from .view_state import DegasserViewState
-from .generate_pdf_report import GenerateReport
 
 if TYPE_CHECKING:
     from .view import DegasserTab

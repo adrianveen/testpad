@@ -1,49 +1,50 @@
 from typing import Optional, cast
+
 import PySide6.QtCore
-from PySide6.QtCore import Qt, QSignalBlocker, QDate, QTimer
+from PySide6.QtCore import QDate, QSignalBlocker, Qt, QTimer
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QCheckBox,
     QComboBox,
-    QGroupBox,
-    QHeaderView,
-    QPushButton,
-    QTextBrowser,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QGridLayout,
-    QLineEdit,
     QDateEdit,
-    QTableWidget,
-    QStyledItemDelegate,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
     QLabel,
+    QLineEdit,
+    QPushButton,
+    QStyledItemDelegate,
+    QTableWidget,
     QTableWidgetItem,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
 
+from testpad.config.defaults import ISO_8601_DATE_FORMAT
 from testpad.ui.tabs.base_tab import BaseTab
+from testpad.ui.tabs.degasser_tab.chart_widgets import TimeSeriesChartWidget
+from testpad.ui.tabs.degasser_tab.config import (
+    DEFAULT_TEST_DESCRIPTIONS,
+    DEFAULT_TIME_SERIES_TEMP,
+    DS50_SPEC_RANGES,
+    DS50_SPEC_UNITS,
+    HEADER_ROW_COLOR,
+    HEADER_ROW_INDEX,
+    METADATA_FIELDS,
+    NO_LIMIT_SYMBOL,
+    NUM_TEST_COLS,
+    NUM_TEST_ROWS,
+    NUM_TIME_SERIES_COLS,
+    NUM_TIME_SERIES_ROWS,
+    ROW_SPEC_MAPPING,
+    TEST_TABLE_HEADERS,
+)
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 from testpad.ui.tabs.degasser_tab.view_state import DegasserViewState
-from testpad.ui.tabs.degasser_tab.chart_widgets import TimeSeriesChartWidget
-from testpad.ui.tabs.degasser_tab.config import (
-    DEFAULT_TIME_SERIES_TEMP,
-    METADATA_FIELDS,
-    DEFAULT_TEST_DESCRIPTIONS,
-    DS50_SPEC_RANGES,
-    DS50_SPEC_UNITS,
-    NO_LIMIT_SYMBOL,
-    NUM_TIME_SERIES_ROWS,
-    NUM_TIME_SERIES_COLS,
-    ROW_SPEC_MAPPING,
-    NUM_TEST_ROWS,
-    NUM_TEST_COLS,
-    HEADER_ROW_INDEX,
-    HEADER_ROW_COLOR,
-    TEST_TABLE_HEADERS,
-)
-from testpad.config.defaults import ISO_8601_DATE_FORMAT
-from testpad.utils.lineedit_validators import ValidatedLineEdit, FixupDoubleValidator
+from testpad.utils.lineedit_validators import FixupDoubleValidator, ValidatedLineEdit
 
 
 class ColumnMajorTableWidget(QTableWidget):

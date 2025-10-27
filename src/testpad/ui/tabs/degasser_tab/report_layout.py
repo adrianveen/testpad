@@ -6,6 +6,7 @@ for PDF layout decisions.
 """
 
 from dataclasses import dataclass
+
 from fpdf.enums import TextEmphasis
 
 

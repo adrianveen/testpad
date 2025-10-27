@@ -3,21 +3,23 @@
 This module provides pure functions for creating matplotlib figures without
 any Qt dependencies, following separation of concerns principles.
 """
+import os
+import tempfile
+from typing import Mapping, Optional, Sequence, Tuple
 
-from typing import Mapping, Sequence, Tuple, Optional
-from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from testpad.config.plotting import (
-    PRIMARY_COLOR,
-    GRID_ENABLED,
-    GRID_ALPHA,
-    GRID_LINE_STYLE,
-    GRID_LINE_WIDTH,
+    DEFAULT_LINE_STYLE,
+    DEFAULT_LINE_WIDTH,
     DEFAULT_MARKER,
     DEFAULT_MARKER_SIZE,
-    DEFAULT_LINE_WIDTH,
-    DEFAULT_LINE_STYLE
+    GRID_ALPHA,
+    GRID_ENABLED,
+    GRID_LINE_STYLE,
+    GRID_LINE_WIDTH,
+    PRIMARY_COLOR,
 )
 
 
@@ -60,8 +62,6 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
     Returns:
         Path to the saved PNG file
     """
-    import tempfile
-    import os
     
     # Create temporary file
     temp_fd, temp_path = tempfile.mkstemp(suffix='.png', dir=output_dir)

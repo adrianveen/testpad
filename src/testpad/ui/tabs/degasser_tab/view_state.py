@@ -6,7 +6,9 @@ between the Presenter and View layers.
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
+
 from testpad.ui.tabs.degasser_tab.model import TestResultRow
+
 
 @dataclass(frozen=True)
 class DegasserViewState:

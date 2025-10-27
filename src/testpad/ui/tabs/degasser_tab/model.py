@@ -1,14 +1,17 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional
-from datetime import date
+
 import csv
+from dataclasses import asdict, dataclass
+from datetime import date
+from typing import Any, Dict, List, Optional
+
 from .config import (
-    MIN_MINUTE,
-    MAX_MINUTE,
-    DEFAULT_TEST_DESCRIPTIONS,
     DEFAULT_TEST_DATE,
+    DEFAULT_TEST_DESCRIPTIONS,
+    MAX_MINUTE,
+    MIN_MINUTE,
 )
+
 
 # ------------------ Data Structures ------------------
 @dataclass

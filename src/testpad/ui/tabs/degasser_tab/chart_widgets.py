@@ -1,7 +1,9 @@
-from typing import Sequence, Optional
-from matplotlib.figure import Figure
+from typing import Optional, Sequence
+
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from matplotlib.figure import Figure
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+
 from testpad.ui.tabs.degasser_tab.plotting import plot_time_series_on_axis
 
 
