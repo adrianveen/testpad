@@ -17,8 +17,8 @@
 #define MyAppShort      "Testpad"
 #define RepoRoot        AddBackslash(SourcePath) + ".."
 #define DistDir         AddBackslash(SourcePath) + "..\\dist"
-#define BuildFolder     "testpad_main"
-#define MyAppExeName    "testpad_main.exe"
+#define BuildFolder     "testpad-v" + MyAppVersion
+#define MyAppExeName    "testpad.exe"
 
 [Setup]
 AppId={{6a3fbb27-776f-491b-8b0f-cea3c10fc0a7}}

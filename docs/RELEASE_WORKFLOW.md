@@ -9,50 +9,87 @@ This document outlines the production-level release workflow for Testpad, follow
 - [Quick Start](#quick-start)
 - [Detailed Workflow](#detailed-workflow)
 - [Hotfix Workflow](#hotfix-workflow)
-- [Best Practices](#best-practices)
-- [Troubleshooting](#troubleshooting)
+- [Additional Resources](#additional-resources)
 
 ## Overview
 
 The release process follows these principles:
 
-1. **Gitflow Branching Strategy**: Development happens on `dev`, releases are merged to `main`
+1. **Gitflow Branching Strategy**: Development happens on feature branches created from `dev`, releases are merged to `main`
 2. **Semantic Versioning (SemVer)**: We use `MAJOR.MINOR.PATCH` versioning
 3. **Automated Builds**: GitHub Actions handles compilation and packaging
 4. **Draft Releases**: All releases start as drafts for review before publication
-5. **Tag-Triggered**: Pushing a version tag automatically triggers the release workflow
+5. **Tag-Triggered**: Pushing a version tag automatically triggers the draft-release workflow
 6. **Single Source of Truth**: Version is managed in `VERSION` file
 
 ## GitHub Actions Workflows
 
 The release process is supported by several automated GitHub Actions workflows. Understanding when they trigger and what they do is key to the release process.
 
-### publish-release.yml
+### feature-checks.yml
 
-**Triggers:** When a tag (e.g., `v1.11.1`) is pushed from a `release/*` or `hotfix/*` branch
+**Triggers:** When a PR is opened from a `feat/*`, `*refactor/*`, `*fix/*` or `*docs/*` branch into `dev`
 
 **What it does:**
-- Checks out code at the tag
-- Reads VERSION file
-- Builds Windows artifacts (release bundle + portable executable)
-- Generates changelog from git commits
-- Creates a **draft release** on GitHub with artifacts attached
-
-**Manual step required:** After this workflow completes, you must test the draft release artifacts before proceeding.
+- Validates the branch name
+- Checks out the code for the PR
+- Runs linting and formatting with ruff
+- Runs unit tests with coverage checks (`pytest`)
+- Calculates code coverage
+- Generates a PR comment that reports the results
 
 ### release-prep.yml
 
-**Triggers:** When a PR is created from `release/*` or `hotfix/*` branch to `main` or `dev`
+**Triggers:** When a PR is created from `release/*` or `hotfix/*` branch to `main`
+
 
 **What it does:**
 - Validates VERSION file format
 - Checks semantic versioning compliance
-- Verifies tag exists (when targeting main)
 - Runs full test suite
-- Builds artifacts
+- Builds artifacts (for validation)
 - Posts validation results as PR comment
 
-**Manual step required:** Review the validation results and manually merge the PR.
+**Artifacts:**
+The build artifacts from this workflow are for **validation purposes** to ensure the code can be built successfully before merging to main. They are available in the GitHub Actions artifacts section of the workflow run.
+
+- **Location**: Actions > release-prep workflow run > Artifacts
+- **Purpose**: Verify the code builds without errors
+- **Testing**: Optional - you can download and smoke test these, or wait to test the draft release artifacts
+- **Retention**: 30 days
+
+**Manual step required:**
+- Review the validation results and manually merge the PR.
+- Manually checkout main, tag and then push the tag to origin immediately after the merge
+```bash
+git checkout main
+git pull --ff-only origin main         # Fetch merge commit, fail if diverge
+git tag -a vx.y.z -m "Release vx.y.z"
+git push origin vx.y.z                 # Push only the tag
+```
+
+### draft-release.yml
+
+**Triggers:** When a tag (e.g., `v1.11.1`) is pushed
+
+**What it does:**
+- Checks out code at the tag
+- Reads VERSION file
+- Builds Windows artifacts (release bundle, portable executable, and Inno Setup file)
+- Generates changelog from git commits
+- Creates a **draft release** on GitHub with artifacts attached
+
+**Artifacts:**
+These are the **official release artifacts** that will be published and distributed to users.
+
+- **Location**: Releases > Draft releases
+- **Purpose**: Official release distribution
+- **Testing**: **Required** - you must fully test these before publishing
+- **Retention**: Permanent (attached to release)
+
+**Manual step required:** 
+- After this workflow completes, you must test the draft release artifacts before proceeding.
+- Manually publish the draft as a public release after validating the artifacts
 
 ### hotfix-checks.yml (optional variant)
 
@@ -64,14 +101,16 @@ The release process is supported by several automated GitHub Actions workflows. 
 - Runs critical tests (faster subset)
 - Security scans
 
-**Manual step required:** Review and manually merge the PR.
+**Manual step required:** 
+- Review and manually merge the PR.
+- Follow same manual tagging procedure as in [release-prep.yml](#release-prep.yml)
 
 **Note:** For complete details on all workflows, see [WORKFLOWS_SUMMARY.md](WORKFLOWS_SUMMARY.md).
 
 ## Quick Start
   Feature Development
 
-  1. Create feature branch from dev (git checkout -b feat/my-feature)
+  1. Create feature branch from dev (`git checkout -b feat/my-feature`)
   2. Develop and commit changes
   3. Push feature branch (git push origin feat/my-feature)
   4. Create PR: feat/my-feature → dev → triggers feature-checks.yml (runs tests)
@@ -80,37 +119,46 @@ The release process is supported by several automated GitHub Actions workflows. 
 
   Release Process
 
-  7. Create release branch from dev (git checkout -b release/v1.11.1)
-  8. Bump version (python scripts/bump_version.py patch)
-  9. Push branch and tag (git push origin release/v1.11.1 --follow-tags) → triggers publish-release.yml (creates draft
-  release)
-  10. Test draft release artifacts (download and verify)
-  11. Create PR: release → main → triggers release-prep.yml (validates)
-  12. Merge PR to main
-  13. Create PR: release → dev → triggers release-prep.yml (validates)
-  14. Merge PR to dev
-  15. Delete release branch
-  16. Publish the draft release (GitHub UI)
+  7.  Create release branch from dev (`git checkout -b release/v1.11.1`)
+  8.  Bump version (`python scripts/bump_version.py patch`)
+  9.  Create PR `release/v1.11.1` → `main` → triggers `release-prep.yml` 
+  10. Manually review and merge PR
+  11. Manually tag the merge commit → triggers `publish-release.yml`
+      ```bash
+      git checkout main
+      git pull --ff-only origin main
+      git tag -a vx.y.z -m "Release vx.y.z"
+      git push origin vx.y.z
+      ```
+  12. Manually test draft release artifacts
+      - download artifacts
+      - Verify functionality  
+  13. Manually create PR `main` → `dev`
+  14. Manually merge PR `main` → `dev`
+  15. Manually publish the draft release (GitHub UI)
+
+Commands for creating `release/*` branch
 ```bash
 # 1. Create a release branch from dev
 git checkout dev
 git pull origin dev
 git checkout -b release/v1.11.1
 
-# 2. Run version bump script on release branch (creates local commit + tag)
+# 2. After all work on release/* is complete,
+# run version bump script on release branch (creates local commit)
 python scripts/bump_version.py patch
 
-# 3. Review changes and push to trigger release workflow
+# 3. Create PR to trigger release-prep workflow
 git log -1 --stat
-git push origin release/v1.11.1 --follow-tags
-# ⚙️ This triggers: publish-release.yml (creates draft release)
+gh pr create      # Interactive mode - use flags, github desktop, or github web
+# ⚙️ This triggers: release-prep.yml 
 
 # 4. Monitor the GitHub Actions workflow
-# Visit: https://github.com/<your-org>/testpad/actions
-# Wait for publish-release.yml to complete
+# Visit: https://github.com/fusinstruments/summer_2024/testpad/actions
+# Wait for release-prep.yml to complete
 
-# 5. Test the draft release build
-# Download artifacts from draft release and test
+# 5. Test the artifact builds from the workflow
+# Download artifacts from the workflow and test
 
 # 6. Create PR: release branch → main
 gh pr create --base main --head release/v1.11.1 \
@@ -120,20 +168,28 @@ gh pr create --base main --head release/v1.11.1 \
 # 7. Review and merge PR to main
 # Manually review and merge via GitHub UI
 
-# 8. Create PR: release branch → dev
-gh pr create --base dev --head release/v1.11.1 \
-  --title "Merge release v1.11.1 to dev" --body "Sync release to dev"
-# ⚙️ This triggers: release-prep.yml (validates PR)
+# 8. Manually tag the merge commit and push the tag
+git checkout main
+git pull --ff-only origin main
+git tag -a vx.y.z -m "Release vx.y.z"
+git push origin vx.y.z
+# the push command will trigger draft-release.yml workflow
 
-# 9. Review and merge PR to dev
+# 9. Validate the draft release artifacts and review release notes
+
+# 10. Create PR: main → dev
+gh pr create --base dev --head main \
+  --title "Merge main to dev" --body "Sync main to dev"
+
+# 11. Review and merge PR to dev
 # Manually review and merge via GitHub UI
 
-# 10. Delete release branch
+# 12. Delete release branch
 git branch -d release/v1.11.1
 git push origin --delete release/v1.11.1
 
-# 11. Publish the draft release
-# Visit: https://github.com/<your-org>/testpad/releases
+# 13. Publish the draft release
+# Visit: https://github.com/fusinstruments/summer_2024/releases
 # Click "Edit" on draft → Click "Publish release"
 ```
 
@@ -165,15 +221,19 @@ git checkout -b release/v1.11.1  # or whatever version you're releasing
 - `release/*` - Release preparation branches (created from dev, merged to both main and dev)
 - `feature/*` - Feature branches (created from and merged to dev)
 - `hotfix/*` - Hotfix branches (created from main, merged to both main and dev)
+- `refactor/*` - Branch where only refactors were done - functionality not changed
+- `docs/*` - Docs or CI/CD updated but no other code changes
 
 **Workflow:**
 - **Feature development**: feature/* → dev
-- **Release**: dev → release/* → (build & test) → main + dev → publish release
-- **Hotfix**: main → hotfix/* → (fix & test) → main + dev
+- **Release**: dev → release/* → (build & test) → main → dev → publish release
+- **Hotfix**: main → hotfix/* → (fix & test) → main → dev
+- **Refactor**: refactor/* → dev
+- **Docs**: docs/* → dev
 
 ### 2. Version Bumping
 
-Once on the release branch, use the `version_bump.py` script to increment the version following [Semantic Versioning](https://semver.org/):
+Once on the release branch, use the `bump_version.py` script to increment the version following [Semantic Versioning](https://semver.org/):
 
 - **MAJOR** version: Incompatible API changes (`2.0.0 → 3.0.0`)
 - **MINOR** version: New features, backward compatible (`2.1.0 → 2.2.0`)
@@ -184,25 +244,24 @@ Once on the release branch, use the `version_bump.py` script to increment the ve
 git checkout release/v1.11.1
 
 # Preview changes (dry run)
-python scripts/version_bump.py patch --dry-run
+python scripts/bump_version.py patch --dry-run
 
 # Bump patch version (most common)
-python scripts/version_bump.py patch
+python scripts/bump_version.py patch
 
 # Bump minor version (new features)
-python scripts/version_bump.py minor
+python scripts/bump_version.py minor
 
 # Bump major version (breaking changes)
-python scripts/version_bump.py major
+python scripts/bump_version.py major
 ```
 
 The script will:
 1. ✓ Check git status (clean working directory)
-2. ✓ Verify you're on a `release/*` or `hotfix/*` branch (warns if not)
+2. ✓ Verify you're on a `release/*`, `refactore/*` or `hotfix/*` branch (warns if not)
 3. ✓ Check that tag doesn't already exist
 4. ✓ Update VERSION file
 5. ✓ Create git commit with message: `build: Bump version to X.Y.Z`
-6. ✓ Create annotated git tag locally (e.g., `v1.11.1`)
 
 **The script does NOT automatically push.** This allows you to review changes before triggering the CI/CD pipeline.
 
@@ -212,9 +271,7 @@ python scripts/bump_version.py
 # Prompts for: patch/minor/major and dry-run option
 ```
 
-**⚠️ IMPORTANT:** Run `bump_version.py` as the **LAST commit** on your release branch. If you make additional commits after bumping the version, the tag will point to the wrong commit. If you need to make changes after version bump, see "Rolling back before push" below.
-
-### 3. Review and Push
+### 3. Review Create Pull Request
 
 Review the changes and push when ready:
 
@@ -223,69 +280,54 @@ Review the changes and push when ready:
 git log -1 --stat
 git show HEAD
 
-# Verify the tag was created
-git tag -l
-
-# Push the commit and tag to trigger the release workflow
-git push origin release/v1.11.1 --follow-tags
+# Push the commit and the manually open a PR
+git push origin release/v1.11.1
 ```
 
-**⚙️ GitHub Actions Trigger:** This push triggers the `publish-release.yml` workflow, which:
-- Detects the pushed tag (e.g., `v1.11.1`)
-- Checks out code at that tag
-- Builds Windows release artifacts (release bundle + portable executable)
-- Generates changelog from git commits since last tag
-- Creates a **draft release** on GitHub with artifacts attached
+Manually create a Pull Request from `release/*` into `main`
 
-**Rolling back before push:** If you need to make changes before pushing, simply delete the tag and reset:
+**⚙️ GitHub Actions Trigger:** This PR triggers the `release-prep.yml` workflow, which:
+- Checks out code at the PR
+- Runs linting, type-checking, formatting checks
+- Builds Windows release artifacts (release bundle, portable executable and setup file)
+- Adds a summary as a PR comment to the opened PR
+
+### 4. Manually Approve PR
+
+Once you have verified the artifacts function correctly, manually approve the PR, followed by creating the tag and pushing it.
 ```bash
-git tag -d v1.11.1           # Delete the tag
-git reset --hard HEAD~1      # Remove the version bump commit
-# Now you can make other changes, then re-run bump_version.py
+git checkout main
+git pull --ff-only origin main
+git tag -a vx.y.z -m "Release vx.y.z"
+git push origin vx.y.z
 ```
+This will trigger the next step.
 
-**⚠️ If you find a bug AFTER running bump_version.py:**
+### 5. Automated Build Process (publish-release.yml)
 
-The tag points to a specific commit. If you make additional commits, the tag won't include them in the build!
-
-**Correct approach:**
-```bash
-# 1. Undo the version bump
-git tag -d v1.11.1
-git reset --hard HEAD~1
-
-# 2. Fix the bug and commit
-git add .
-git commit -m "fix: critical bug description"
-
-# 3. Re-run version bump (creates new tag at current HEAD)
-python scripts/bump_version.py patch
-```
-
-### 4. Automated Build Process (publish-release.yml)
-
-Once the tag is pushed, the `publish-release.yml` GitHub Actions workflow automatically:
+Once the tag is pushed, the `draft-release.yml` GitHub Actions workflow automatically:
 
 1. **Checks out code** at the tag commit
 2. **Reads VERSION file** to get version number
 3. **Builds Windows Release** (one-directory bundle)
 4. **Builds Windows Portable** (single executable)
-5. **Generates Changelog** (from git commits since last tag)
-6. **Creates Draft Release** on GitHub with:
+5. **Builds Windows installer** (inno setup file of one-dir build)
+6. **Generates Changelog** (from git commits since last tag)
+7. **Creates Draft Release** on GitHub with:
    - Release title: "Release v{VERSION}"
    - Auto-generated changelog in release notes
    - Both build artifacts attached (`.zip` files)
    - **Status: DRAFT** (not published yet)
 
-**Monitor the workflow:** Visit `https://github.com/<your-org>/testpad/actions` to watch the build progress.
+**Monitor the workflow:** Visit `https://github.com/fusinstruments/summer_2024/testpad/actions` to watch the build progress.
 
-**What happens next:** Once the workflow completes successfully, a draft release will be available at `https://github.com/<your-org>/testpad/releases`. You should test the artifacts before proceeding.
+**What happens next:** Once the workflow completes successfully, a draft release will be available at `https://github.com/fusinstruments/summer_2024/releases`. You should test the artifacts before proceeding.
 
-### 5. Test the Draft Release
+### 6. Test the Draft Release
 
-Before creating PRs to merge the release:
+Before creating PRs to merge `main` into `dev` and publishing the draft release:
 
-1. **Navigate to Releases**: Go to `https://github.com/<your-org>/testpad/releases`
+1. **Navigate to Releases**: Go to `https://github.com/fusinstruments/summer_2024/releases`
 2. **Find the draft release** for your version (e.g., "Release v1.11.1")
 3. **Download both artifacts**:
    - `testpad-v1.11.1-windows-release.zip`
@@ -293,53 +335,33 @@ Before creating PRs to merge the release:
 4. **Test the builds**:
    - Extract and run the release bundle
    - Test the portable executable
+   - Run the setup file and test the installed version
    - Verify functionality works as expected
 5. **Document any issues** - If there are problems, you may need to roll back
 
-### 6. Create Pull Requests (release-prep.yml)
+### 7. Create Pull Requests (main into dev)
 
-Once you've verified the draft release artifacts work correctly, create PRs to merge the release branch:
+Once you've verified the draft release artifacts work correctly, create a PR to merge main into dev :
 
 **Create PR to main:**
 ```bash
-gh pr create --base main --head release/v1.11.1 \
+gh pr create --base dev --head main \
   --title "Release v1.11.1" \
-  --body "Release v1.11.1 - merging to main"
+  --body "Release v1.11.1 - merging to dev"
 ```
 
-**⚙️ GitHub Actions Trigger:** This triggers the `release-prep.yml` workflow, which validates:
-- VERSION file exists and is properly formatted
-- Version follows semantic versioning
-- Tag exists for this version
-- All tests pass
-- Builds complete successfully
+### 8. Merge Pull Requests
 
-**Create PR to dev:**
-```bash
-gh pr create --base dev --head release/v1.11.1 \
-  --title "Merge release v1.11.1 to dev" \
-  --body "Sync release changes back to dev branch"
-```
-
-**⚙️ GitHub Actions Trigger:** This also triggers `release-prep.yml` for validation.
-
-**Review the PRs:** Check the workflow results and address any validation failures before proceeding.
-
-### 7. Merge Pull Requests
-
-Once both PRs pass validation:
+Once you have reviewed the PR, manually accept the merge:
 
 1. **Review the PRs** on GitHub
-2. **Manually approve and merge PR to main** (via GitHub UI)
-3. **Manually approve and merge PR to dev** (via GitHub UI)
+2. **Manually approve and merge PR to dev** (via GitHub UI)
 
-**Important:** Both PRs must be merged before publishing the release. This ensures the tag commit exists on both `main` and `dev` branches.
+### 9. Publish the Draft Release
 
-### 8. Publish the Draft Release
+After `main` has been merged into `dev`:
 
-After both PRs are merged:
-
-1. **Navigate to Releases**: Go to `https://github.com/<your-org>/testpad/releases`
+1. **Navigate to Releases**: Go to `https://github.com/fusinstruments/summer_2024/releases`
 
 2. **Find the draft release** for your version
 
@@ -355,7 +377,7 @@ After both PRs are merged:
    - Click "Publish release" button
    - This makes it public and notifies watchers
 
-### 9. Clean Up
+### 10. Clean Up
 
 After publishing the release:
 
@@ -367,17 +389,17 @@ git branch -d release/v1.11.1
 git push origin --delete release/v1.11.1
 ```
 
-### 10. Post-Release Checklist
+### 11. Post-Release Checklist
 
 - [ ] Version bumped and tag created on release branch
-- [ ] Tag pushed, triggering `publish-release.yml` workflow
-- [ ] Draft release created with artifacts
-- [ ] Draft release artifacts tested
 - [ ] PR created to main and validated by `release-prep.yml`
-- [ ] PR created to dev and validated by `release-prep.yml`
-- [ ] Both PRs reviewed and merged
+- [ ] Artifacts tested
+- [ ] PR Manually merged into `main`
+- [ ] Manually tag merge commit on `main`
+- [ ] Push tag, triggering `draft-release.yml`
 - [ ] Draft release published on GitHub
 - [ ] Release appears correctly and is downloadable
+- [ ] PR opened to merge `main` back into `dev`
 - [ ] Release branch deleted
 - [ ] Team/users notified of the new release
 - [ ] External documentation updated if needed
@@ -403,54 +425,58 @@ Make the necessary fixes on the hotfix branch, ensuring:
 - [ ] Tests are added/updated to prevent regression
 - [ ] Code is tested locally
 
-### 3. Version Bump and Tag
+### 3. Version Bump
 
 ```bash
 # Bump version (typically a patch)
-python scripts/version_bump.py patch
+python scripts/bump_version.py patch
 
-# Review and push to trigger build workflow
+# Review and push
 git log -1 --stat
-git push origin hotfix/v1.11.2 --follow-tags
+git push origin hotfix/v1.11.2
 ```
 
-**⚙️ GitHub Actions Trigger:** This triggers `publish-release.yml`, creating a draft release with artifacts.
+### 4. Open PR manually
 
-### 4. Monitor Build and Test
+Open a PR through one of the following:
+- GitHub Desktop UI
+- GitHub web UI
+- GitHub CLI (`gh pr create`)
 
-1. Wait for the `publish-release.yml` workflow to complete
-2. Visit `https://github.com/<your-org>/testpad/releases`
-3. Download and test the draft release artifacts
+This triggers the `release-prep.yml` workflow
 
-### 5. Create Pull Requests
+### 5. Manually Approve PR
 
-**CRITICAL**: Hotfix branches must be merged to BOTH `main` AND `dev`
+1. Wait for the `release-prep.yml` workflow to complete
+2. Visit `https://github.com/fusinstruments/summer_2024/releases`
+3. Download and test the hotfix artifacts
+4. Approve the PR from `hotfix/*` into `main`
 
-**Create PR to main:**
+### 6. Manually tag and Push on main
+
+**Manually tag and Push:**
 ```bash
-gh pr create --base main --head hotfix/v1.11.2 \
-  --title "Hotfix v1.11.2" \
-  --body "Critical hotfix for [describe issue]"
+git checkout main
+git pull --ff-only origin main
+git tag -a vx.y.z -m "Release vx.y.z"
+git push origin vx.y.z
 ```
 
-**⚙️ GitHub Actions Trigger:** This triggers `hotfix-checks.yml` (or `release-prep.yml`), which validates the hotfix.
+**⚙️ GitHub Actions Trigger:** This triggers `hotfix-checks.yml` (or `release-draft.yml`), which validates the hotfix.
 
 **Create PR to dev:**
 ```bash
-gh pr create --base dev --head hotfix/v1.11.2 \
+gh pr create --base dev --head main \
   --title "Merge hotfix v1.11.2 to dev" \
   --body "Sync hotfix to dev branch"
 ```
 
-**⚙️ GitHub Actions Trigger:** This triggers `release-prep.yml` for validation.
+### 7. Merge Pull Requests
 
-### 6. Merge Pull Requests
+1. Review PR on GitHub
+2. Manually approve and merge PR to dev
 
-1. Review both PRs on GitHub
-2. Manually approve and merge PR to main
-3. Manually approve and merge PR to dev
-
-### 7. Publish Release and Clean Up
+### 8. Publish Release and Clean Up
 
 ```bash
 # Delete hotfix branch
@@ -464,254 +490,15 @@ Then:
 - Publish the release
 - Notify users of the critical fix
 
-## Best Practices
+## Additional Resources
 
-### Commit Message Guidelines
+### Best Practices
 
-Since changelogs are auto-generated from commits, all commit messages **must** follow this strict format based on [Angular's Commit Message Guidelines](https://github.com/angular/angular/blob/main/contributing-docs/commit-message-guidelines.md):
+For commit message guidelines, version bump timing, release notes enhancement, security considerations, and branch protection settings, see [BEST_PRACTICES.md](BEST_PRACTICES.md).
 
-**Format:** `<type>:<short summary>`
+### Troubleshooting
 
-Where `<type>` is one of the following:
+For solutions to common problems including version bump script issues, GitHub Actions problems, tag creation errors, and rollback procedures, see  [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
-| Type         | Description                                                                                         |
-|--------------|-----------------------------------------------------------------------------------------------------|
-| **build**    | Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm) |
-| **ci**       | Changes to our CI configuration files and scripts (examples: Github Actions, SauceLabs)             |
-| **docs**     | Documentation only changes                                                                          |
-| **feat**     | A new feature                                                                                       |
-| **fix**      | A bug fix                                                                                           |
-| **perf**     | A code change that improves performance                                                             |
-| **refactor** | A code change that neither fixes a bug nor adds a feature                                           |
-| **test**     | Adding missing tests or correcting existing tests                                                   |
-
-✅ **Good Examples:**
-```
-feat: Add dissolved oxygen measurement feature
-fix: Resolve crash when loading corrupted data files
-perf: Improve startup performance by 40%
-docs: Update installation instructions
-refactor: Simplify data processing logic
-test: Add unit tests for oxygen sensor
-build: Update PyInstaller to version 6.0
-ci: Add automated release workflow
-```
-
-❌ **Bad Examples:**
-```
-fix stuff
-wip
-asdf
-update
-Add dissolved oxygen measurement
-Fixed a bug
-```
-
-**Rules:**
-- Type must be lowercase
-- Use a colon `:` immediately after the type (no space before colon)
-- Add a space after the colon before the summary
-- Summary should be in imperative mood ("add feature" not "added feature")
-- Summary should be concise (50 characters or less recommended)
-- No period at the end of the summary
-
-### Version Bump Timing
-
-- **Frequent small releases** are better than infrequent large ones
-- Release when a meaningful unit of work is complete
-- Don't accumulate too many changes before releasing
-- Consider releasing immediately after critical bug fixes
-
-### Release Notes Enhancement
-
-The auto-generated changelog is a starting point. Consider adding:
-
-```markdown
-## 🎉 Highlights
-
-- **New Feature**: Dissolved oxygen measurement support
-- **Performance**: 40% faster startup time
-- **Bug Fix**: Resolved data corruption issue affecting 5% of users
-
-## ⚠️ Breaking Changes
-
-- Config file format updated (auto-migration included)
-
-## 📝 What's Changed
-
-[Auto-generated commit list]
-
-## 🐛 Known Issues
-
-- Issue #123: Minor UI glitch on high-DPI displays (workaround available)
-```
-
-### Security Considerations
-
-- **Never commit secrets** to the repository
-- Review `.gitignore` to exclude sensitive files
-- The release workflow uses `GITHUB_TOKEN` (automatically provided, scoped to repo)
-- Artifacts are publicly downloadable once released
-
-### Branch Protection
-
-Consider enabling GitHub branch protection on `main`:
-
-- Require pull request reviews before merging
-- Require status checks to pass before merging
-- Require branches to be up to date before merging
-- Require conversation resolution before merging
-
-## Troubleshooting
-
-### Version Bump Script Issues
-
-**Problem**: "Working directory has uncommitted changes"
-```bash
-# Solution: Commit or stash your changes
-git status
-git add .
-git commit -m "Your commit message"
-# Then retry version bump
-```
-
-**Problem**: Warning about being on wrong branch
-```bash
-# Script warns: "You're on branch 'dev'"
-# Solution: Switch to a release or hotfix branch
-git checkout -b release/v1.11.1
-
-# Or if you really need to override (not recommended):
-# Answer 'y' when prompted "Continue anyway?"
-```
-
-**Problem**: "Not in a git repository"
-```bash
-# Solution: Ensure you're in the project root
-cd /path/to/testpad
-python scripts/version_bump.py patch
-```
-
-**Problem**: "Tag already exists"
-```bash
-# Solution: Check existing tags
-git tag -l
-# Delete local tag if needed (careful!)
-git tag -d v1.11.1
-# Delete remote tag (only if workflow hasn't run!)
-git push origin :refs/tags/v1.11.1
-```
-
-**Problem**: "I made commits after running bump_version.py and the build doesn't include my changes"
-
-This happens because the tag points to the version bump commit, not your later commits.
-
-```bash
-# Solution: Rollback and re-run bump_version.py
-git tag -d v1.11.1           # Delete tag
-git reset --hard HEAD~1      # Undo version bump commit
-# Your other commits are still there
-python scripts/bump_version.py patch  # Re-create tag at current HEAD
-```
-
-**Prevention:** Always run `bump_version.py` as the LAST step on your release branch before pushing.
-
-### GitHub Actions Issues
-
-**Problem**: Workflow doesn't trigger
-
-- Check that tag was pushed: `git ls-remote --tags origin`
-- Verify workflow file syntax: `.github/workflows/release.yml`
-- Check GitHub Actions tab for errors
-
-**Problem**: Build fails
-
-- Check the Actions log for specific error
-- Verify `environment-release.yml` is up to date
-- Ensure PyInstaller spec files are correct
-
-**Problem**: Release artifacts are missing
-
-- Check the "Package release artifacts" step in workflow logs
-- Verify the zip file creation completed successfully
-- Ensure artifact paths match in workflow file
-
-### Manual Tag Creation (Not Recommended)
-
-If you need to create a tag manually (e.g., if the bump_version.py script is not available):
-
-```bash
-# Update VERSION file manually
-echo "1.11.1" > VERSION
-
-# Commit changes
-git add VERSION
-git commit -m "build: Bump version to 1.11.1"
-
-# Create annotated tag
-git tag -a v1.11.1 -m "Release v1.11.1"
-
-# Review before pushing
-git log -1 --stat
-git tag -l
-
-# Push commit and tag to trigger workflow
-git push origin release/v1.11.1 --follow-tags
-```
-
-### Rolling Back a Release
-
-#### Before Pushing (Local Only)
-
-If you haven't pushed yet, rollback is simple (see step 3 in the detailed workflow):
-
-```bash
-git tag -d v1.11.1           # Delete the tag
-git reset --hard HEAD~1      # Remove the version bump commit
-# Now you can re-run version_bump.py or make other changes
-```
-
-#### After Pushing (Remote Cleanup Required)
-
-If you've already pushed and the workflow has run:
-
-1. **Delete the release on GitHub**:
-   - Go to GitHub Releases
-   - Click "Edit" on the release
-   - Delete the release (or mark as pre-release if you want to keep it)
-
-2. **Delete the remote tag**:
-   ```bash
-   git tag -d v1.11.1                    # Delete local tag
-   git push origin --delete v1.11.1      # Delete remote tag
-   ```
-
-3. **Revert the version bump commits** (if already merged to main/dev):
-   ```bash
-   # On each branch where it was merged
-   git checkout main
-   git revert <commit-hash-of-version-bump>
-   git push origin main
-
-   git checkout dev
-   git revert <commit-hash-of-version-bump>
-   git push origin dev
-   ```
-
-**Note**: After cleanup, you can start the release process again from the beginning.
-
-## Next Steps
-
-For suggested enhancements and future improvements to this workflow, see [WORKFLOW_IMPROVEMENTS.md](WORKFLOW_IMPROVEMENTS.md).
-
-## Summary
-
-This workflow provides:
-
-- **Simplicity**: One command to create a release (`version_bump.py`)
-- **Automation**: Building and packaging handled by CI/CD
-- **Safety**: Draft releases for review before publication
-- **Traceability**: Git tags linked to releases
-- **Professional**: Follows industry standards (SemVer, semantic tagging, CI/CD)
-
-For questions or improvements, please open an issue or discuss with the team.
+### Workflow Reference
+For a comprehensive summary of all GitHub Actions workflows and their triggers, see [WORKFLOWS_SUMMARY.md](WORKFLOWS_SUMMARY.md).

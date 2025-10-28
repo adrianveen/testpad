@@ -1,23 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for development (one-directory) bundle with debugging enabled.
+PyInstaller spec file for release (one-directory) bundle.
 
 Build command:
-    pyinstaller build_config/testpad_main-dev.spec --clean
+    pyinstaller build_config/testpad-release.spec --clean
 
 Output:
-    dist/testpad_main_dev/                      (directory containing executable and dependencies)
-    dist/testpad_main_dev/testpad_main_dev.exe  (main executable with console)
+    dist/testpad/             (directory containing executable and dependencies)
+    dist/testpad/testpad.exe  (main executable)
 
 This build is suitable for:
-- Local development and testing
-- Debugging (console output enabled, no optimization)
-- Verifying build process before creating release builds
+- Creating Windows installers (e.g., with Inno Setup)
+- Distribution as a zip file with all dependencies
+- Users who prefer faster startup times (vs single-file)
 
-Key differences from release build:
-- Console window enabled (shows print() statements and errors)
-- No bytecode optimization (easier debugging)
-- Different output name to avoid confusion with production builds
+The workflow will rename this directory to testpad-v{VERSION} for packaging.
 """
 
 import os
@@ -47,7 +44,7 @@ VERSION = get_version()
 validate_build_files(base_dir)
 
 # Print build information
-print_build_info("development", VERSION)
+print_build_info("release", VERSION)
 
 # Configure Analysis
 a = Analysis(
@@ -65,7 +62,7 @@ a = Analysis(
     runtime_hooks=get_runtime_hooks(base_dir),
     excludes=['PyQt5'],  # Exclude PyQt5 if present
     noarchive=False,
-    optimize=0,  # No optimization for easier debugging
+    optimize=0,  
 )
 
 pyz = PYZ(a.pure)
@@ -76,12 +73,12 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,  # Dependencies go in separate directory
-    name='testpad_main_dev',  # Different name to distinguish from release builds
-    debug=True,  # Enable debug mode
+    name='testpad',  # Output: testpad.exe
+    debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,  # UPX disabled
-    console=True,  # CONSOLE ENABLED for debugging output
+    upx=False,  # UPX disabled for compatibility
+    console=False,  # Windowed application (no console window)
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -98,12 +95,11 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='testpad_main_dev',  # Output directory: dist/testpad_main_dev/
+    name='testpad',  # Output directory: dist/testpad/
 )
 
-print(f"\n[OK] Development build configuration complete")
-print(f"   Output directory: dist/testpad_main_dev/")
-print(f"   Main executable:  dist/testpad_main_dev/testpad_main_dev.exe")
+print(f"\n[OK] Release build configuration complete")
+print(f"   Output directory: dist/testpad/")
+print(f"   Main executable:  dist/testpad/testpad.exe")
 print(f"   Version: {VERSION}")
-print(f"   Console: ENABLED (shows debug output)")
-print(f"   Optimization: DISABLED (easier debugging)\n")
+print(f"   Note: Workflow will rename to testpad-v{VERSION}/ during packaging\n")

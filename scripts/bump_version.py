@@ -37,7 +37,7 @@ def check_git_status():
 def check_branch():
     """Warn if not on release/hotfix branch."""
     branch = run_command("git branch --show-current")
-    if not (branch.startswith("release/") or branch.startswith("hotfix/")):
+    if not (branch.startswith("release/") or branch.startswith("hotfix/") or branch.startswith("refactor/")):
         print(f"⚠️  WARNING: You're on branch '{branch}'")
         print("   Expected: release/* or hotfix/*")
         print("   Running version bump on the wrong branch can cause issues!")
@@ -155,18 +155,15 @@ def main():
     run_command("git add VERSION")
     run_command(f'git commit -m "build: Bump version to {new_version}"')
 
-    # Create git tag (local only, no push)
-    run_command(f'git tag -a {tag} -m "Release {tag}"')
-
     # Success
     print(f"✅ Version bumped: {current} -> {new_version}")
     print("   Updated: VERSION")
     print(f"   Created: commit + tag {tag}")
     print("\n📋 Next steps:")
     print("   1. Review: git log -1 --stat")
-    print("   2. Push: git push origin <branch> --follow-tags")
+    print("   2. Push: git push origin <branch>")
     print("\n⚠️  Rollback before push:")
-    print(f"   git tag -d {tag} && git reset --hard HEAD~1")
+    print("   git reset --hard HEAD~1")
 
 
 if __name__ == "__main__":
