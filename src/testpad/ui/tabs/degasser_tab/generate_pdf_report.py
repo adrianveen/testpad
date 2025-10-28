@@ -274,6 +274,7 @@ class GenerateReport:
 
         Args:
             data: 2D array of time series data
+
         """
         # Add spacer and set font style
         self.pdf.ln(self.layout.large_spacing_mm)
