@@ -85,7 +85,7 @@ class GenerateReport:
         self._build_test_table(self.test_data)
         self._build_time_series_table(self.time_series)
 
-        # Create and add figure using new design
+        # Create and add figure
         self._add_time_series_figure()
 
         # Save PDF to the output path
@@ -315,7 +315,7 @@ class GenerateReport:
         self.pdf.cell(text=f"Temperature: {self.temperature} °C", align="L")
 
     def _add_time_series_figure(self) -> None:
-        """Create and add time series figure using the new design.
+        """Create and add time series figure to PDF.
 
         This method uses the pure plotting function and layout configuration
         to create a properly sized figure for the PDF.

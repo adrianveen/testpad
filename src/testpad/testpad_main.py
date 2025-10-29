@@ -10,8 +10,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QTabWidget,
     QVBoxLayout,
-    QWidget
-    )
+    QWidget,
+)
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QCoreApplication, QTimer, QSignalBlocker
 
@@ -20,37 +20,46 @@ from testpad.ui.splash import SplashScreen
 from testpad.ui.tabs.registry import TABS_SPEC, enabled_tabs, TabSpec
 from testpad.version import __version__
 
+
 # Helper function to get icon_path
 def get_icon_path() -> str:
     """Get the path to the application icon, handling both dev and compiled environments.
-    
+
     Returns:
         str: The path to the application icon.
-    
+
     """
     pkg_dir = os.path.dirname(__file__)
-    icon_path_pkg = os.path.join(pkg_dir, 'resources', 'fus_icon_transparent.ico')
-    meipass = getattr(sys, '_MEIPASS', '')
+    icon_path_pkg = os.path.join(pkg_dir, "resources", "fus_icon_transparent.ico")
+    meipass = getattr(sys, "_MEIPASS", "")
     if os.path.exists(icon_path_pkg):
         icon_path = icon_path_pkg
     elif meipass:
-        icon_path = os.path.join(meipass, 'testpad', 'resources', 'fus_icon_transparent.ico')
+        icon_path = os.path.join(
+            meipass, "testpad", "resources", "fus_icon_transparent.ico"
+        )
     else:
-        icon_path = os.path.join(os.getcwd(), 'src', 'testpad', 'resources', 'fus_icon_transparent.ico')
+        icon_path = os.path.join(
+            os.getcwd(), "src", "testpad", "resources", "fus_icon_transparent.ico"
+        )
     return icon_path
 
-# application window (subclass of QMainWindow)
-class ApplicationWindow(QMainWindow): 
-    def __init__(self, parent: QWidget | None = None, *,
-                 progress_cb: Optional[Callable[[str], None]] = None,
-                 tabs_spec: Optional[List[TabSpec]] = None,
-                 on_first_show: Optional[Callable[[], None]] = None,
-                 per_file_cb: Optional[Callable[[int], None]] = None) -> None: 
 
+# application window (subclass of QMainWindow)
+class ApplicationWindow(QMainWindow):
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        progress_cb: Optional[Callable[[str], None]] = None,
+        tabs_spec: Optional[List[TabSpec]] = None,
+        on_first_show: Optional[Callable[[], None]] = None,
+        per_file_cb: Optional[Callable[[int], None]] = None,
+    ) -> None:
         super().__init__(parent)
 
         icon_path = get_icon_path()
-        
+
         self.setWindowIcon(QIcon(icon_path))
         self.setWindowTitle(f"FUS Testpad v{__version__}")
         self.resize(800, 600)
@@ -80,16 +89,18 @@ class ApplicationWindow(QMainWindow):
                 # Defer to next loop turn to ensure the window is really shown
                 QTimer.singleShot(0, self._on_first_show)
 
-    def _setup_lazy_tabs(self, progress_cb: Callable[[str], None] | None,
-                         tabs_spec: List[Tuple[str, str, str]] | None) -> None:
-
+    def _setup_lazy_tabs(
+        self,
+        progress_cb: Callable[[str], None] | None,
+        tabs_spec: List[Tuple[str, str, str]] | None,
+    ) -> None:
         if tabs_spec is None:
             tabs_spec = list(TABS_SPEC)
         self._lazy_specs = list(tabs_spec)
 
         # Add lightweight placeholders (so the UI can show immediately)
         from PySide6.QtWidgets import QLabel
-        
+
         for spec in self._lazy_specs:
             label = spec.label
             placeholder = QWidget()
@@ -105,16 +116,22 @@ class ApplicationWindow(QMainWindow):
 
     @staticmethod
     @contextmanager
-    def _progress_imports(callback: Optional[Callable[[str], None]], targets: Set[str], per_file_cb: Optional[Callable[[int], None]] = None):
+    def _progress_imports(
+        callback: Optional[Callable[[str], None]],
+        targets: Set[str],
+        per_file_cb: Optional[Callable[[int], None]] = None,
+    ):
         if callback is None:
             yield
             return
+
         class _Tracer(_MetaPathFinder):
             def __init__(self):
                 self.seen_mods: Set[str] = set()
                 self.seen_files: Set[str] = set()
+
             def find_spec(self, fullname, path, target=None):  # noqa: D401
-                top = fullname.split('.', 1)[0]
+                top = fullname.split(".", 1)[0]
                 if top not in targets:
                     return None
                 try:
@@ -129,9 +146,13 @@ class ApplicationWindow(QMainWindow):
                     except Exception:
                         pass
                 # Emit file origin for more granular feedback
-                if spec and isinstance(getattr(spec, 'origin', None), str):
+                if spec and isinstance(getattr(spec, "origin", None), str):
                     origin = spec.origin
-                    if origin and origin not in ('built-in', 'frozen') and origin not in self.seen_files:
+                    if (
+                        origin
+                        and origin not in ("built-in", "frozen")
+                        and origin not in self.seen_files
+                    ):
                         self.seen_files.add(origin)
                         try:
                             callback(f"Loading: {origin}")
@@ -143,7 +164,9 @@ class ApplicationWindow(QMainWindow):
                             except Exception:
                                 pass
                 return None
+
         import sys as _sys
+
         tracer = _Tracer()
         _sys.meta_path.insert(0, tracer)
         try:
@@ -154,7 +177,9 @@ class ApplicationWindow(QMainWindow):
             except ValueError:
                 pass
 
-    def _ensure_loaded(self, index: int, progress_cb: Optional[Callable[[str], None]] = None) -> None:
+    def _ensure_loaded(
+        self, index: int, progress_cb: Optional[Callable[[str], None]] = None
+    ) -> None:
         # Skip work if the tab is already loaded or the index falls outside the spec list.
         if index in self._loaded or index < 0 or index >= len(self._lazy_specs):
             return
@@ -169,7 +194,17 @@ class ApplicationWindow(QMainWindow):
                 progress_cb(f"Loading: {label} ({module_path})")
             # Highlight module families that tend to dominate import time so the progress UI can
             # surface meaningful messages while the interpreter walks their files.
-            heavy = {"testpad", "PySide6", "numpy", "pandas", "matplotlib", "h5py", "scipy", "PIL", "yaml"}
+            heavy = {
+                "testpad",
+                "PySide6",
+                "numpy",
+                "pandas",
+                "matplotlib",
+                "h5py",
+                "scipy",
+                "PIL",
+                "yaml",
+            }
             # Temporarily install our import tracer to stream progress callbacks as dependencies load.
             with self._progress_imports(progress_cb, heavy, self._per_file_cb):
                 mod = importlib.import_module(module_path)
@@ -181,6 +216,7 @@ class ApplicationWindow(QMainWindow):
                 progress_cb(f"Loaded: {label}")
         except Exception as e:
             from PySide6.QtWidgets import QLabel
+
             # Substitute a failure indicator so the user sees the problem instead of a blank tab.
             widget = QLabel(f"Failed to load '{label}': {e}")
 
@@ -196,7 +232,8 @@ class ApplicationWindow(QMainWindow):
             del blocker
         # Remember that this tab has been resolved so future activations are no-ops.
         self._loaded[index] = True
-    
+
+
 def main() -> None:
     """Main entry point for the Testpad application."""
     app = QApplication(sys.argv)
@@ -211,7 +248,9 @@ def main() -> None:
     app_icon = QIcon(icon_path)
     app.setWindowIcon(app_icon)
 
-    app.setStyleSheet("QLabel{font-size: 11pt;}")  # increase font size slightly of QLabels
+    app.setStyleSheet(
+        "QLabel{font-size: 11pt;}"
+    )  # increase font size slightly of QLabels
     app.setStyle("Fusion")
     dark_palette, palette_tooltip = load_custom_palette(palette_name="dark_palette")
     app.setPalette(dark_palette)
@@ -221,14 +260,16 @@ def main() -> None:
     splash = SplashScreen(version_text=f"v{__version__}")
     splash.show_centered()
     splash.update_progress(5, "Starting Testpad…")
-    
+
     flags = {
-        "degasser_tab": True  # Enable for testing
+        "burnin_tab": True,
+        "degasser_tab": True,  # Enable for testing
     }
     tabs_spec: List[TabSpec] = list(enabled_tabs(TABS_SPEC, flags))
 
     # Staged progress with granular updates during first tab import
     prog = {"p": 5}
+
     def setp(pct: int, msg: str):
         if pct > prog["p"]:
             prog["p"] = pct
@@ -239,6 +280,7 @@ def main() -> None:
 
     # Per-file proportional progress: advance a small, fixed amount per file discovered
     files_per_percent = 5  # tweak to taste
+
     def per_file_cb(count: int):
         # Map file count to percent in [60,95)
         start, end = 60, 95
@@ -261,13 +303,19 @@ def main() -> None:
     for name in remaining[:3]:
         tab_cb(f"Ready: {name}")
 
-    tab_dialog = ApplicationWindow(progress_cb=tab_cb, tabs_spec=tabs_spec, on_first_show=finalize_ready, per_file_cb=per_file_cb)
+    tab_dialog = ApplicationWindow(
+        progress_cb=tab_cb,
+        tabs_spec=tabs_spec,
+        on_first_show=finalize_ready,
+        per_file_cb=per_file_cb,
+    )
     tab_dialog.resize(1200, 800)
 
     # Show the window, then mark 100% when it is actually exposed (interactable)
     setp(95, "Finalizing UI…")
     tab_dialog.show()
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()

@@ -67,6 +67,7 @@ class DegasserModel:
 
     Errors:
       - All validation failures raise ValueError (UI should catch and display).
+
     """
 
     def __init__(self) -> None:

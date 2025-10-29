@@ -1,5 +1,5 @@
 # Testpad specific .gitignore
-.claude/ 
+.claude/
 .pixi/* # pixi environments
 !.pixi/config.toml
 pixi.*
