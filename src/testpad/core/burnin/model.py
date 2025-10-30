@@ -1,24 +1,27 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from datetime import date
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict, dataclass, fields
+from typing import TYPE_CHECKING
 
-from testpad.ui.tabs.burning_tab import BurninTab
 from testpad.core.burnin.config import DEFAULT_TEST_DATE
+
+if TYPE_CHECKING:
+    from datetime import date
+
+    from PySide6.QtCore import QDate
 
 
 # ------------------ Data Structures ------------------
 @dataclass
 class Metadata:
     tested_by: str = ""
-    test_date: date | None = None  # Will be datetime.date
-    rk300_serial: str = ""
+    test_date: date | None = None
     test_name: str = ""
+    rk300_serial: str = ""
 
 
 # ------------------ Model ------------------
-class BurningModel:
+class BurninModel:
     """Model for burnin tab.
 
     Metadata:
@@ -27,7 +30,7 @@ class BurningModel:
         rk300_serial: RK-300 serial number.
         test_name: Name of the test.
 
-    Burning Stats:
+    Burn-in Stats:
         mean: Mean value of the burnin.
         median: Median value of the burnin.
         min: Minimum value of the burnin.
@@ -48,7 +51,31 @@ class BurningModel:
     """
 
     def __init__(self) -> None:
-        self._meta_data = Metadata(test_date=DEFAULT_TEST_DATE)
-        burnin_tab = BurninTab()
-        pos_stats = burnin_tab.stats.positive_stats
-        neg_stats = burnin_tab.stats.negative_stats
+        """Initialize BurninModel with default metadata.
+
+        The default metadata will have a test date of DEFAULT_TEST_DATE.
+        """
+        self._meta_data = Metadata(test_date=DEFAULT_TEST_DATE())
+
+    def update_metadata(self, data: dict) -> None:
+        """Update metadata with given data.
+
+        Args:
+            data: A dictionary containing the metadata to be updated.
+
+        Raises:
+            ValueError: If the metadata field does not exist.
+
+        """
+        # Filter valid fields
+        valid = [f.name for f in fields(Metadata)]
+
+        for k, v in data.items():
+            if k in valid:
+                if k == "test_date" and isinstance(v, QDate):
+                    v = v.toPython()
+                setattr(self._meta_data, k, v)
+
+    def get_metadata(self) -> Metadata:
+        """Return a copy of the current metadata."""
+        return Metadata(**asdict(self._meta_data))

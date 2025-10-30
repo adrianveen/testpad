@@ -1,19 +1,20 @@
 #!/usr/bin/env python
+import contextlib
 import datetime
-import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from fpdf import FPDF, Align, FontFace
 
 from testpad.config.defaults import DEFAULT_EXPORT_DIR, DEFAULT_FUS_LOGO_PATH
-from testpad.core.burnin.burnin_stats import BurninStats
-from testpad.core.burnin.burnin_graph import BurninGraph
 from testpad.ui.tabs.burnin_tab.report_layout import (
     DEFAULT_FIGURE_CONFIG,
     DEFAULT_LAYOUT,
     DEFAULT_STYLE_CONFIG,
 )
+
+if TYPE_CHECKING:
+    from testpad.core.burnin.burnin_stats import BurninStats
 
 
 class GenerateReport:
@@ -21,22 +22,41 @@ class GenerateReport:
 
     def __init__(
         self,
-        meta_data: Dict[str, Any],
-        burnin_stats: BurninStats,
+        meta_data: dict[str, Any],
+        burnin_stats: "BurninStats",
+        figures: list,
         output_dir: Path = DEFAULT_EXPORT_DIR,
         logo_path: Path = DEFAULT_FUS_LOGO_PATH,
     ) -> None:
-        """Initializes the GenerateReport class.
+        """Initialize the GenerateReport class.
 
         Args:
-            burnin_stats (BurninStats): The BurninStats object to generate the report for.
-            output_path (Path): The path to the output PDF file.
-            layout (Optional[Dict[str, Any]], optional): The layout configuration for the report. Defaults to DEFAULT_LAYOUT.
-            style_config (Optional[Dict[str, Any]], optional): The style configuration for the report. Defaults to DEFAULT_STYLE_CONFIG.
-            figure_config (Optional[Dict[str, Any]], optional): The figure configuration for the report. Defaults to DEFAULT_FIGURE_CONFIG.
+            meta_data (dict[str, Any]): Metadata dictionary containing test name,
+                location, date, and RK-300 serial number.
+            burnin_stats (BurninStats): BurninStats object to generate the report
+            figures (list): List of matplotlib figures to include in the report.
+            output_dir (Path): The path to the output PDF file.
+            logo_path (Path): The path to the logo image file.
+
         """
         self.meta_data = meta_data
         self.burnin_stats = burnin_stats
+        # DEBUG
+        # print("[DEBUG] self.burnin_stats type: ", type(self.burnin_stats))
+        print("[DEBUG] Stats class type: ", type(self.burnin_stats.positive_stats))
+        print("[DEBUG] Stats value: ", self.burnin_stats.positive_stats)
+
+        self.positive_stats = self.burnin_stats.positive_stats
+        self.negative_stats = self.burnin_stats.negative_stats
+        self.pos_neg_stats = (
+            self.burnin_stats.positive_stats,
+            self.burnin_stats.negative_stats,
+        )
+        # Print skew and kurtosis data type
+        print("[DEBUG] Skew type: ", type(self.positive_stats[8]))
+        print("[DEBUG] Kurtosis type: ", type(self.positive_stats[9]))
+
+        self.figures = figures
         self.output_dir = output_dir
         self.logo_path = logo_path
 
@@ -57,15 +77,15 @@ class GenerateReport:
         self._build_report_base(self.layout.left_margin_mm)
         self._build_header(logo_path=self.logo_path)
         self._build_title_block(meta_data=self.meta_data)
-        # self._build_stats_table(burnin_stats=self.burnin_stats)
-        # self._build_graphs()
+        self._build_stats_table(self.pos_neg_stats)
+        self._build_graphs(self.figures)
 
         # Create and add figures to report
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         self.pdf.output(filename)
 
     def _build_report_base(self, margins: float = 0) -> None:
-        """Initializes the report and draws the report skeleton such as margins.
+        """Initialize the report and draws the report skeleton such as margins.
 
         Args:
             margins(float): Margin values specified by the config.
@@ -90,7 +110,7 @@ class GenerateReport:
             keep_aspect_ratio=self.styling_config.logo_keep_aspect_ratio,
         )
 
-    def _build_title_block(self, meta_data: Dict[str, Any]) -> None:
+    def _build_title_block(self, meta_data: dict) -> None:
         """Draws the title block for the report.
 
         This includes metadata such as the test name, serial number, date,
@@ -101,14 +121,6 @@ class GenerateReport:
             location, date, and RK-300 serial number.
 
         """
-        # Convert keys to more user-friendly names
-        meta_data = {
-            "Tested By": meta_data.get("tested_by", ""),
-            "Test Name": meta_data.get("test_name", ""),
-            "Date": meta_data.get("test_date", ""),
-            "RK-300 Serial Number": meta_data.get("RK-300_serial_number", ""),
-        }
-
         self.pdf.set_font(
             style=self.styling_config.title_text_style,
             size=self.styling_config.title_text_size,
@@ -116,7 +128,7 @@ class GenerateReport:
         # Draw the report title
         self.pdf.ln(self.layout.title_spacing_mm)  # Add spacing after Header
         self.pdf.cell(
-            text=f"Burnin Report for {self.meta_data['test_name']}",
+            text=f"Burnin Report for {self.meta_data['Test Name']}",
             align=Align.C,
             center=True,
             new_x="RIGHT",
@@ -142,7 +154,7 @@ class GenerateReport:
         )
 
         # Create a table for the title block
-        with self.pdf.table(col_widths=(90), align="L", markdown=True) as table:
+        with self.pdf.table(col_widths=(60), align="C", markdown=True) as table:
             for pair in rows:
                 row = table.row()
                 for label, value in pair:
@@ -158,17 +170,109 @@ class GenerateReport:
                 if len(pair) < 2:
                     row.cell("")
 
-    def _build_stats_table(self) -> None:
-        pass
+    def _build_stats_table(self, stats: tuple[tuple, tuple]) -> None:
+        pos_stats = stats[0]
+        neg_stats = stats[1]
 
-    def _build_graphs(self) -> None:
-        pass
+        # Build table with following value names
+        self.pdf.ln(self.layout.section_spacing_mm)
+        # TODO: Replace with config
+        stats_labels = [
+            "Mean",
+            "Median",
+            "Min",
+            "Max",
+            "Std",
+            "Variance",
+            "25th Percentile",
+            "75th Percentile",
+            "Skewness",
+            "Kurtosis",
+            "Above Threshold",
+            "Below Threshold",
+            "Peaks Above Threshold",
+            "Peaks Below Threshold",
+        ]
+        headers = [
+            "Values",
+            "Positive Error Values",
+            "Negative Error Values",
+        ]
+
+        header_font_style = FontFace(
+            emphasis=self.styling_config.header_text_style,
+            size_pt=self.styling_config.header_text_size,
+            color=self.styling_config.header_text_color,
+        )
+
+        data_style = FontFace(
+            emphasis=self.styling_config.values_text_style,
+            size_pt=self.styling_config.data_text_size,
+            color=self.styling_config.data_text_color,
+        )
+
+        with self.pdf.table(col_widths=(50), align="C", markdown=True) as table:
+            header_row = table.row()
+            for header in headers:
+                header_row.cell(header, Align.C, style=header_font_style)
+            for i in range(len(stats_labels)):
+                row = table.row()
+                label = stats_labels[i]
+                row.cell(label, Align.C)
+                # TODO @adrianveen: Replace strings with iterable from config
+                if label in {"Above Threshold", "Below Threshold"}:
+                    pos_value = str(pos_stats[i]) + "%"
+                    neg_value = str(neg_stats[i]) + "%"
+                else:
+                    pos_value = str(pos_stats[i])
+                    neg_value = str(neg_stats[i])
+                row.cell(pos_value, Align.C, style=data_style)
+                row.cell(neg_value, Align.C, style=data_style)
+
+    def _build_graphs(self, temp_pngs: list) -> None:
+        """Take a list of temporary PNGs paths to add to the PDF report.
+
+        Args:
+            temp_pngs(list): List of temporary PNG paths
+
+        """
+        self.pdf.ln(self.layout.title_spacing_mm)
+        # Calculate optimal figure dimensions
+        page_width_mm = self.pdf.w
+        figure_width_mm = page_width_mm - (2 * self.layout.left_margin_mm)
+        # figure_x, _ = self.layout.get_figure_position(page_width_mm)
+
+        x_pos_mm = self.pdf.get_x()
+        y_pos_mm = self.pdf.get_y()
+
+        # Add to PDF one at a time
+        # Calculate figure height in mm for PDF
+        figure_height_mm = self.pdf.h / 2 - (2 * self.layout.top_margin_mm)
+        # for i in range(2):
+        #     figure_y = y_pos_mm + (i * figure_height_mm / 1.5)
+        for j in range(4):
+            try:
+                # figure_x = x_pos_mm + (j * figure_width_mm)
+                # Add to PDF
+                self.pdf.image(
+                    temp_pngs[j],
+                    # x=x_pos_mm,
+                    w=figure_width_mm,
+                    h=figure_height_mm,
+                    keep_aspect_ratio=True,
+                )
+            finally:
+                # Clean up temporary file
+                try:
+                    Path(temp_pngs[j]).unlink()
+                except OSError:
+                    contextlib.suppress(OSError)
 
 
-def main():
+def main() -> None:
     """Allow standalone execution of the GenerateReport class."""
     sample_meta_data = {
-        "tested_by": "Tester McTestface",
+        "tested_by": "Tester Lastname",
         "test_date": datetime.datetime.now(),
         "test_name": "RK-300",
         "RK-300_serial_number": "1234567890",
@@ -206,7 +310,9 @@ def main():
         "num_peaks_below_thresh": 5801,
     }
     report = GenerateReport(
-        meta_data=sample_meta_data, burnin_stats=sample_burnin_stats_pos
+        meta_data=sample_meta_data,
+        burnin_stats=sample_burnin_stats_pos,
+        figures=[],
     )
     report.generate_report()
 

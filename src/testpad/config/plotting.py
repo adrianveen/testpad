@@ -1,5 +1,4 @@
-"""
-Centralized plotting configuration for FUS Instruments Testpad.
+"""Centralized plotting configuration for FUS Instruments Testpad.
 
 This module provides constants for consistent plot styling across all tabs.
 Individual plots can pick and choose which constants to use.
@@ -8,6 +7,7 @@ Individual plots can pick and choose which constants to use.
 # === Colors ===
 # Primary color palette
 PRIMARY_COLOR = '#73A89E'      # FUS Instruments teal/green
+PRIMARY_COMP_COLOR = "#5A8FAE"
 SECONDARY_COLOR = 'k'      # If you have a secondary brand color
 ERROR_COLOR = 'r'           # For error/warning indicators
 

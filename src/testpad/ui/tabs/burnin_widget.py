@@ -1,26 +1,31 @@
 import os
 import sys
-from typing import Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional
+
+from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFileDialog,
-    QPushButton,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QTabWidget,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
-from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 
 from testpad.core.burnin.burnin_graph import BurninGraph
+from testpad.core.burnin.burnin_presenter import BurninPresenter
 from testpad.core.burnin.burnin_stats import BurninStats
-from testpad.ui.tabs.burnin_tab.burnin_presenter import BurninPresenter
+
+if TYPE_CHECKING:
+    from testpad.core.burnin.model import BurninModel
 
 
 class myQwidget(QWidget):
@@ -34,11 +39,14 @@ class myQwidget(QWidget):
 
 class BurninTab(QWidget):
     def __init__(
-        self, parent=None, presenter: Optional["BurninPresenter"] = None
+        self,
+        parent=None,
+        model: Optional["BurninModel"] = None,
+        presenter: Optional["BurninPresenter"] = None,
     ) -> None:
         super().__init__(parent)
 
-        self.presenter = presenter
+        self._presenter = presenter
 
         # user interaction area
         selections_group = QGroupBox()
@@ -118,7 +126,7 @@ class BurninTab(QWidget):
         # TODO: Connect checkboxes for printing statistics, separated errors, moving average
         # TODO: Connect Print Graph button
         # Connect Generate Report button
-        self._generate_report_btn.clicked.connect(presenter.generate_report)
+        self._generate_report_btn.clicked.connect(presenter.on_generate_report_clicked)
 
     @Slot()
     # file dialog boxes
@@ -126,13 +134,13 @@ class BurninTab(QWidget):
         default_path = r"G:\Shared drives\FUS_Team\RK300 Software Testing\Software Releases\rk300_program_v2.9.1"
 
         # check if default path exists, otherwise set to home directory
-        if not os.path.exists(default_path):
+        if not Path(default_path).exists():
             default_path = os.path.expanduser("~")
 
         if d_type == "burn":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Burn-in File")
-            self.dialog1.setFileMode(QFileDialog.ExistingFile)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
             self.dialog1.setNameFilter("*.hdf5")
 
             # set default directory
@@ -148,7 +156,7 @@ class BurninTab(QWidget):
         ):  # not including save anymore because graph of burn-in is already saved as SVG
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Save Folder")
-            self.dialog1.setFileMode(QFileDialog.Directory)
+            self.dialog1.setFileMode(QFileDialog.FileMode.Directory)
 
             # set default directory
             self.dialog1.setDirectory(default_path)
@@ -166,7 +174,7 @@ class BurninTab(QWidget):
             self.burnin_file,
             [self.moving_avg_box.isChecked(), self.separate_errors_box.isChecked()],
         )
-        self.stats = BurninStats(self.burnin_file, self.text_display)
+        self.stats_class = BurninStats(self.burnin_file, self.text_display)
 
         # Determine the axis name based on the filename
         if "_axis_A_" in self.burnin_file:
@@ -189,7 +197,7 @@ class BurninTab(QWidget):
             self.text_display.append(
                 f"Summary Statistics for: {axis_name}; test no. {test_number}:\n"
             )
-            self.stats.printStats()
+            self.stats_class.printStats()
 
         burn_graph = self.burnin.getGraph()
         nav_tool = NavigationToolbar(burn_graph)

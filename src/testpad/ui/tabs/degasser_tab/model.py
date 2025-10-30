@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 from dataclasses import asdict, dataclass
 from datetime import date
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .config import (
@@ -18,16 +19,16 @@ from .config import (
 class TestResultRow:
     description: str
     pass_fail: str = ""  # "Pass" / "Fail" / "" (UI enforces)
-    spec_min: Optional[float] = None
-    spec_max: Optional[float] = None
-    measured: Optional[float] = None
+    spec_min: float | None = None
+    spec_max: float | None = None
+    measured: float | None = None
 
 
 @dataclass
 class TimeSeriesState:
     loaded: bool
     points_filled: int
-    minutes_with_data: List[int]
+    minutes_with_data: list[int]
     temperature_c: float | None = None
 
 
@@ -41,8 +42,7 @@ class Metadata:
 
 # ------------------ Model ------------------
 class DegasserModel:
-    """
-    Simple model for a 10-minute dissolved O2 test.
+    """Simple model for a 10-minute dissolved O2 test.
 
     Table A (Test Results):
       - 4 rows.
@@ -71,9 +71,19 @@ class DegasserModel:
     """
 
     def __init__(self) -> None:
-        self._oxygen_data: Dict[int, float] = {}
+        """Initialize a new DegasserModel instance.
+
+        The model is initialized with an empty time series and a default set of test
+        result rows. The temperature is set to None, and the metadata is initialized with
+        the default test date.
+
+        Returns:
+            None
+
+        """
+        self._oxygen_data: dict[int, float] = {}
         self._temperature_c: float | None = None
-        self._test_rows: List[TestResultRow] = [
+        self._test_rows: list[TestResultRow] = [
             TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS
         ]
         self._source_path: str | None = None
@@ -85,9 +95,11 @@ class DegasserModel:
     def _validate_minute(minute: int) -> None:
         """Ensure the minute identifier is an integer within the allowed 0..10 window."""
         if not isinstance(minute, int):
-            raise ValueError("Minute must be an integer.")
+            msg = "Minute must be an integer."
+            raise ValueError(msg)
         if minute < MIN_MINUTE or minute > MAX_MINUTE:
-            raise ValueError(f"Minute must be in range {MIN_MINUTE}..{MAX_MINUTE}.")
+            msg = f"Minute must be in range {MIN_MINUTE}..{MAX_MINUTE}."
+            raise ValueError(msg)
 
     @staticmethod
     def _coerce_minute(raw: str) -> int:
@@ -95,27 +107,30 @@ class DegasserModel:
         try:
             m = int(float(raw))
         except Exception as e:
-            raise ValueError(f"Time value not numeric: {raw}") from e
+            msg = f"Time value not numeric: {raw}"
+            raise ValueError(msg) from e
         DegasserModel._validate_minute(m)
         return m
 
     @staticmethod
     def _validate_oxygen(value: float | str | int) -> float:
         """Normalize an oxygen reading to float and enforce the > 0 mg/L requirement."""
-
         try:
             v = float(value)
         except Exception as e:
-            raise ValueError(f"Oxygen value not numeric: {value}") from e
+            msg = f"Oxygen value not numeric: {value}"
+            raise ValueError(msg) from e
         if v <= 0:
-            raise ValueError("Oxygen (mg/L) must be > 0.")
+            msg = "Oxygen (mg/L) must be > 0."
+            raise ValueError(msg)
         return v
 
     # -------- Metadata API --------
     def set_metadata_field(self, field: str, value: Any) -> None:
         """Update a metadata field."""
         if not hasattr(self._metadata, field):
-            raise ValueError(f"Unknown metadata field: {field}")
+            msg = f"Unknown metadata field: {field}"
+            raise ValueError(msg)
         setattr(self._metadata, field, value)
 
     def get_metadata(self) -> Metadata:
@@ -135,23 +150,24 @@ class DegasserModel:
         self._oxygen_data.pop(minute, None)
         return self.get_state()
 
-    def list_measurements(self) -> List[tuple[int, float]]:
+    def list_measurements(self) -> list[tuple[int, float]]:
         """Return the stored readings sorted by minute for stable UI rendering."""
         return sorted(self._oxygen_data.items())
 
-    def build_time_series_rows(self) -> List[tuple[int, Optional[float]]]:
+    def build_time_series_rows(self) -> list[tuple[int, float | None]]:
         """Generate an 11-row minute grid with gaps filled by ``None`` for the UI table."""
         return [
             (m, self._oxygen_data.get(m)) for m in range(MIN_MINUTE, MAX_MINUTE + 1)
         ]
 
     # -------- Temperature --------
-    def set_temperature(self, temperature_c: float | str | int) -> TimeSeriesState:
+    def set_temperature(self, temperature_c: float | str) -> TimeSeriesState:
         """Store the shared bath temperature, coercing numeric inputs to float."""
         try:
             t = float(temperature_c)
         except Exception as e:
-            raise ValueError("Temperature must be numeric.") from e
+            msg = "Temperature must be numeric."
+            raise ValueError(msg) from e
         self._temperature_c = t
         return self.get_state()
 
@@ -168,14 +184,15 @@ class DegasserModel:
     def update_test_row(
         self,
         index: int,
-        pass_fail: Optional[str] = None,
-        spec_min: Optional[float | str] = None,
-        spec_max: Optional[float | str] = None,
-        measured: Optional[float | str] = None,
-    ) -> List[TestResultRow]:
+        pass_fail: str | None = None,
+        spec_min: float | str | None = None,
+        spec_max: float | str | None = None,
+        measured: float | str | None = None,
+    ) -> list[TestResultRow]:
         """Mutate a single test-result row, coercing numerics and returning a copy list."""
         if not (0 <= index < len(self._test_rows)):
-            raise ValueError("Test row index out of range.")
+            msg = "Test row index out of range."
+            raise ValueError(msg)
         row = self._test_rows[index]
         if pass_fail is not None:
             row.pass_fail = pass_fail
@@ -193,12 +210,12 @@ class DegasserModel:
 
     # -------- CSV Load / Save --------
     def load_from_csv(self, path: str) -> TimeSeriesState:
-        """
-        Loads time series from CSV.\n
+        """Load time series from CSV.
+
         Headers (one of each required):
           time aliases: time, Time, minute, minutes, t_min
           oxygen aliases: oxygen, oxygen_mg_per_L, o2, O2, do2, DO2
-          temperature (optional): temperature_c, temp_c, Temperature, temp
+          temperature (optional): temperature_c, temp_c, Temperature, temp.
 
         Args:
             path (str): The file path to load the CSV data from.
@@ -211,25 +228,25 @@ class DegasserModel:
         temp_aliases = {"temperature_c", "temp_c", "Temperature", "temp"}
 
         self._source_path = path
-        with open(path, "r", encoding="utf-8") as f:
+        with Path(path).open("r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             if reader.fieldnames is None:
-                raise ValueError("CSV missing header row.")
+                msg = "CSV missing header row."
+                raise ValueError(msg)
             headers = set(reader.fieldnames)
 
-            def resolve(candidates: set[str], required: bool) -> Optional[str]:
+            def resolve(candidates: set[str], required: bool) -> str | None:
                 for h in headers:
                     if h in candidates:
                         return h
                 if required:
-                    raise ValueError(
-                        f"Missing required column; expected one of: {sorted(candidates)}"
-                    )
+                    msg = f"Missing required column; expected one of: {sorted(candidates)}"
+                    raise ValueError(msg)
                 return None
 
-            time_col = resolve(time_aliases, True)
-            oxy_col = resolve(oxy_aliases, True)
-            temp_col = resolve(temp_aliases, False)
+            time_col = resolve(time_aliases, required=True)
+            oxy_col = resolve(oxy_aliases, required=True)
+            temp_col = resolve(temp_aliases, required=False)
 
             # Start fresh
             self._oxygen_data.clear()
@@ -238,7 +255,8 @@ class DegasserModel:
                 raw_time = row.get(time_col, "").strip()
                 raw_oxy = row.get(oxy_col, "").strip()
                 if raw_time == "" or raw_oxy == "":
-                    raise ValueError(f"Blank time or oxygen at line {line_no}.")
+                    msg = f"Blank time or oxygen at line {line_no}."
+                    raise ValueError(msg)
                 minute = self._coerce_minute(raw_time)
                 oxy_val = self._validate_oxygen(raw_oxy)
                 self._oxygen_data[minute] = oxy_val  # overwrite if duplicate
@@ -248,8 +266,9 @@ class DegasserModel:
                         try:
                             self._temperature_c = float(raw_temp)
                         except ValueError:
+                            msg = f"Invalid temperature at line {line_no}: {raw_temp}"
                             raise ValueError(
-                                f"Invalid temperature at line {line_no}: {raw_temp}"
+                                msg
                             )
 
         return self.get_state()
@@ -262,7 +281,7 @@ class DegasserModel:
             include_temperature (bool): If True, includes the temperature column if set.
                 Defaults to True.
         """
-        with open(path, "w", newline="", encoding="utf-8") as f:
+        with Path(path).open("w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             cols = ["minute", "oxygen_mg_per_L"]
             if include_temperature and self._temperature_c is not None:
@@ -293,7 +312,7 @@ class DegasserModel:
             minutes_with_data=sorted(self._oxygen_data.keys()),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the model to primitive types for persistence or debugging.
 
         Returns:
@@ -305,13 +324,14 @@ class DegasserModel:
             - "test_table": List[Dict[str, Any]] - list of test result rows as dicts.
             - "source_path": str | None - path of last loaded CSV, if any.
             - "metadata": Dict[str, Any] - metadata fields as a dict.
+
         """
         # Persistence breadcrumb:
         # - Mirror this structure with `state_schema.json`.
         # - Future helper: add `from_dict` to rehydrate `_oxygen_data`, `_temperature_c`,
         #   `_test_rows`, `_source_path`, and metadata once presenter captures it.
         return {
-            "time_series": {k: v for k, v in self._oxygen_data.items()},
+            "time_series": dict(self._oxygen_data.items()),
             "temperature_c": self._temperature_c,
             "test_table": [asdict(r) for r in self.get_test_rows()],
             "source_path": self._source_path,

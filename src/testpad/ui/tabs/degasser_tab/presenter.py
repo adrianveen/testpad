@@ -231,6 +231,7 @@ class DegasserPresenter:
 
         Returns:
             DegasserViewState containing all current display data
+
         """
         # Gather all data from model
         metadata = self._model.get_metadata()
@@ -252,7 +253,7 @@ class DegasserPresenter:
         )
 
     def on_reset(self) -> None:
-        """Handle reset button click - clear all data"""
+        """Handle reset button click - clear all data."""
         if self._updating:
             return
         # Confirmation dialog
@@ -271,11 +272,13 @@ class DegasserPresenter:
 
     def on_generate_report(self) -> None:
         """Generate a PDF report when 'Generate Report' button is clicked.
+
         Passes data to model for report generation.
 
         Raises:
             ValueError: If report generation fails due to invalid state.
             Exception: For any other unexpected errors.
+
         """
         if self._updating:
             return

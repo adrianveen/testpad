@@ -3,10 +3,13 @@
 .pixi/* # pixi environments
 !.pixi/config.toml
 pixi.*
-planning/
+# planning/
 planning/ignore/*
+# Settings
 .vscode/
+# Agent and AI files
 AGENTS.*
+CLAUDE.*
 .python-version
 # Some specific test files
 minimal_example.py

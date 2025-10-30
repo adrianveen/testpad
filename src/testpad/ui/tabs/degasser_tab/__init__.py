@@ -5,6 +5,8 @@ tab registry. Importing the package re-exports the QWidget subclass so the
 lazy-loader can resolve it without knowing the internal layout.
 """
 
+from pathlib import Path
+
 from testpad.config import plotting
 
 from .model import DegasserModel
@@ -13,15 +15,14 @@ from .view import DegasserTab
 
 
 def create_degasser_tab(parent=None) -> DegasserTab:
-    """Factory function to create initialized Degasser tab."""
+    """Factory function creates initialized Degasser tab."""
     print("[degasser_tab] Creating degasser tab instance...")
 
     # Debug: Check if resources are accessible
     try:
         from testpad.config.defaults import DEFAULT_FUS_LOGO_PATH
-        import os
 
-        logo_exists = os.path.exists(DEFAULT_FUS_LOGO_PATH)
+        logo_exists = Path(DEFAULT_FUS_LOGO_PATH).exists()
         print(f"[degasser_tab] Logo file check: {DEFAULT_FUS_LOGO_PATH}")
         print(f"[degasser_tab]   Exists: {logo_exists}")
         if not logo_exists:
