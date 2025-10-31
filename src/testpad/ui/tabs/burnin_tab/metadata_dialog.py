@@ -17,6 +17,8 @@ from testpad.core.burnin.model import BurninModel, Metadata
 
 
 class MetadataDialog(QDialog):
+    """Custom dialog window to capture metadata for report title block."""
+
     def __init__(self, parent=None) -> None:
         """Capture metadata for report title block.
 
@@ -56,7 +58,14 @@ class MetadataDialog(QDialog):
         """
         self._tested_by_edit.setText(metadata.tested_by)
         self._test_name_edit.setText(metadata.test_name)
-        self._date_edit.setDate(QDate.toPython(metadata.test_date))
+        if metadata.test_date is not None:
+            # Convert Python date to QDate for type safety
+            qdate = QDate(
+                metadata.test_date.year,
+                metadata.test_date.month,
+                metadata.test_date.day,
+            )
+            self._date_edit.setDate(qdate)
         self._serial_number_edit.setText(metadata.rk300_serial)
 
     def _build_form(self) -> None:

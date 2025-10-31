@@ -1,7 +1,14 @@
+"""View for the Burn-in tab.
+
+This module contains the Burn-in tab view, which is responsible for
+displaying the burn-in graph and providing user interactions.
+
+"""
+
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import Slot
@@ -24,16 +31,13 @@ from testpad.core.burnin.burnin_graph import BurninGraph
 from testpad.core.burnin.burnin_presenter import BurninPresenter
 from testpad.core.burnin.burnin_stats import BurninStats
 
-if TYPE_CHECKING:
-    from testpad.core.burnin.model import BurninModel
 
-
-class myQwidget(QWidget):
+class MyQWidget(QWidget):
     def __init__(self, burnin_graph: BurninGraph):
         super().__init__()
         self.graph = burnin_graph
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
         self.graph.got_resize_event()
 
 
@@ -41,7 +45,6 @@ class BurninTab(QWidget):
     def __init__(
         self,
         parent=None,
-        model: Optional["BurninModel"] = None,
         presenter: Optional["BurninPresenter"] = None,
     ) -> None:
         super().__init__(parent)
@@ -51,32 +54,32 @@ class BurninTab(QWidget):
         # user interaction area
         selections_group = QGroupBox()
         self.select_burnin_file_btn = QPushButton(
-            "SELECT BURN-IN FILE"
+            "SELECT BURN-IN FILE",
         )  # checkbox for selecting burn-in file
         self.select_burnin_file_btn.clicked.connect(lambda: self.openFileDialog("burn"))
         # check box for summary statistics
         self.print_statistics_lbl = QLabel(
-            "Print Summary Statistics:"
+            "Print Summary Statistics:",
         )  # checkbox for printing statistics
         self.print_statistics_box = QCheckBox()
         self.print_statistics_box.setChecked(
-            False
+            False,
         )  # default for printing statistics is unchecked
         # check box to show separated error values by direction
         self.separate_errors_lbl = QLabel(
-            "Show error values separated by direction:"
+            "Show error values separated by direction:",
         )  # checkbox for separated error values
         self.separate_errors_box = QCheckBox()
         self.separate_errors_box.setChecked(
-            False
+            False,
         )  # default for separated error values is unchecked
         # check box to show moving avg with separate graphs
         self.moving_avg_lbl = QLabel(
-            "Add moving average:"
+            "Add moving average:",
         )  # checkbox for adding a moving average
         self.moving_avg_box = QCheckBox()
         self.moving_avg_box.setChecked(
-            False
+            False,
         )  # default for adding moving avg is unchecked
         # button to print graphs (this prints all selected graphs)
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
@@ -195,14 +198,14 @@ class BurninTab(QWidget):
         # Update text display with axis-specific and test number message. Call printStats() as well
         if self.print_statistics_box.isChecked():
             self.text_display.append(
-                f"Summary Statistics for: {axis_name}; test no. {test_number}:\n"
+                f"Summary Statistics for: {axis_name}; test no. {test_number}:\n",
             )
             self.stats_class.printStats()
 
         burn_graph = self.burnin.getGraph()
         nav_tool = NavigationToolbar(burn_graph)
 
-        burn_widget = myQwidget(burnin_graph=self.burnin)
+        burn_widget = MyQWidget(burnin_graph=self.burnin)
         burn_widget.setContentsMargins(5, 5, 5, 5)
         burn_layout = QVBoxLayout()
         burn_layout.setContentsMargins(5, 5, 5, 5)
@@ -216,7 +219,7 @@ class BurninTab(QWidget):
         if self.separate_errors_box.isChecked():
             seperate_graph = self.burnin.getGraphs_separated()
             nav_tool_sep = NavigationToolbar(seperate_graph)
-            separated_widget = myQwidget(burnin_graph=self.burnin)
+            separated_widget = MyQWidget(burnin_graph=self.burnin)
             separated_widget.setContentsMargins(5, 5, 5, 5)
             separated_layout = QVBoxLayout()
             separated_layout.setContentsMargins(5, 5, 5, 5)
@@ -225,7 +228,8 @@ class BurninTab(QWidget):
             separated_widget.setLayout(separated_layout)
 
             self.graph_display.addTab(
-                separated_widget, "Error vs Time with directions separated"
+                separated_widget,
+                "Error vs Time with directions separated",
             )
         else:
             pass
@@ -238,7 +242,7 @@ class BurninTab(QWidget):
             # create tab for positive error values
             nav_tool_pos = NavigationToolbar(pos_avg)
 
-            pos_error_widget = myQwidget(burnin_graph=self.burnin)
+            pos_error_widget = MyQWidget(burnin_graph=self.burnin)
             pos_error_widget.setContentsMargins(5, 5, 5, 5)
             pos_error_layout = QVBoxLayout()
             pos_error_layout.setContentsMargins(5, 5, 5, 5)
@@ -251,7 +255,7 @@ class BurninTab(QWidget):
             # create tab for negative error values
             nav_tool_neg = NavigationToolbar(neg_avg)
 
-            neg_error_widget = myQwidget(burnin_graph=self.burnin)
+            neg_error_widget = MyQWidget(burnin_graph=self.burnin)
             neg_error_widget.setContentsMargins(5, 5, 5, 5)
             neg_error_layout = QVBoxLayout()
             neg_error_layout.setContentsMargins(5, 5, 5, 5)
@@ -264,7 +268,7 @@ class BurninTab(QWidget):
             pass
 
     def _build_report_btn(self) -> QWidget:
-        """Builds the report button and its layout
+        """Builds the report button and its layout.
 
         Returns:
             QWidget: The report button and its layout
@@ -284,16 +288,13 @@ class BurninTab(QWidget):
         # TODO: Epxand to include other buttons
         self._generate_report_btn = QPushButton("GENERATE REPORT")
         self._generate_report_btn.setStyleSheet(
-            "background-color: #66A366; color: black;"
+            "background-color: #66A366; color: black;",
         )
-
-        # Add widgets to layout
-        # layout.addWidget(self._generate_report_btn)
 
         return self._generate_report_btn  # widget
 
 
-def main():
+def main() -> None:
     app = QApplication(sys.argv)
     ex = BurninTab()
     ex.show()

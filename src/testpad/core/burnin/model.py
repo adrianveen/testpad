@@ -1,19 +1,31 @@
+"""Model for burnin tab."""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
 from typing import TYPE_CHECKING
+
+from PySide6.QtCore import QDate
 
 from testpad.core.burnin.config import DEFAULT_TEST_DATE
 
 if TYPE_CHECKING:
     from datetime import date
 
-    from PySide6.QtCore import QDate
-
 
 # ------------------ Data Structures ------------------
 @dataclass
 class Metadata:
+    """Metadata for the burnin tab.
+
+    Attributes:
+        tested_by: Name of the person who ran the test.
+        test_date: Date of the test.
+        rk300_serial: RK-300 serial number.
+        test_name: Name of the test.
+
+    """
+
     tested_by: str = ""
     test_date: date | None = None
     test_name: str = ""
@@ -72,6 +84,7 @@ class BurninModel:
 
         for k, v in data.items():
             if k in valid:
+                # Convert QDate to Python date for storage
                 if k == "test_date" and isinstance(v, QDate):
                     v = v.toPython()
                 setattr(self._meta_data, k, v)

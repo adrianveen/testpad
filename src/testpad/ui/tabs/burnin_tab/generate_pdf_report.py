@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import contextlib
 import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -41,10 +40,6 @@ class GenerateReport:
         """
         self.meta_data = meta_data
         self.burnin_stats = burnin_stats
-        # DEBUG
-        # print("[DEBUG] self.burnin_stats type: ", type(self.burnin_stats))
-        print("[DEBUG] Stats class type: ", type(self.burnin_stats.positive_stats))
-        print("[DEBUG] Stats value: ", self.burnin_stats.positive_stats)
 
         self.positive_stats = self.burnin_stats.positive_stats
         self.negative_stats = self.burnin_stats.negative_stats
@@ -52,9 +47,6 @@ class GenerateReport:
             self.burnin_stats.positive_stats,
             self.burnin_stats.negative_stats,
         )
-        # Print skew and kurtosis data type
-        print("[DEBUG] Skew type: ", type(self.positive_stats[8]))
-        print("[DEBUG] Kurtosis type: ", type(self.positive_stats[9]))
 
         self.figures = figures
         self.output_dir = output_dir
@@ -158,7 +150,8 @@ class GenerateReport:
             for pair in rows:
                 row = table.row()
                 for label, value in pair:
-                    if label == "Date":
+                    if label == "Test Date":
+                        # Value is already a Python date object (converted by model)
                         value = value.strftime("%Y-%m-%d")
                     row.cell(
                         text=f"{label}: --{value}--",
@@ -240,23 +233,16 @@ class GenerateReport:
         # Calculate optimal figure dimensions
         page_width_mm = self.pdf.w
         figure_width_mm = page_width_mm - (2 * self.layout.left_margin_mm)
-        # figure_x, _ = self.layout.get_figure_position(page_width_mm)
-
-        x_pos_mm = self.pdf.get_x()
-        y_pos_mm = self.pdf.get_y()
 
         # Add to PDF one at a time
         # Calculate figure height in mm for PDF
         figure_height_mm = self.pdf.h / 2 - (2 * self.layout.top_margin_mm)
-        # for i in range(2):
-        #     figure_y = y_pos_mm + (i * figure_height_mm / 1.5)
+
         for j in range(4):
             try:
-                # figure_x = x_pos_mm + (j * figure_width_mm)
                 # Add to PDF
                 self.pdf.image(
                     temp_pngs[j],
-                    # x=x_pos_mm,
                     w=figure_width_mm,
                     h=figure_height_mm,
                     keep_aspect_ratio=True,
@@ -264,9 +250,10 @@ class GenerateReport:
             finally:
                 # Clean up temporary file
                 try:
-                    Path(temp_pngs[j]).unlink()
-                except OSError:
-                    contextlib.suppress(OSError)
+                    Path(temp_pngs[j]).unlink(missing_ok=True)
+                except OSError as e:
+                    msg = f"[WARNING] Failed to delete: {temp_pngs[j]}: {e}"
+                    print(msg)
 
 
 def main() -> None:
@@ -292,22 +279,6 @@ def main() -> None:
         "prcnt_below_thresh": 0.58,
         "num_peaks_above_thresh": 3290,
         "num_peaks_below_thresh": 0,
-    }
-    sample_burnin_stats_neg = {
-        "mean": -58,
-        "median": -55,
-        "min": 11,
-        "max": 85,
-        "std": 9.99,
-        "variance": 99.83,
-        "25th_percentile": -50,
-        "75th_percentile": -70,
-        "skewness": -0.56,
-        "kurtosis": -1.19,
-        "prcnt_above_thresh": 99.99,
-        "prcnt_below_thresh": 0.01,
-        "num_peaks_above_thresh": 0,
-        "num_peaks_below_thresh": 5801,
     }
     report = GenerateReport(
         meta_data=sample_meta_data,

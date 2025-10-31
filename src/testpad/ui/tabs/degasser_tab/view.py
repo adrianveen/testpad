@@ -1,3 +1,8 @@
+"""Degasser Tab View.
+
+This module provides the user interface for the Degasser Tab.
+"""
+
 from typing import TYPE_CHECKING, Optional, cast
 
 import PySide6.QtCore
@@ -85,23 +90,20 @@ class ColumnMajorTableWidget(QTableWidget):
             if row < rows - 1:
                 # Not at bottom of column yet, move down one row
                 return row + 1, col
-            elif col < cols - 1:
+            if col < cols - 1:
                 # At bottom of column, jump to top of next column
                 return 0, col + 1
-            else:
-                # At bottom-right corner, wrap around to top-left
-                return 0, 0
-        else:
-            # Backward navigation: up column, then left to previous column
-            if row > 0:
-                # Not at top of column yet, move up one row
-                return row - 1, col
-            elif col > 0:
-                # At top of column, jump to bottom of previous column
-                return rows - 1, col - 1
-            else:
-                # At top-left corner, wrap around to bottom-right
-                return rows - 1, cols - 1
+            # At bottom-right corner, wrap around to top-left
+            return 0, 0
+        # Backward navigation: up column, then left to previous column
+        if row > 0:
+            # Not at top of column yet, move up one row
+            return row - 1, col
+        if col > 0:
+            # At top of column, jump to bottom of previous column
+            return rows - 1, col - 1
+        # At top-left corner, wrap around to bottom-right
+        return rows - 1, cols - 1
 
     def keyPressEvent(self, event):
         """Override Qt's default key handling to implement column-major navigation.
@@ -159,10 +161,11 @@ class ColumnMajorNavigationMixin:
         Returns:
             True if event was handled (prevents further processing)
             False to allow normal event propagation
+
         """
         if event.type() == PySide6.QtCore.QEvent.Type.KeyPress:
             # Cast to QKeyEvent to access key()
-            key_event: "QKeyEvent" = event  # type: ignore[assignment]
+            key_event: QKeyEvent = event  # type: ignore[assignment]
             if key_event.key() in (
                 Qt.Key.Key_Tab,
                 Qt.Key.Key_Backtab,
@@ -253,8 +256,9 @@ class DegasserTab(BaseTab):
 
         Note: This method handles signal blocking internally to prevent
             feedback loops during updates.
+
         """
-        self._block_signals(True)
+        self._block_signals(block=True)
         try:
             # Update Metadata
             self._name_edit.setText(state.tester_name)
@@ -263,7 +267,9 @@ class DegasserTab(BaseTab):
             if state.test_date is not None:
                 # Convert Python date to QDate for type safety
                 qdate = QDate(
-                    state.test_date.year, state.test_date.month, state.test_date.day
+                    state.test_date.year,
+                    state.test_date.month,
+                    state.test_date.day,
                 )
                 self._date_edit.setDate(qdate)
 
@@ -295,6 +301,7 @@ class DegasserTab(BaseTab):
 
         Args:
             presenter: The presenter instance with event handler methods
+
         """
         # Metadata fields
         self._name_edit.textChanged.connect(presenter.on_name_changed)
@@ -421,6 +428,7 @@ class DegasserTab(BaseTab):
         return widget
 
     def _build_test_table(self) -> QWidget:
+        # TODO: Split up into smaller methods for readability and replace magic numbers
         """Build the test table section."""
         widget = QWidget()
         layout = QVBoxLayout()
@@ -660,6 +668,7 @@ class DegasserTab(BaseTab):
 
         Args:
             test_rows: List of TestResultRow objects to display
+
         """
         for row_idx, row_data in enumerate(test_rows):
             # Column 0 (Description) is read-only, set once in __init__
@@ -667,7 +676,7 @@ class DegasserTab(BaseTab):
             # Column 1: Pass/Fail dropdown
             combo = self._test_table.cellWidget(row_idx, 1)
             if combo:
-                combo = cast(QComboBox, combo)
+                combo = cast("QComboBox", combo)
                 with QSignalBlocker(combo):
                     combo.setCurrentText(row_data.pass_fail)
 
@@ -766,14 +775,12 @@ class DegasserTab(BaseTab):
         frame_width = table.frameWidth()
 
         # Calculate total height: header + all rows + frame borders + padding
-        total_height = (
+        return (
             h_header.height()  # Horizontal header (column names)
             + v_header.length()  # Sum of all row heights
             + (frame_width * 2)  # Top and bottom frame borders
             + 1  # Padding
         )
-
-        return total_height
 
     def log_message(self, message: str) -> None:
         """Log a message to the console output."""
@@ -784,7 +791,9 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
     """Delegate that appends units for measured values in the test table."""
 
     def __init__(
-        self, units_by_row: dict[int, str], parent: QWidget | None = None,
+        self,
+        units_by_row: dict[int, str],
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._units_by_row = units_by_row

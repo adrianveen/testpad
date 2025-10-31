@@ -1,4 +1,4 @@
-from typing import Optional
+"""Module contains the BurninStats class, used to compute various statistics."""
 
 import h5py
 import numpy as np
@@ -11,7 +11,16 @@ filename = "_axis_A_complete_raw_error_29.hdf5"
 
 
 class BurninStats:
-    def __init__(self, burnin_file, textbox: Optional[QTextBrowser] = None) -> None:
+    """Class to compute various statistics for the burn-in data."""
+
+    def __init__(self, burnin_file: str, textbox: QTextBrowser | None = None) -> None:
+        """Initialize the BurninStats class.
+
+        Args:
+            burnin_file (str): Path to the burn-in file.
+            textbox (QTextBrowser): Optional QTextBrowser object to display statistics.
+
+        """
         self.burnin_file = burnin_file
         self.textbox = textbox
         self.negative_stats: tuple = ()
@@ -83,7 +92,7 @@ class BurninStats:
             num_drops,
         )
 
-    def display_stats(self, title, stats) -> list:
+    def display_stats(self, title: str, stats: tuple) -> list:
         """Display the calculated statistics in the textbox."""
         (
             mean,
@@ -105,7 +114,7 @@ class BurninStats:
         # titles the table based on the iput (negative or positive error)
         self.textbox.append(f"<b><u>{title}</u></b>")
 
-        stats_list = [
+        return [
             ["Mean", int(mean)],
             ["Median", int(median)],
             ["Min", int(min_val)],
@@ -116,24 +125,14 @@ class BurninStats:
             ["75th Percentile (Q3)", f"-{int(q75)}"],
             ["Skewness", f"{skew_val:.2f}"],
             ["Kurtosis", f"{kurt_val:.2f}"],
-            ["Percentage above threshold", f"{pct_abv/100:.2%}"],
-            ["Percentage below threshold", f"{pct_blw/100:.2%}"],
+            ["Percentage above threshold", f"{pct_abv / 100:.2%}"],
+            ["Percentage below threshold", f"{pct_blw / 100:.2%}"],
             ["Number of peaks above threshold", peaks],
             ["Number of drops below threshold", drops],
         ]
 
-        return stats_list
-        # returns a list of lists
-        # [
-        # [statistic, value],
-        # [stat, value2],
-        # [stat, value3]
-        # ]
-
-    def display_table(self, data, add_gap=True):
-        # if add_gap:
-        #     self.textbox.append("<br><br>")
-
+    def display_table(self, data: list) -> None:
+        """Display the statistics in a table format."""
         # create basic HTML table structure
         table_html = "<table border='1'> cellpadding='4' cellspacing='0' width='100%'>"
         # create table header
@@ -149,13 +148,15 @@ class BurninStats:
         self.textbox.append("<div style='line-height:0.5;'><br></div>")
 
     def printStats(self) -> None:
+        """Print the statistics to the textbox."""
         pos_listof_stats = self.display_stats(
-            "Positive Error Statistics:", self.positive_stats
+            "Positive Error Statistics:",
+            self.positive_stats,
         )
         self.display_table(pos_listof_stats)
         # Display negative error statistics
         neg_listof_stats = self.display_stats(
-            "\nNegative Error Statistics:\n", self.negative_stats
+            "\nNegative Error Statistics:\n",
+            self.negative_stats,
         )
-        print("[DEBUG] Stats created in burnin_stats.py")
         self.display_table(neg_listof_stats)

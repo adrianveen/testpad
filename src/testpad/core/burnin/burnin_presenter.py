@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from datetime import datetime
+"""Contains the BurninPresenter class, which is the presenter for the Burnin tab."""
+
 from typing import TYPE_CHECKING
 
 from PySide6 import QtWidgets
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
 
 
 class BurninPresenter:
+    """Burn in presenter connects view and model."""
+
     def __init__(self, model: BurninModel, view: "BurninView") -> None:
         """Burn in presenter connects view and model."""
         self._view = view
@@ -77,8 +80,8 @@ class BurninPresenter:
         initial_values = self._model.get_metadata()
         dialog.set_initial_values(initial_values)
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-           data = dialog.get_metadata()
-           self._model.update_metadata(data)
+            data = dialog.get_metadata()
+            self._model.update_metadata(data)
 
         metadata = self._model.get_metadata()
         report_meta = {

@@ -1,3 +1,5 @@
+"""BurninGraph class for generating graphs of the error vs time."""
+
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,8 +32,7 @@ class BurninGraph:
 
     # graphs error vs time
     def getGraph(self) -> FigureCanvas:
-        """
-        Generates canvas for the error vs time graph
+        """Generates canvas for the error vs time graph.
 
         :param self: Description
         :return: Description
@@ -108,9 +109,10 @@ class BurninGraph:
 
         return self.canvas
 
-    # calculate moving average of error values and produce graph for positive and negative error separately
+    # calculate moving average of error values and
+    # produce graph for positive and negative error separately
     def movingAvg(self) -> list[FigureCanvas]:
-        """Takes the already separated negative and positive error, and produces two graphs via a for loop.
+        """Take the separated negative and positive error, and produces two graphs.
 
         The old code is commented out below the for loop.
         Each graph will have it's own canvas and will be returned as a list of canvases.
@@ -174,4 +176,5 @@ class BurninGraph:
         return canvases  # return list of canvases
 
     def got_resize_event(self):
+        """Resizes the figure to fit the canvas."""
         self.fig.tight_layout(pad=0.5)

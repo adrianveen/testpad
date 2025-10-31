@@ -4,6 +4,7 @@ This module provides pure functions for creating matplotlib figures
 
 """
 
+import contextlib
 import os
 import tempfile
 from collections.abc import Mapping, Sequence
@@ -80,10 +81,8 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
         return temp_path
     except Exception:
         # Clean up on error
-        try:
+        with contextlib.suppress(OSError):
             Path(temp_path).unlink()
-        except OSError:
-            pass
         raise
 
 
