@@ -58,7 +58,7 @@ class LinearScan:
         # files_list = [f for f in os.listdir(folder) if f.endswith('.hdf5')] # include only hdf5 files
         # files_list = sorted(files_list, key=lambda x: int((x.split('.')[0]).split('_')[-1])) # sort so that the latest scan is used
         files_list = sorted(
-            files, key=lambda x: int((x[x.rfind(".") - 1]))
+            files, key=lambda x: int(x[x.rfind(".") - 1])
         )  # sort so that the latest scan is used
         # print(files_list)
 
@@ -96,7 +96,7 @@ class LinearScan:
             if z_line:
                 textbox.append("z linear: " + z_line_scan)
                 trans_freq_filename = z_line_scan
-        except NameError as e:
+        except NameError:
             textbox.append(
                 "\nOops! One or more of the scan files does not exist. \
                     Did you input the right folder? Are there scans missing?\

@@ -540,7 +540,7 @@ class Vol2PressTab(QWidget):
         self.summary_dict = {}
         self.summary_dict[self.transducer_field.text()] = self.values_dict
 
-        with open(self.save_file_path, "wt", encoding="utf8") as f:
+        with open(self.save_file_path, "w", encoding="utf8") as f:
             full_path = os.path.join(self.save_location, self.config_filename)
             self.text_display.append(f"Writing dictionary to {full_path}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)

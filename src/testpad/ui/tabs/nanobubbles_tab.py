@@ -119,7 +119,9 @@ class NanobubblesTab(QWidget):
         selections_layout.addWidget(self.data_selection, 5, 1)
         # add compare label and checkbox
         selections_layout.addWidget(self.compare_label, 6, 0)
-        selections_layout.addWidget(self.compare_box, 6, 1, Qt.AlignmentFlag.AlignCenter)
+        selections_layout.addWidget(
+            self.compare_box, 6, 1, Qt.AlignmentFlag.AlignCenter
+        )
 
         # add save label and checkbox
         selections_layout.addWidget(self.save_label, 7, 0)

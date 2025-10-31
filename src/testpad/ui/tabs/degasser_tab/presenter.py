@@ -91,6 +91,7 @@ class DegasserPresenter:
 
         Raises:
             ValueError: If the value is invalid.
+
         """
         if self._updating:
             return
@@ -108,6 +109,7 @@ class DegasserPresenter:
 
         Raises:
             ValueError: If oxygen level is invalid.
+
         """
         if self._updating:
             return
@@ -142,6 +144,7 @@ class DegasserPresenter:
 
         Raises:
             ValueError: If temperature is out of valid range.
+
         """
         if self._updating:
             return
@@ -149,7 +152,7 @@ class DegasserPresenter:
             self._model.clear_temperature()
             self._refresh_view()
         else:
-            temp = cast(str, temp).strip()
+            temp = cast("str", temp).strip()
             try:
                 self._model.set_temperature(temp)
                 self._refresh_view()
@@ -162,6 +165,7 @@ class DegasserPresenter:
         Raises:
             ValueError: If import fails due to invalid file format.
             Exception: For any other unexpected errors.
+
         """
         if self._updating:
             return
@@ -186,9 +190,11 @@ class DegasserPresenter:
 
     def _on_export_csv(self) -> None:
         """Handle export CSV button click.
+
         Raises:
             ValueError: If export fails due to invalid state.
             Exception: For any other unexpected errors.
+
         """
         if self._updating:
             return

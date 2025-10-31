@@ -1,8 +1,6 @@
-import os
 import sys
 from io import StringIO
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -155,7 +153,7 @@ class HydrophoneGraph:
     def get_graphs(self, mode: str = "single") -> FigureCanvas:
         """Generate a canvas for the sensitivity vs frequency graph.
 
-        :param mode: Method of plotting data. Possible values are "single", "append", 
+        :param mode: Method of plotting data. Possible values are "single", "append",
             and "overlaid".
         :return: A FigureCanvas object.
 

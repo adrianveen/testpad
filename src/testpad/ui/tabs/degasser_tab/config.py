@@ -1,5 +1,4 @@
-"""
-Configuration specific to the Degasser (Dissolved O2) tab.
+"""Configuration specific to the Degasser (Dissolved O2) tab.
 
 Contains DS-50 specifications, test descriptions, and validation rules.
 """

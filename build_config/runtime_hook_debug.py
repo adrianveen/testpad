@@ -1,5 +1,4 @@
-"""
-Runtime debugging hook for PyInstaller builds.
+"""Runtime debugging hook for PyInstaller builds.
 Logs import attempts and helps diagnose missing modules.
 """
 

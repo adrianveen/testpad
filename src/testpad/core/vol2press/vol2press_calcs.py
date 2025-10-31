@@ -137,6 +137,6 @@ if __name__ == "__main__":
         r"C:\Users\RKPC\Downloads\2183-eb50_1.yaml",
         r"C:\Users\RKPC\Downloads\BRNO-eb50_1.yaml",
         r"C:\Users\RKPC\Downloads\336-T1200H600\336-T1200H600\1st_harmonic\Report\sweep_336-T1200H600_1200kHz_1.txt",
-        1.5
+        1.5,
     )
     print(a.return_B_value())

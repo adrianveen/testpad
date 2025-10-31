@@ -3,6 +3,7 @@
 These are user-facing defaults that can be overridden by user preferences
 or loaded from configuration files.
 """
+
 import datetime
 from pathlib import Path
 
@@ -30,6 +31,8 @@ DEFAULT_CSV_DELIMITER = ","
 
 # === Date Defaults ===
 ISO_8601_DATE_FORMAT = "yyyy/MM/dd"
+
+
 def default_date() -> datetime.date:
     """Return today's date as a date object (no time component)."""
     return datetime.datetime.now(tz=datetime.UTC).date()

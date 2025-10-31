@@ -295,7 +295,7 @@ class MatchingBoxTab(QWidget):
                 self._pan_start = event.pos()
                 self.image_scroll.setCursor(Qt.ClosedHandCursor)
                 return True
-            elif event.type() == QEvent.MouseMove and self._panning:
+            if event.type() == QEvent.MouseMove and self._panning:
                 delta = event.pos() - self._pan_start
                 self._pan_start = event.pos()
                 h = self.image_scroll.horizontalScrollBar()
@@ -303,14 +303,14 @@ class MatchingBoxTab(QWidget):
                 h.setValue(h.value() - delta.x())
                 v.setValue(v.value() - delta.y())
                 return True
-            elif (
+            if (
                 event.type() == QEvent.MouseButtonRelease
                 and event.button() == Qt.LeftButton
             ):
                 self._panning = False
                 self.image_scroll.setCursor(Qt.ArrowCursor)
                 return True
-            elif event.type() == QEvent.Wheel and (
+            if event.type() == QEvent.Wheel and (
                 event.modifiers() & Qt.ControlModifier
             ):
                 # Zoom in/out keeping the cursor position roughly stable

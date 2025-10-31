@@ -3,20 +3,54 @@ import numpy as np
 from scipy import stats
 
 # Baseline Vpp measurements for the transducer (replace / refresh as needed)
-vpp_baseline = np.array([
-    11.9, 15.0, 13.6, 14.5, 14.2, 14.4, 15.6, 13.6, 13.7, 15.2,
-    13.0, 13.8, 14.4, 13.3, 14.0, 13.3, 13.6, 15.3, 12.6, 14.8, 13.4,
-    13.2, 14.3, 13.0, 12.2, 14.2, 12.0, 14.2, 13.6, 13.8, 13.4, 14.5, 13.6
-])
+vpp_baseline = np.array(
+    [
+        11.9,
+        15.0,
+        13.6,
+        14.5,
+        14.2,
+        14.4,
+        15.6,
+        13.6,
+        13.7,
+        15.2,
+        13.0,
+        13.8,
+        14.4,
+        13.3,
+        14.0,
+        13.3,
+        13.6,
+        15.3,
+        12.6,
+        14.8,
+        13.4,
+        13.2,
+        14.3,
+        13.0,
+        12.2,
+        14.2,
+        12.0,
+        14.2,
+        13.6,
+        13.8,
+        13.4,
+        14.5,
+        13.6,
+    ]
+)
 
 # ---------------------------- Robust Baseline Stats ---------------------------- #
+
 
 def _mad(data: np.ndarray) -> float:
     """Median Absolute Deviation (unscaled)."""
     med = np.median(data)
     return np.median(np.abs(data - med))
 
-def compute_baseline_stats(data: np.ndarray):
+
+def compute_baseline_stats(data: np.ndarray) -> dict[str, float]:
     """Compute robust + classical summary statistics.
 
     Returns dict with:
@@ -30,12 +64,21 @@ def compute_baseline_stats(data: np.ndarray):
     mad_scaled = 1.4826 * mad_raw if mad_raw > 0 else 0.0
     mean = float(np.mean(data))
     sd = float(np.std(data, ddof=1)) if n > 1 else 0.0
-    return dict(n=n, median=median, mad_raw=mad_raw, mad_scaled=mad_scaled, mean=mean, sd=sd)
+    return {
+        "n": n,
+        "median": median,
+        "mad_raw": mad_raw,
+        "mad_scaled": mad_scaled,
+        "mean": mean,
+        "sd": sd,
+    }
+
 
 # Pre-compute baseline stats once
 _baseline = compute_baseline_stats(vpp_baseline)
 
-def update_baseline(new_values, replace: bool = False):
+
+def update_baseline(new_values, replace: bool = False) -> dict[str, int | float]:
     """Update the baseline dataset and recompute stats.
 
     Parameters
@@ -49,6 +92,7 @@ def update_baseline(new_values, replace: bool = False):
     Returns
     -------
     dict : updated baseline stats.
+
     """
     global vpp_baseline, _baseline
     arr = np.asarray(new_values, float)
@@ -61,7 +105,9 @@ def update_baseline(new_values, replace: bool = False):
     _baseline = compute_baseline_stats(vpp_baseline)
     return _baseline
 
+
 # ---------------------------- Prediction Intervals ---------------------------- #
+
 
 def prediction_interval_t(value_stats: dict, alpha: float = 0.05):
     """Two-sided (1-alpha) prediction interval for ONE future observation
@@ -69,12 +115,13 @@ def prediction_interval_t(value_stats: dict, alpha: float = 0.05):
     PI: mean ± t_{1-alpha/2, n-1} * s * sqrt(1 + 1/n)
     Returns (lo, hi) or (None, None) if insufficient data.
     """
-    n = value_stats['n']
-    if n < 3 or value_stats['sd'] == 0:
+    n = value_stats["n"]
+    if n < 3 or value_stats["sd"] == 0:
         return (None, None)
-    tcrit = stats.t.ppf(1 - alpha/2, n - 1)
-    half_width = tcrit * value_stats['sd'] * np.sqrt(1 + 1/n)
-    return (value_stats['mean'] - half_width, value_stats['mean'] + half_width)
+    tcrit = stats.t.ppf(1 - alpha / 2, n - 1)
+    half_width = tcrit * value_stats["sd"] * np.sqrt(1 + 1 / n)
+    return (value_stats["mean"] - half_width, value_stats["mean"] + half_width)
+
 
 # ---------------------------- Hampel (Median/MAD) Rule ---------------------------- #
 # Widely used robust outlier detection. Thresholds tuned for small n.
@@ -86,14 +133,16 @@ def prediction_interval_t(value_stats: dict, alpha: float = 0.05):
 HampelSuspectZ = 3.0
 HampelOutlierZ = 4.5
 
+
 def robust_z(value: float, stats_dict: dict):
     """Compute robust standardized distance (z) for a new value."""
-    mad_s = stats_dict['mad_scaled']
+    mad_s = stats_dict["mad_scaled"]
     if mad_s == 0:  # Fallback to sd if MAD degenerates
-        if stats_dict['sd'] == 0:
+        if stats_dict["sd"] == 0:
             return 0.0
-        return (value - stats_dict['median']) / stats_dict['sd']
-    return (value - stats_dict['median']) / mad_s
+        return (value - stats_dict["median"]) / stats_dict["sd"]
+    return (value - stats_dict["median"]) / mad_s
+
 
 def classify_vpp(value: float):
     """Classify a new Vpp measurement.
@@ -113,65 +162,68 @@ def classify_vpp(value: float):
     """
     z = abs(robust_z(value, _baseline))
     if z > HampelOutlierZ:
-        cls = 'OUTLIER'
+        cls = "OUTLIER"
     elif z >= HampelSuspectZ:
-        cls = 'SUSPECT'
+        cls = "SUSPECT"
     else:
-        cls = 'OK'
+        cls = "OK"
 
     # Hampel OK interval (symmetric about median)
-    if _baseline['mad_scaled'] > 0:
-        ok_half = HampelSuspectZ * _baseline['mad_scaled']
-        ok_interval = (_baseline['median'] - ok_half, _baseline['median'] + ok_half)
-    elif _baseline['sd'] > 0:
-        ok_half = HampelSuspectZ * _baseline['sd']
-        ok_interval = (_baseline['median'] - ok_half, _baseline['median'] + ok_half)
+    if _baseline["mad_scaled"] > 0:
+        ok_half = HampelSuspectZ * _baseline["mad_scaled"]
+        ok_interval = (_baseline["median"] - ok_half, _baseline["median"] + ok_half)
+    elif _baseline["sd"] > 0:
+        ok_half = HampelSuspectZ * _baseline["sd"]
+        ok_interval = (_baseline["median"] - ok_half, _baseline["median"] + ok_half)
     else:
-        ok_interval = (_baseline['median'], _baseline['median'])
+        ok_interval = (_baseline["median"], _baseline["median"])
 
     pi_t = prediction_interval_t(_baseline)
 
     return {
-        'value': float(value),
-        'robust_z': float(z),
-        'classification': cls,
-        'median': _baseline['median'],
-        'mad_scaled': _baseline['mad_scaled'],
-        'mean': _baseline['mean'],
-        'sd': _baseline['sd'],
-        'n': _baseline['n'],
-        'hampel_ok_interval': ok_interval,
-        'prediction_interval_t': pi_t,
+        "value": float(value),
+        "robust_z": float(z),
+        "classification": cls,
+        "median": _baseline["median"],
+        "mad_scaled": _baseline["mad_scaled"],
+        "mean": _baseline["mean"],
+        "sd": _baseline["sd"],
+        "n": _baseline["n"],
+        "hampel_ok_interval": ok_interval,
+        "prediction_interval_t": pi_t,
     }
+
 
 # Backwards compatible simple boolean (kept name but now uses Hampel OK interval)
 def check_new_vpp(vpp_new: float) -> bool:
-    """
-    Return True only if the value is classified as 'OK' (|z| <= HampelSuspectZ).
+    """Return True only if the value is classified as 'OK' (|z| <= HampelSuspectZ).
     Eliminates edge inconsistency caused by floating point comparisons with the
     precomputed interval.
     """
     classification_result = classify_vpp(vpp_new)
-    return classification_result['classification'] == 'OK'
+    return classification_result["classification"] == "OK"
+
 
 # Convenience: run a short demo if executed directly
-if __name__ == '__main__':
-    print('Baseline summary:')
+if __name__ == "__main__":
+    print("Baseline summary:")
     for k, v in _baseline.items():
-        print(f'  {k}: {v}')
-    lo_ok, hi_ok = classify_vpp(_baseline['median'])['hampel_ok_interval']
-    print(f'Hampel OK interval (|z| <= {HampelSuspectZ}): [{lo_ok:.3f}, {hi_ok:.3f}]')
+        print(f"  {k}: {v}")
+    lo_ok, hi_ok = classify_vpp(_baseline["median"])["hampel_ok_interval"]
+    print(f"Hampel OK interval (|z| <= {HampelSuspectZ}): [{lo_ok:.3f}, {hi_ok:.3f}]")
     pi = prediction_interval_t(_baseline)
     if all(x is not None for x in pi):
-        print(f'Parametric t prediction interval (context): [{pi[0]:.3f}, {pi[1]:.3f}]')
+        print(f"Parametric t prediction interval (context): [{pi[0]:.3f}, {pi[1]:.3f}]")
 
     test_values = [12.0, 13.5, 14.7, 16.5, 10.0]
-    print('\nTest classifications:')
+    print("\nTest classifications:")
     for val in test_values:
         res = classify_vpp(val)
-        print(f"  {val:5.2f} -> {res['classification']} (robust_z={res['robust_z']:.2f})")
+        print(
+            f"  {val:5.2f} -> {res['classification']} (robust_z={res['robust_z']:.2f})"
+        )
 
     # Demonstrate updating baseline
-    print('\nUpdating baseline with new values [14.1, 14.0] (append) ...')
+    print("\nUpdating baseline with new values [14.1, 14.0] (append) ...")
     update_baseline([14.1, 14.0])
-    print('New n:', _baseline['n'])
+    print("New n:", _baseline["n"])

@@ -1,4 +1,5 @@
 """A module for generating graphs of the sweep data."""
+
 import os
 import re
 import sys

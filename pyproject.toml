@@ -37,7 +37,7 @@ build-backend = "setuptools.build_meta"
 line-length = 88
 [tool.ruff.lint]
 extend-select = ["ALL", "PTH", "E501", "D417", "D401", "ERA001", "RET504", "Q000", "SIM105", "ANN", "EXE001"]
-ignore = ["T201", "DTZ005", "D203", "D213", "COM812", "INP001"]
+ignore = ["T201", "DTZ005", "D203", "D213", "COM812", "INP001", "D100", "D104"]
 [tool.ruff.format]
 # Use double quotes for strings
 quote-style = "double"

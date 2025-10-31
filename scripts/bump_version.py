@@ -17,12 +17,15 @@ from pathlib import Path
 
 def run_command(cmd: str, check=True) -> str:
     """Run shell command and return output."""
-    result = subprocess.run(cmd, check=False, shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        cmd, check=False, shell=True, capture_output=True, text=True
+    )
     if check and result.returncode != 0:
         print(f"❌ ERROR: Command failed: {cmd}")
         print(result.stderr)
         sys.exit(1)
     return result.stdout.strip()
+
 
 def check_git_status() -> None:
     """Ensure clean working directory."""

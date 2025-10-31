@@ -1,4 +1,3 @@
-import os
 import sys
 from io import StringIO
 from pathlib import Path
@@ -82,7 +81,7 @@ class NanobubblesGraph:
         #         encoding="latin1",
         #         header=88
         #     )
-        with open(file, "r") as f:
+        with open(file) as f:
             lines = f.readlines()
 
         drop_lines_index = 0

@@ -45,6 +45,7 @@ class ReportLayout:
 
         Returns:
             Figure width in mm
+
         """
         available_width = (
             page_width_mm
@@ -66,6 +67,7 @@ class ReportLayout:
 
         Returns:
             Tuple of (x_position_mm, y_position_mm)
+
         """
         x_position = self.left_margin_mm + self.table_width_mm + self.table_gap_mm
         return x_position, 0  # y_position will be set by caller
@@ -91,6 +93,7 @@ class FigureConfig:
 
         Returns:
             Tuple of (width_inches, height_inches)
+
         """
         # Convert mm to inches (1 inch = 25.4 mm)
         target_width_inches = target_width_mm / 25.4

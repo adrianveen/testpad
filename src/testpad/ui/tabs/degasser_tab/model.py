@@ -4,7 +4,7 @@ import csv
 from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .config import (
     DEFAULT_TEST_DATE,
@@ -113,7 +113,7 @@ class DegasserModel:
         return m
 
     @staticmethod
-    def _validate_oxygen(value: float | str | int) -> float:
+    def _validate_oxygen(value: float | str) -> float:
         """Normalize an oxygen reading to float and enforce the > 0 mg/L requirement."""
         try:
             v = float(value)
@@ -204,7 +204,7 @@ class DegasserModel:
             row.measured = float(measured)
         return self.get_test_rows()
 
-    def get_test_rows(self) -> List[TestResultRow]:
+    def get_test_rows(self) -> list[TestResultRow]:
         """Return deep-copied test rows so callers cannot mutate internal state."""
         return [TestResultRow(**asdict(r)) for r in self._test_rows]
 
@@ -222,6 +222,7 @@ class DegasserModel:
 
         Raises:
             ValueError on first invalid row.
+
         """
         time_aliases = {"time", "Time", "minute", "minutes", "t_min"}
         oxy_aliases = {"oxygen", "oxygen_mg_per_L", "o2", "O2", "do2", "DO2"}
@@ -267,9 +268,7 @@ class DegasserModel:
                             self._temperature_c = float(raw_temp)
                         except ValueError:
                             msg = f"Invalid temperature at line {line_no}: {raw_temp}"
-                            raise ValueError(
-                                msg
-                            )
+                            raise ValueError(msg)
 
         return self.get_state()
 
@@ -280,6 +279,7 @@ class DegasserModel:
             path (str): The file path to write the CSV data to.
             include_temperature (bool): If True, includes the temperature column if set.
                 Defaults to True.
+
         """
         with Path(path).open("w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)

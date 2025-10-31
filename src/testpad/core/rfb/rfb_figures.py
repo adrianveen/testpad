@@ -38,7 +38,7 @@ class CreateRFBGraph:
         # open the filename, read the lines
         # print(self.filenames)
         for filename in self.filenames:
-            with open(filename, "r") as f:
+            with open(filename) as f:
                 self.lines = f.readlines()
 
             # get the indices of the data summary heading and the header row

@@ -11,6 +11,7 @@ class ITab(Protocol):
     def on_show(self) -> None: ...
     def on_close(self) -> None: ...
 
+
 class BaseTab(QWidget):
     def save_state(self) -> dict[str, Any]:
         return {}

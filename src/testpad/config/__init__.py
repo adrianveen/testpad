@@ -36,5 +36,5 @@ __all__ = [
     "MAX_REASONABLE_TEMP_C",
     "MIN_OXYGEN_LEVEL_MG_L",
     "STANDARD_ROOM_TEMP_C",
-    "WATER_BOILING_C"
+    "WATER_BOILING_C",
 ]

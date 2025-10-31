@@ -1,4 +1,5 @@
-from Pyside6 import QtWidgets, QtCore
+from Pyside6 import QtCore, QtWidgets
+
 from testpad.ui.tabs.burnin_tab.view import BurninView as _view
 
 # Collect report metadata via a quick popup dialog
