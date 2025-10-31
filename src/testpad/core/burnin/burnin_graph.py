@@ -8,7 +8,28 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 
 class BurninGraph:
-    def __init__(self, burnin_file, separate_errors_flags: list = []) -> None:
+    """BurninGraph class for generating graphs of the error vs time."""
+
+    def __init__(
+        self, burnin_file: str, separate_errors_flags: list | None = None
+    ) -> None:
+        """Initialize the BurninGraph class.
+
+        Args:
+            burnin_file (str): Path to the burn-in file.
+            separate_errors_flags (list | None): A list of flags indicating whether
+                the error values should be separated into positive and negative values.
+                If None, the error values will not be separated.
+
+        Attributes:
+            burnin_file (str): Path to the burn-in file.
+            separate_errors (bool): Whether the error values should be separated.
+            positive_errors (list): List of positive error values.
+            negative_errors (list): List of negative error values.
+
+        """
+        if separate_errors_flags is None:
+            separate_errors_flags = []
         self.burnin_file = burnin_file
 
         # check if any of the checkboxes that require the error
@@ -31,8 +52,8 @@ class BurninGraph:
             self.negative_errors = None
 
     # graphs error vs time
-    def getGraph(self) -> FigureCanvas:
-        """Generates canvas for the error vs time graph.
+    def get_graph(self) -> FigureCanvas:
+        """Generate canvas for the error vs time graph.
 
         :param self: Description
         :return: Description
@@ -65,7 +86,13 @@ class BurninGraph:
         return self.canvas
 
     # graph error vs time with 0 values remove
-    def getGraphs_separated(self):
+    def get_graphs_separated(self) -> FigureCanvas:
+        """Generate canvas for the error vs time graph.
+
+        :param self: Description
+        :return: Description
+        :rtype: FigureCanvasQTAgg
+        """
         # generate the figure and axis
         self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
         self.canvas = FigureCanvas(self.fig)
@@ -111,7 +138,7 @@ class BurninGraph:
 
     # calculate moving average of error values and
     # produce graph for positive and negative error separately
-    def movingAvg(self) -> list[FigureCanvas]:
+    def moving_avg_plot(self) -> list[FigureCanvas]:
         """Take the separated negative and positive error, and produces two graphs.
 
         The old code is commented out below the for loop.
@@ -175,6 +202,6 @@ class BurninGraph:
 
         return canvases  # return list of canvases
 
-    def got_resize_event(self):
+    def got_resize_event(self) -> None:
         """Resizes the figure to fit the canvas."""
         self.fig.tight_layout(pad=0.5)

@@ -1,5 +1,5 @@
-"""
-Physical and scientific constants for FUS Instruments Testpad.
+"""Physical and scientific constants for FUS Instruments Testpad.
+
 These values are based on physical laws and should never change.
 """
 

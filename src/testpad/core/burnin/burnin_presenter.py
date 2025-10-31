@@ -26,7 +26,7 @@ class BurninPresenter:
 
     def initialize(self) -> None:
         """Call after view is constructed."""
-        # self._refresh_view()  # TODO: implement
+        # self._refresh_view()  # TODO: implement refresh view
         self._connect_signals()
 
     def _connect_signals(self) -> None:
@@ -100,12 +100,12 @@ class BurninPresenter:
         # Create list for figures
         list_of_figs = []
         # Get main figure
-        main_canvas = burnin.getGraph()
+        main_canvas = burnin.get_graph()
         main_fig = main_canvas.figure
         list_of_figs.append(main_fig)
         # Get saparated figure
         if self._view.separate_errors_box.isChecked():
-            separate_canvas = burnin.getGraphs_separated()
+            separate_canvas = burnin.get_graphs_separated()
             separate_fig = separate_canvas.figure
             list_of_figs.append(separate_fig)
         else:
@@ -113,7 +113,7 @@ class BurninPresenter:
 
         # Moving Averages
         if self._view.moving_avg_box.isChecked():
-            pos_canvas, neg_canvas = burnin.movingAvg()
+            pos_canvas, neg_canvas = burnin.moving_avg_plot()
             pos_avg_fig = pos_canvas.figure
             neg_avg_fig = neg_canvas.figure
             list_of_figs.append(pos_avg_fig)

@@ -1,24 +1,55 @@
-import numpy as np
 import os
 import re
 from datetime import datetime
+from pathlib import Path
 
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QLineEdit, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
+import numpy as np
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.ticker import MultipleLocator
+from PySide6.QtCore import Qt, Slot
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QTabWidget,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
+)
 
 from testpad.core.hydrophone.hydrophone_graph import HydrophoneGraph
 
+
 class HydrophoneAnalysisTab(QWidget):
-    def __init__(self, parent=None) -> None:
+    """Tab for hydrophone analysis."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the HydrophoneAnalysisTab class.
+
+        Constructs the tab with the following attributes:
+            hydrophone_scan_data: None
+            file_save_location: None
+            graph: None
+            hydrophone_object: None
+            mode: None
+            serials: None
+
+        Args:
+            parent: Optional[QWidget], parent widget for this tab.
+
+        """
         super().__init__(parent)
 
         self.hydrophone_scan_data = None
         self.file_save_location = None
         self.graph = None
-        self.hydrophone_object = None
+        self.hydrophone_object: HydrophoneGraph | None = None
         self.mode = None
         self.serials = None
 
@@ -37,27 +68,29 @@ class HydrophoneAnalysisTab(QWidget):
 
         # 3) Set the placeholder *after* it’s editable
         self.combo_box.setPlaceholderText("Select CSV Format")
-        le.setPlaceholderText("Select CSV Format")   # ensure the edit itself knows
+        le.setPlaceholderText("Select CSV Format")  # ensure the edit itself knows
         self.combo_box.setCurrentIndex(-1)
         # compare checkbox
         self.compare_label = QLabel("Compare multiple datasets:")
         self.compare_box = QCheckBox()
-        self.compare_box.setToolTip("Select to compare multiple datasets if legacy data set is being used.")
-        self.compare_box.setEnabled(False) # disable for now
+        self.compare_box.setToolTip(
+            "Select to compare multiple datasets if legacy data set is being used."
+        )
+        self.compare_box.setEnabled(False)  # disable for now
         self.compare_box.setChecked(False)
-        self.combo_box.currentIndexChanged.connect(self.onFormatChanged)
-        self.onFormatChanged(self.combo_box.currentIndex())
+        self.combo_box.currentIndexChanged.connect(self._on_format_changed)
+        self._on_format_changed(self.combo_box.currentIndex())
         # select file button
         self.select_file_btn = QPushButton("SELECT HYDROPHONE CSV FILE(S)")
-        self.select_file_btn.clicked.connect(lambda: self.openFileDialog("csv"))
+        self.select_file_btn.clicked.connect(lambda: self._open_file_dialog("csv"))
         # print graph button
         self.print_graph_btn = QPushButton("PRINT GRAPH(S)")
         self.print_graph_btn.setStyleSheet("background-color: #66A366; color: black;")
-        self.print_graph_btn.clicked.connect(lambda: self.print_graphs_clicked())
+        self.print_graph_btn.clicked.connect(lambda: self._print_graphs_clicked())
         # save graphs as SVG button
         self.save_as_svg_btn = QPushButton("SAVE GRAPH AS SVG")
         self.save_as_svg_btn.setEnabled(False)
-        self.save_as_svg_btn.clicked.connect(lambda: self.openFileDialog("save"))
+        self.save_as_svg_btn.clicked.connect(lambda: self._open_file_dialog("save"))
 
         # Layout for user interaction area
         selections_layout = QGridLayout()
@@ -65,7 +98,7 @@ class HydrophoneAnalysisTab(QWidget):
         rows = [
             (self.combo_label, self.combo_box),  # 2-cell row
             (self.compare_label, self.compare_box),  # 2-cell row
-            (self.select_file_btn,),                 # 1-widget, spans 2 columns
+            (self.select_file_btn,),  # 1-widget, spans 2 columns
             (self.print_graph_btn,),
             (self.save_as_svg_btn,),
         ]
@@ -73,7 +106,7 @@ class HydrophoneAnalysisTab(QWidget):
         for r, cells in enumerate(rows):
             if len(cells) == 1:
                 selections_layout.addWidget(cells[0], r, 0, 1, 2)
-            else:                   # exactly two widgets: left + right
+            else:  # exactly two widgets: left + right
                 selections_layout.addWidget(cells[0], r, 0)
                 selections_layout.addWidget(cells[1], r, 1)
         selections_layout.setAlignment(self.compare_box, Qt.AlignmentFlag.AlignCenter)
@@ -82,7 +115,7 @@ class HydrophoneAnalysisTab(QWidget):
         # TEXT CONSOLE
         self.text_display = QTextBrowser()
 
-        # GRAPH DISPLAY 
+        # GRAPH DISPLAY
         self.graph_tab = QTabWidget()
 
         # MAIN LAYOUT
@@ -91,13 +124,16 @@ class HydrophoneAnalysisTab(QWidget):
         main_layout.addWidget(self.text_display, 1, 0)
         main_layout.addWidget(self.graph_tab, 0, 1, 2, 1)
         self.setLayout(main_layout)
-    
+
     @Slot()
-    def openFileDialog(self, d_type):
-        if d_type == "csv": # open hydrophone csv 
+    def _open_file_dialog(self, d_type) -> None:
+        if d_type == "csv":  # open hydrophone csv
             self.dialog1 = QFileDialog(self)
-            
-            if self.compare_box.isChecked() or self.combo_box.currentText() == "Multiple CSV files per transducer":
+
+            if (
+                self.compare_box.isChecked()
+                or self.combo_box.currentText() == "Multiple CSV files per transducer"
+            ):
                 self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
                 self.dialog1.setWindowTitle("Hydrophone Scan CSV Files")
             else:
@@ -105,14 +141,14 @@ class HydrophoneAnalysisTab(QWidget):
                 self.dialog1.setWindowTitle("Hydrophone Scan CSV File")
 
             self.dialog1.setNameFilter("*.csv")
-            self.dialog1.setDefaultSuffix("csv") # default suffix of csv
-            
-            if self.dialog1.exec(): 
+            self.dialog1.setDefaultSuffix("csv")  # default suffix of csv
+
+            if self.dialog1.exec():
                 self.text_display.append("Hydrophone Scan Data Files: ")
                 self.hydrophone_scan_data = self.dialog1.selectedFiles()
                 for file in self.hydrophone_scan_data:
-                    self.text_display.append(file +"\n")
-        
+                    self.text_display.append(file + "\n")
+
         elif d_type == "save":
             # 1) Show folder picker
             self.dialog = QFileDialog(self)
@@ -129,27 +165,27 @@ class HydrophoneAnalysisTab(QWidget):
             serials = list(dict.fromkeys(self.hydrophone_object.transducer_serials))
             serial = serials[0] if serials else "unknown"
             svg_name = f"{serial}_sensitivity_vs_frequency_{timestamp}.svg"
-            hydrophone_svg_path = os.path.join(self.file_save_location, svg_name)
+            hydrophone_svg_path = Path(self.file_save_location) / svg_name
 
             # 3) Stash original state
-            fig      = self.graph.figure
-            axes     = fig.get_axes()          # all axes (first one is your main plot)
-            ax_main  = axes[0]                 # <-- grab the real plotting axes
+            fig = self.graph.figure
+            axes = fig.get_axes()  # all axes (first one is your main plot)
+            ax_main = axes[0]  # <-- grab the real plotting axes
             orig_locator = ax_main.xaxis.get_major_locator()
-            orig_size    = fig.get_size_inches().copy()
+            orig_size = fig.get_size_inches().copy()
 
-            orig_marker_sizes      = {}
+            orig_marker_sizes = {}
             orig_marker_edge_width = {}
-            orig_line_widths       = {}
+            orig_line_widths = {}
             for ax in axes:
                 for line in ax.get_lines():
-                    orig_marker_sizes[line]      = line.get_markersize()
+                    orig_marker_sizes[line] = line.get_markersize()
                     orig_marker_edge_width[line] = line.get_markeredgewidth()
-                    orig_line_widths[line]       = line.get_linewidth()
+                    orig_line_widths[line] = line.get_linewidth()
 
             # 4) Apply export tweaks
-            dpi        = 96
-            fig_width  = 6.5
+            dpi = 96
+            fig_width = 6.5
             fig_height = 3.5
             fig.set_size_inches(fig_width, fig_height)
 
@@ -171,7 +207,7 @@ class HydrophoneAnalysisTab(QWidget):
                 format="svg",
                 dpi=dpi,
                 bbox_inches="tight",
-                pad_inches=0
+                pad_inches=0,
             )
 
             # 6) Restore original state
@@ -190,21 +226,25 @@ class HydrophoneAnalysisTab(QWidget):
 
             if len(unique_serials) == 1:
                 # Aggregate all datasets into one array
-                all_arr = np.vstack([np.array(d).T for d in self.hydrophone_object.raw_data])
+                all_arr = np.vstack(
+                    [np.array(d).T for d in self.hydrophone_object.raw_data]
+                )
                 # sort by frequency
                 all_arr = all_arr[np.argsort(all_arr[:, 0])]
                 # If STD column exists but is all NaN, drop it
                 if all_arr.shape[1] == 3 and np.all(np.isnan(all_arr[:, 2])):
                     all_arr = all_arr[:, :2]
-                    fmt = ('%s', '%.5f')
+                    fmt = ("%s", "%.5f")
                 elif all_arr.shape[1] == 3:
-                    fmt = ('%s', '%.5f', '%.5f')
+                    fmt = ("%s", "%.5f", "%.5f")
                 else:
-                    fmt = ('%s', '%.5f')
+                    fmt = ("%s", "%.5f")
 
-                txt_name = f"{unique_serials[0]}_sensitivity_vs_frequency_{timestamp}.txt"
+                txt_name = (
+                    f"{unique_serials[0]}_sensitivity_vs_frequency_{timestamp}.txt"
+                )
                 txt_path = os.path.join(self.file_save_location, txt_name)
-                np.savetxt(txt_path, all_arr, delimiter=',', fmt=fmt)
+                np.savetxt(txt_path, all_arr, delimiter=",", fmt=fmt)
 
             else:
                 # One file per distinct serial
@@ -217,12 +257,12 @@ class HydrophoneAnalysisTab(QWidget):
                     # sort by frequency
                     arr = arr[arr[:, 0].argsort()]
                     if arr.shape[1] == 3 and not np.all(np.isnan(arr[:, 2])):
-                        fmt = ('%s', '%.5f', '%.5f')
+                        fmt = ("%s", "%.5f", "%.5f")
                     else:
                         arr = arr[:, :2]
-                        fmt = ('%s', '%.5f')
+                        fmt = ("%s", "%.5f")
 
-                    np.savetxt(txt_path, arr, delimiter=',', fmt=fmt)
+                    np.savetxt(txt_path, arr, delimiter=",", fmt=fmt)
 
             # 8) Notify user
             self.text_display.append("The following files were saved:\n")
@@ -237,9 +277,8 @@ class HydrophoneAnalysisTab(QWidget):
                     self.text_display.append(f"• DATA: {txt_path}")
             self.text_display.append("")  # extra newline
 
-
     @Slot()
-    def print_graphs_clicked(self):
+    def _print_graphs_clicked(self) -> None:
         # ensure we actually have data
         if not self.hydrophone_scan_data:
             self.text_display.append("Error: No hydrophone CSV file(s) selected.\n")
@@ -251,15 +290,15 @@ class HydrophoneAnalysisTab(QWidget):
         # 2. pick the plotting mode based on combo + checkbox
         text = self.combo_box.currentText()
         if text == "Multiple CSV files per transducer":
-            mode = "append"      # all files mashed into one dataset
+            mode = "append"  # all files mashed into one dataset
         elif self.compare_box.isChecked():
-            mode = "overlaid"    # each file its own series, overlaid
+            mode = "overlaid"  # each file its own series, overlaid
         else:
-            mode = "single"      # first (and only) file as a single series
+            mode = "single"  # first (and only) file as a single series
 
         # 3. generate & show the graph
         canvas = self.hydrophone_object.get_graphs(mode=mode)
-        self.create_graph(canvas)
+        self._create_graph(canvas)
 
         # 4. show serial numbers (deduplicated)
         serials = self.hydrophone_object.transducer_serials
@@ -268,9 +307,7 @@ class HydrophoneAnalysisTab(QWidget):
 
         if len(unique_serials) == 1:
             # only one unique serial across all files
-            self.text_display.append(
-                f"Transducer Serial Number: {unique_serials[0]}\n"
-            )
+            self.text_display.append(f"Transducer Serial Number: {unique_serials[0]}\n")
         else:
             # multiple distinct serials
             self.text_display.append("Transducer Serial Numbers:")
@@ -278,33 +315,35 @@ class HydrophoneAnalysisTab(QWidget):
                 self.text_display.append(f"{i}. {serial}")
             self.text_display.append("")  # blank line
 
-        self.print_sensitivities()
+        self._print_sensitivities()
 
         # 5. append bandwidth value(s)
         if mode == "overlaid":
             for i, bw in enumerate(self.hydrophone_object.bandwidths, start=1):
-                self.text_display.append(f"Dataset {i} bandwidth @½-max: {bw:.2f} MHz\n")
+                self.text_display.append(
+                    f"Dataset {i} bandwidth @½-max: {bw:.2f} MHz\n"
+                )
             self.text_display.append("")  # blank line
         else:
             # for both 'single' and 'append' modes
             bw = self.hydrophone_object.bandwidth
             self.text_display.append(f"Bandwidth @½-max: {bw:.2f} MHz\n")
-   
+
     @Slot(int)
-    def onFormatChanged(self, index: int):
+    def _on_format_changed(self, index: int) -> None:
         """Enable compare_box only when the second combo-item is chosen."""
         # index 0 → “Multiple CSV files…”
         # index 1 → “Single CSV file…”
         self.compare_box.setEnabled(index == 1)
 
-    def print_sensitivities(self):
+    def _print_sensitivities(self) -> None:
         if not (self.hydrophone_scan_data and self.hydrophone_object.raw_data):
             return
 
         # 1) gather & convert all datasets
         serials = self.hydrophone_object.transducer_serials
         unique_serials = list(dict.fromkeys(serials))  # preserve order, remove dupes
-        converted = []   # each entry: [freq (MHz), sens (V/MPa), (std V/MPa if present)]
+        converted = []  # each entry: [freq (MHz), sens (V/MPa), (std V/MPa if present)]
         for data in self.hydrophone_object.raw_data:
             arr = np.array(data).T  # shape (n_points, n_cols)
             converted.append(arr)
@@ -323,10 +362,10 @@ class HydrophoneAnalysisTab(QWidget):
             max_freq = freq[idx_max]
 
             # parse resonances from serial, e.g. “343-T1650H825”
-            m = re.search(r'T(\d+)H(\d+)', serial)
+            m = re.search(r"T(\d+)H(\d+)", serial)
             if m:
-                tx_res = int(m.group(1)) / 1000.0   # MHz
-                hp_res = int(m.group(2)) / 1000.0   # MHz
+                tx_res = int(m.group(1)) / 1000.0  # MHz
+                hp_res = int(m.group(2)) / 1000.0  # MHz
                 # find nearest points
                 idx_tx = np.argmin(np.abs(freq - tx_res))
                 idx_hp = np.argmin(np.abs(freq - hp_res))
@@ -338,12 +377,16 @@ class HydrophoneAnalysisTab(QWidget):
             # build & print
             out = [
                 f"Transducer Serial: {serial} (aggregated over {len(converted)} files)",
-                f"Max Sensitivity: {max_sens:.3f} V/MPa at {max_freq:.3f} MHz"
+                f"Max Sensitivity: {max_sens:.3f} V/MPa at {max_freq:.3f} MHz",
             ]
             if tx_res is not None:
-                out.append(f"Sensitivity at transducer resonance ({tx_res:.3f} MHz): {sens_tx:.3f} V/MPa")
+                out.append(
+                    f"Sensitivity at transducer resonance ({tx_res:.3f} MHz): {sens_tx:.3f} V/MPa"
+                )
             if hp_res is not None:
-                out.append(f"Sensitivity at hydrophone resonance ({hp_res:.3f} MHz): {sens_hp:.3f} V/MPa")
+                out.append(
+                    f"Sensitivity at hydrophone resonance ({hp_res:.3f} MHz): {sens_hp:.3f} V/MPa"
+                )
 
             self.text_display.append("\n".join(out) + "\n")
 
@@ -358,7 +401,7 @@ class HydrophoneAnalysisTab(QWidget):
                 max_sens = sens[idx_max]
                 max_freq = freq[idx_max]
 
-                m = re.search(r'T(\d+)H(\d+)', serial)
+                m = re.search(r"T(\d+)H(\d+)", serial)
                 if m:
                     tx_res = int(m.group(1)) / 1000.0
                     hp_res = int(m.group(2)) / 1000.0
@@ -371,17 +414,22 @@ class HydrophoneAnalysisTab(QWidget):
 
                 out = [
                     f"Transducer Serial: {serial}",
-                    f"Max Sensitivity: {max_sens:.3f} V/MPa at {max_freq:.3f} MHz"
+                    f"Max Sensitivity: {max_sens:.3f} V/MPa at {max_freq:.3f} MHz",
                 ]
                 if tx_res is not None:
-                    out.append(f"Sensitivity at transducer resonance ({tx_res:.3f} MHz): {sens_tx:.3f} V/MPa")
+                    out.append(
+                        f"Sensitivity at transducer resonance ({tx_res:.3f} MHz):\
+                             {sens_tx:.3f} V/MPa"
+                    )
                 if hp_res is not None:
-                    out.append(f"Sensitivity at hydrophone resonance ({hp_res:.3f} MHz): {sens_hp:.3f} V/MPa")
+                    out.append(
+                        f"Sensitivity at hydrophone resonance ({hp_res:.3f} MHz):\
+                             {sens_hp:.3f} V/MPa"
+                    )
 
                 self.text_display.append("\n".join(out) + "\n")
 
-
-    def create_graph(self, canvas):
+    def _create_graph(self, canvas: FigureCanvas) -> None:
         # ensure we actually have data
         if not getattr(self, "hydrophone_scan_data", None):
             self.text_display.append("Error: No hydrophone data .csv file found.\n")

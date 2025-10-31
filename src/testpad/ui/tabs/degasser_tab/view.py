@@ -183,7 +183,7 @@ class ColumnMajorNavigationMixin:
 
     def createEditor(
         self,
-        parent: QWidget,
+        parent: QWidget | None,
         option: "QStyleOptionViewItem",
         index: "QModelIndex | QPersistentModelIndex",
     ) -> QWidget:
@@ -228,7 +228,7 @@ class DegasserTab(BaseTab):
         super().__init__(parent)
 
         self._model = model
-        self._presenter = presenter
+        self.presenter = presenter
         self._time_series_chart = TimeSeriesChartWidget()
         self._time_series_section: QWidget | None = None
 
@@ -818,7 +818,7 @@ class ValidatedFloatDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
 
     def createEditor(
         self,
-        parent: QWidget,
+        parent: QWidget | None,
         option: "QStyleOptionViewItem",
         index: "QModelIndex | QPersistentModelIndex",
     ) -> QWidget:

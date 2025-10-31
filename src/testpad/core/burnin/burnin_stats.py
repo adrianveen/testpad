@@ -1,10 +1,15 @@
 """Module contains the BurninStats class, used to compute various statistics."""
 
+from typing import TYPE_CHECKING
+
 import h5py
 import numpy as np
 from PySide6.QtWidgets import QTextBrowser
 from scipy.signal import find_peaks
 from scipy.stats import kurtosis, skew
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 # placeholder file name for testing
 filename = "_axis_A_complete_raw_error_29.hdf5"
@@ -22,14 +27,23 @@ class BurninStats:
 
         """
         self.burnin_file = burnin_file
-        self.textbox = textbox
+        self.textbox = textbox or QTextBrowser()
         self.negative_stats: tuple = ()
         self.positive_stats: tuple = ()
 
         # open burn-in file and extract error/time
         with h5py.File(self.burnin_file) as file:
-            self.error = list(file["Error (counts)"])
-            self.time = list(file["Time (s)"])
+            err_obj = file["Error (counts)"]
+            time_obj = file["Time (s)"]
+
+            if not isinstance(err_obj, h5py.Dataset) or not isinstance(
+                time_obj, h5py.Dataset
+            ):
+                msg = "Expected h5py.Dataset for 'Error (counts)' and 'Time (s)'"
+                raise TypeError(msg)
+
+            self.error: NDArray[np.float64] = np.asarray(err_obj[()], dtype=float)
+            self.time: NDArray[np.float64] = np.asarray(time_obj[()], dtype=float)
 
         # Separate positive and negative errors
         positive_errors = np.array([e if e > 0 else np.nan for e in self.error])
@@ -147,7 +161,7 @@ class BurninStats:
         self.textbox.append(table_html)
         self.textbox.append("<div style='line-height:0.5;'><br></div>")
 
-    def printStats(self) -> None:
+    def print_stats(self) -> None:
         """Print the statistics to the textbox."""
         pos_listof_stats = self.display_stats(
             "Positive Error Statistics:",

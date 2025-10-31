@@ -1,14 +1,24 @@
 
-from PySide6.QtCore import Slot
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QPushButton,
+    QTabWidget,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
+)
 
 from testpad.core.temp_analysis.temperature_graph import TemperatureGraph
 
 
 class TempAnalysisTab(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         self.temperature_data_files = None

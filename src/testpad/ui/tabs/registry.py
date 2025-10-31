@@ -77,4 +77,4 @@ def load_tab_class(spec: TabSpec) -> type:
     return getattr(mod, spec.cls)
 
 
-__all__ = ["TabSpec", "TABS_SPEC", "enabled_tabs", "load_tab_class"]
+__all__ = ["TABS_SPEC", "TabSpec", "enabled_tabs", "load_tab_class"]
