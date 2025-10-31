@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 try:
-    from PySide6.QtSvg import QSvgRenderer  # type: ignore
+    from PySide6.QtSvg import QSvgRenderer
 except Exception:  # pragma: no cover - optional dependency at runtime
     QSvgRenderer = None  # type: ignore
 
@@ -29,12 +29,12 @@ def resolve_resource_path(relative: str) -> str:
     """
     base_dir = os.path.dirname(Path(__file__).parent)  # src/testpad
     pkg_path = os.path.join(base_dir, "resources", relative)
-    if os.path.exists(pkg_path):
+    if Path(pkg_path).exists():
         return pkg_path
     meipass = getattr(__import__("sys"), "_MEIPASS", "")
     if meipass:
         alt = os.path.join(meipass, "resources", relative)
-        if os.path.exists(alt):
+        if Path(alt).exists():
             return alt
     # fallback to repo-root layout during development
     return os.path.join(Path.cwd(), "src", "testpad", "resources", relative)
@@ -43,7 +43,7 @@ def resolve_resource_path(relative: str) -> str:
 def _render_svg_to_pixmap(svg_path: str, size: QSize) -> QPixmap | None:
     if QSvgRenderer is None:
         return None
-    if not os.path.exists(svg_path):
+    if not Path(svg_path).exists():
         return None
     renderer = QSvgRenderer(svg_path)
     if not renderer.isValid():
@@ -232,7 +232,7 @@ class SplashScreen(QWidget):
         target_width = (pm.size().width() if isinstance(pm, QPixmap) else 760) + (m * 2)
         self.resize(target_width, 360)
 
-    def paintEvent(self, ev):  # noqa: N802
+    def paintEvent(self, ev):
         # Transparent window, so we only need to let the frame paint itself.
         return super().paintEvent(ev)
 

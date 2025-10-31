@@ -83,7 +83,7 @@ class _ApplicationWindow(QMainWindow):
         # so the main window appears with UI ready.
         self._ensure_loaded(self._tab_widget.currentIndex(), progress_cb)
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event) -> None:
         super().showEvent(event)
         if not self._shown_once:
             self._shown_once = True

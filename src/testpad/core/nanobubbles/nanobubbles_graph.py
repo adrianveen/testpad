@@ -325,7 +325,7 @@ class NanobubblesGraph:
         else:
             nanobubble_svg_filename = (Path(self.nanobubble_txt[0]).name).split(".")[0]
 
-        # full_save_name = os.path.join(folder, str(nanobubble_svg_filename) + ".svg")  # noqa: ERA001
+        # full_save_name = os.path.join(folder, str(nanobubble_svg_filename) + ".svg")
         full_save_name = Path(folder) / str(nanobubble_svg_filename) / ".svg"
 
         # Debugging statement
@@ -346,5 +346,5 @@ if __name__ == "__main__":
     # n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt")
     # n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt")
     n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS.txt", "")
-    n.get_graphs(bins=100, overlaid=True)
+    n.get_graphs(bins=100, overlaid=True, scale=1)
     plt.show()
