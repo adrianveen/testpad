@@ -26,6 +26,11 @@ dev = [
   "pyinstaller>=6.16.0",
 ]
 
+[dependency-groups]
+dev = [
+  "ty>=0.0.1a25",
+]
+
 [build-system]
 requires = ["setuptools>=80.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -60,9 +65,12 @@ ignore = [
   "D102",
   "D104",
   "D107",
+  "FIX002",
   "N802",
   "N806",
-  "ERA001"
+  "ERA001",
+  "TD002",
+  "TD003",
 ]
 
 [tool.ruff.format]
@@ -76,8 +84,3 @@ line-ending = "lf"
 docstring-code-format = true
 # Respect magic trailing commas
 skip-magic-trailing-comma = false
-
-[dependency-groups]
-dev = [
-    "ty>=0.0.1a25",
-]

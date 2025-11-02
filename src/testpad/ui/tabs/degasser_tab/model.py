@@ -4,7 +4,7 @@ import csv
 from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, final
 
 from .config import (
     DEFAULT_TEST_DATE,
@@ -41,6 +41,7 @@ class Metadata:
 
 
 # ------------------ Model ------------------
+@final
 class DegasserModel:
     """Simple model for a 10-minute dissolved O2 test.
 
@@ -189,7 +190,21 @@ class DegasserModel:
         spec_max: float | str | None = None,
         measured: float | str | None = None,
     ) -> list[TestResultRow]:
-        """Mutate a single test-result row, coercing numerics and returning a copy list."""
+        """Update a row in the test results table.
+
+        Mutate a single test-result row, coercing numerics and returning a copy list.
+
+        Args:
+            index: The index of the row to update.
+            pass_fail: The new pass/fail value for the row.
+            spec_min: The new spec min value for the row.
+            spec_max: The new spec max value for the row.
+            measured: The new measured value for the row.
+
+        Raises:
+            ValueError: If the index is out of range.
+
+        """
         if not (0 <= index < len(self._test_rows)):
             msg = "Test row index out of range."
             raise ValueError(msg)
@@ -328,8 +343,9 @@ class DegasserModel:
         """
         # Persistence breadcrumb:
         # - Mirror this structure with `state_schema.json`.
-        # - Future helper: add `from_dict` to rehydrate `_oxygen_data`, `_temperature_c`,
-        #   `_test_rows`, `_source_path`, and metadata once presenter captures it.
+        # - Future helper: add `from_dict` to rehydrate `_oxygen_data`,
+        #   `_temperature_c`, `_test_rows`, `_source_path`, and metadata once
+        #   presenter captures it.
         return {
             "time_series": dict(self._oxygen_data.items()),
             "temperature_c": self._temperature_c,

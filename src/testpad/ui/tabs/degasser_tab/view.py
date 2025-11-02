@@ -3,12 +3,14 @@
 This module provides the user interface for the Degasser Tab.
 """
 
-from typing import TYPE_CHECKING, Optional, cast
+import sys
+from typing import TYPE_CHECKING, cast, override
 
 import PySide6.QtCore
 from PySide6.QtCore import QDate, QSignalBlocker, Qt, QTimer
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
+    QApplication,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -32,8 +34,6 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QKeyEvent
     from PySide6.QtWidgets import QStyleOptionViewItem
 
-    from testpad.ui.tabs.degasser_tab.model import DegasserModel
-    from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
 from testpad.ui.tabs.base_tab import BaseTab
@@ -54,6 +54,8 @@ from testpad.ui.tabs.degasser_tab.config import (
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
 )
+from testpad.ui.tabs.degasser_tab.model import DegasserModel
+from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 from testpad.ui.tabs.degasser_tab.view_state import DegasserViewState
 from testpad.utils.lineedit_validators import FixupDoubleValidator, ValidatedLineEdit
 
@@ -105,7 +107,8 @@ class ColumnMajorTableWidget(QTableWidget):
         # At top-left corner, wrap around to bottom-right
         return rows - 1, cols - 1
 
-    def keyPressEvent(self, event):
+    @override
+    def keyPressEvent(self, event) -> None:
         """Override Qt's default key handling to implement column-major navigation.
 
         By default, QTableWidget uses row-major Tab navigation (left→right).
@@ -141,11 +144,14 @@ class ColumnMajorNavigationMixin:
     """Mixin for item delegates to support column-major navigation during cell editing.
 
     This mixin installs an event filter on editor widgets to intercept Tab/Enter
-    keys and forward them to the table's navigation logic. Any delegate class that inherits
-    from this mixin will automatically support column-major navigation during editing.
+    keys and forward them to the table's navigation logic. Any delegate class that
+    inherits from this mixin will automatically support column-major navigation during
+    editing.
 
     Usage: class MyDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate): ...
-    Note: Mixin must come BEFORE QStyledItemDelegate in the inheritance list for proper MRO.
+    Note: Mixin must come BEFORE QStyledItemDelegate in the inheritance list
+    for proper MRO.
+
     """
 
     def eventFilter(self, watched: "QObject", event: "QEvent") -> bool:
@@ -214,8 +220,8 @@ class DegasserTab(BaseTab):
     def __init__(
         self,
         parent: QWidget | None = None,
-        model: Optional["DegasserModel"] = None,
-        presenter: Optional["DegasserPresenter"] = None,
+        model: DegasserModel | None = None,
+        presenter: DegasserPresenter | None = None,
     ) -> None:
         """Initialize the Degasser tab.
 
@@ -231,7 +237,9 @@ class DegasserTab(BaseTab):
         self.presenter = presenter
         self._time_series_chart = TimeSeriesChartWidget()
         self._time_series_section: QWidget | None = None
+        self._construct_ui()
 
+    def _construct_ui(self) -> None:
         layout = QGridLayout(self)
         layout.addWidget(self._build_metadata_section(), 0, 0, 1, 2)
         layout.addWidget(self._build_test_table(), 1, 0, 1, 2)
@@ -833,3 +841,15 @@ class ValidatedFloatDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
         # (Since we create a custom editor, we bypass mixin's createEditor)
         editor.installEventFilter(self)
         return editor
+
+
+def _main() -> None:
+    """Call Main function."""
+    app = QApplication(sys.argv)
+    window = DegasserTab()
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    _main()

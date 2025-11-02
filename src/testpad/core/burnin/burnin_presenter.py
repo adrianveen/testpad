@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Contains the BurninPresenter class, which is the presenter for the Burnin tab."""
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6 import QtWidgets
+from PySide6.QtWidgets import QDialog, QMessageBox
 
 from testpad.core.burnin.burnin_graph import BurninGraph
 from testpad.core.burnin.burnin_stats import BurninStats
@@ -23,32 +24,59 @@ class BurninPresenter:
         """Burn in presenter connects view and model."""
         self._view = view
         self._model = model
+        self._updating = False
 
     def initialize(self) -> None:
         """Call after view is constructed."""
-        # self._refresh_view()  # TODO: implement refresh view
+        self._refresh_view()
         self._connect_signals()
+
+    def _refresh_view(self) -> None:
+        """Update all view widgets from current model state."""
+        if self._updating:
+            return
+        # self._updating = True
+        # try:
+        #     state = self._build_view_state()
+        #     self._view.update_view(state)
+        # finally:
+        #     self._updating = False
 
     def _connect_signals(self) -> None:
         """Connect view signals to presenter event handlers."""
         # TODO: implement
         self._view.connect_signals(self)
 
-    def _on_select_file_cliked(self) -> None:
+    def on_burnin_file_selected(self, filepaths: list[str]) -> None:
         """Call when the select file button is clicked."""
-        # TODO: implement
+        if self._updating:
+            return
+        paths = [Path(filepath) for filepath in filepaths]
+        self._model.set_burnin_file(paths)
+        self._view.display_selected_files(filepaths)
 
-    def _on_print_stats_toggled(self) -> None:
+    def on_print_stats_toggled(self) -> None:
         """Call when the print stats checkbox is toggled."""
         # TODO: implement
+        if self._updating:
+            return
+        self._model.set_print_stats_option()
 
-    def _on_separate_eorros_toggled(self) -> None:
+    def on_separate_errors_toggled(self) -> None:
         """Call when the separate erors checkbox is toggled."""
         # TODO: implement
+        if self._updating:
+            return
+        # self._model.separate_errors_toggled()
 
-    def _on_print_graph_clicked(self) -> None:
+    def on_print_graph_clicked(self) -> None:
         """Call when the print graph button is clicked."""
         # TODO: implement
+        if self._updating:
+            return
+        filepaths = self._model.get_burnin_file()
+        files = [str(filepath) for filepath in filepaths]
+        self._view._print_graphs(files)
 
     def on_generate_report_clicked(self) -> None:
         """Genearte a PDF report when "GENERATE REPORT" button is clicked.
@@ -62,7 +90,7 @@ class BurninPresenter:
         """
         # Check if file is selected
         if not hasattr(self._view, "burnin_file") or not self._view.burnin_file:
-            QtWidgets.QMessageBox.warning(
+            QMessageBox.warning(
                 self._view,
                 "No File",
                 "Please select a burn-in file first",
@@ -79,7 +107,7 @@ class BurninPresenter:
         dialog = MetadataDialog(parent=self._view)
         initial_values = self._model.get_metadata()
         dialog.set_initial_values(initial_values)
-        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             data = dialog.get_metadata()
             self._model.update_metadata(data)
 
@@ -132,7 +160,7 @@ class BurninPresenter:
         try:
             report_generator.generate_report()
         except (ValueError, RuntimeError) as e:
-            QtWidgets.QMessageBox.critical(
+            QMessageBox.critical(
                 self._view,
                 "Report Generation Error",
                 f"Failed to generate report: {e}"

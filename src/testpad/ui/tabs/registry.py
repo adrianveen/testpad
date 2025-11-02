@@ -18,43 +18,43 @@ class TabSpec:
 
 # TODO: Re-enable other tabs before release
 TABS_SPEC = [
-    TabSpec("testpad.ui.tabs.matching_box_tab", "MatchingBoxTab", "Matching Box"),
-    TabSpec(
-        "testpad.ui.tabs.transducer_calibration_tab",
-        "TransducerCalibrationTab",
-        "Transducer Calibration Report",
-    ),
-    TabSpec(
-        "testpad.ui.tabs.transducer_linear_tab",
-        "TransducerLinearTab",
-        "Transducer Linear Graphs",
-    ),
-    TabSpec("testpad.ui.tabs.rfb_tab", "RFBTab", "Radiation Force Balance"),
-    TabSpec("testpad.ui.tabs.vol2press_tab", "Vol2PressTab", "Sweep Analysis"),
+    # TabSpec("testpad.ui.tabs.matching_box_tab", "MatchingBoxTab", "Matching Box"),
+    # TabSpec(
+    #     "testpad.ui.tabs.transducer_calibration_tab",
+    #     "TransducerCalibrationTab",
+    #     "Transducer Calibration Report",
+    # ),
+    # TabSpec(
+    #     "testpad.ui.tabs.transducer_linear_tab",
+    #     "TransducerLinearTab",
+    #     "Transducer Linear Graphs",
+    # ),
+    # TabSpec("testpad.ui.tabs.rfb_tab", "RFBTab", "Radiation Force Balance"),
+    # TabSpec("testpad.ui.tabs.vol2press_tab", "Vol2PressTab", "Sweep Analysis"),
     TabSpec(
         "testpad.ui.tabs.burnin_tab",
         "create_burnin_tab",
         "Burn-in Graph Viewer",
         feature_flag="burnin_tab",
     ),
-    TabSpec("testpad.ui.tabs.nanobubbles_tab", "NanobubblesTab", "Nanobubbles Tab"),
-    TabSpec(
-        "testpad.ui.tabs.temp_analysis_tab",
-        "TempAnalysisTab",
-        "Temperature Analysis",
-    ),
-    TabSpec(
-        "testpad.ui.tabs.hydrophone_tab",
-        "HydrophoneAnalysisTab",
-        "Hydrophone Analysis",
-    ),
-    TabSpec("testpad.ui.tabs.sweep_plot_tab", "SweepGraphTab", "Sweep Graphs"),
-    TabSpec(
-        "testpad.ui.tabs.degasser_tab",
-        "create_degasser_tab",
-        "Degasser Data",
-        feature_flag="degasser_tab",
-    ),
+    # TabSpec("testpad.ui.tabs.nanobubbles_tab", "NanobubblesTab", "Nanobubbles Tab"),
+    # TabSpec(
+    #     "testpad.ui.tabs.temp_analysis_tab",
+    #     "TempAnalysisTab",
+    #     "Temperature Analysis",
+    # ),
+    # TabSpec(
+    #     "testpad.ui.tabs.hydrophone_tab",
+    #     "HydrophoneAnalysisTab",
+    #     "Hydrophone Analysis",
+    # ),
+    # TabSpec("testpad.ui.tabs.sweep_plot_tab", "SweepGraphTab", "Sweep Graphs"),
+    # TabSpec(
+    #     "testpad.ui.tabs.degasser_tab",
+    #     "create_degasser_tab",
+    #     "Degasser Data",
+    #     feature_flag="degasser_tab",
+    # ),
 ]
 
 

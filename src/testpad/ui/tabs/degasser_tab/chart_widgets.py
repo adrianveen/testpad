@@ -10,7 +10,8 @@ from testpad.ui.tabs.degasser_tab.plotting import plot_time_series_on_axis
 class TimeSeriesChartWidget(QWidget):
     """A QWidget that contains a Matplotlib time series plot."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the time series chart widget."""
         super().__init__(parent)
 
         # Create Matplotlib components
