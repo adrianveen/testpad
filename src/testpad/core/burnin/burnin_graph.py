@@ -67,9 +67,7 @@ class BurninGraph:
             title = "Axis B Error"
             self.ax.plot(self.time, self.error, color="#5A8FAE")
         else:
-            title = (
-                "Unknown Axis"  # Fallback title in case of unexpected filename
-            )
+            title = "Unknown Axis"  # Fallback title in case of unexpected filename
 
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Error (counts)")
@@ -122,7 +120,9 @@ class BurninGraph:
             elif "_axis_B_" in self.burnin_file:
                 title = "Axis B Error"
             else:
-                title = "Unknown Axis"  # Fallback title in case of unexpected filename
+                title = (
+                    "Unknown Axis"  # Fallback title in case of unexpected filename
+                )
 
             self.ax.set_title(title)
             # add the legend in the best location around the center of the graph
