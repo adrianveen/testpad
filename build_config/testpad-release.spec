@@ -60,7 +60,16 @@ a = Analysis(
         },
     },
     runtime_hooks=get_runtime_hooks(base_dir),
-    excludes=['PyQt5'],  # Exclude PyQt5 if present
+    excludes=[
+    'PyQt5',
+    'IPython',
+    'matplotlib.tests',
+    'pandas.tests',
+    'scipy.fft',
+    'tkinter',
+    'PySide6.QtWebEngine',
+    'PySide6.QtMultimedia'
+    ],  # Exclude PyQt5 if present
     noarchive=False,
     optimize=0,  
 )

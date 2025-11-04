@@ -37,7 +37,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 # Set the line length (default: 88)
-line-length = 88
+line-length = 86
 
 [tool.ruff.lint]
 extend-select = [

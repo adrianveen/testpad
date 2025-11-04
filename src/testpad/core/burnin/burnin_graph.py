@@ -40,16 +40,13 @@ class BurninGraph:
 
         # open burn-in file and extract error/time
         with h5py.File(self.burnin_file) as file:
-            self.error = list(file["Error (counts)"])
-            self.time = list(file["Time (s)"])
+            self.error = np.array(file["Error (counts)"])
+            self.time = np.array(file["Time (s)"])
 
         # conditionally separate error values
         if self.separate_errors:
-            self.positive_errors = [e if e > 0 else np.nan for e in self.error]
-            self.negative_errors = [e if e < 0 else np.nan for e in self.error]
-        else:
-            self.positive_errors = None
-            self.negative_errors = None
+            self.positive_errors = np.where(self.error > 0, self.error, np.nan)
+            self.negative_errors = np.where(self.error < 0, self.error, np.nan)
 
     # graphs error vs time
     def get_graph(self) -> FigureCanvas:
@@ -70,7 +67,9 @@ class BurninGraph:
             title = "Axis B Error"
             self.ax.plot(self.time, self.error, color="#5A8FAE")
         else:
-            title = "Unknown Axis"  # Fallback title in case of unexpected filename
+            title = (
+                "Unknown Axis"  # Fallback title in case of unexpected filename
+            )
 
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Error (counts)")
@@ -95,46 +94,51 @@ class BurninGraph:
         """
         # generate the figure and axis
         self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 6))
-        self.canvas = FigureCanvas(self.fig)
 
-        # Plotting
-        self.ax.plot(
-            self.time,
-            self.positive_errors,
-            label="Positive Error (counts)",
-            color="#5A8FAE",
-        )
-        self.ax.plot(
-            self.time,
-            self.negative_errors,
-            label="Negative Error (counts)",
-            color="#73A89E",
-        )
+        try:
+            self.canvas = FigureCanvas(self.fig)
 
-        # Labels and title
-        self.ax.set_xlabel("Time (s)")
-        self.ax.set_ylabel("Error (counts)")
+            # Plotting
+            self.ax.plot(
+                self.time,
+                self.positive_errors,
+                label="Positive Error (counts)",
+                color="#5A8FAE",
+            )
+            self.ax.plot(
+                self.time,
+                self.negative_errors,
+                label="Negative Error (counts)",
+                color="#73A89E",
+            )
 
-        # Determine title based on filename
-        if "_axis_A_" in self.burnin_file:
-            title = "Axis A Error"
-        elif "_axis_B_" in self.burnin_file:
-            title = "Axis B Error"
-        else:
-            title = "Unknown Axis"  # Fallback title in case of unexpected filename
+            # Labels and title
+            self.ax.set_xlabel("Time (s)")
+            self.ax.set_ylabel("Error (counts)")
 
-        self.ax.set_title(title)
-        # add the legend in the best location around the center of the graph
-        self.ax.legend(loc="best")
+            # Determine title based on filename
+            if "_axis_A_" in self.burnin_file:
+                title = "Axis A Error"
+            elif "_axis_B_" in self.burnin_file:
+                title = "Axis B Error"
+            else:
+                title = "Unknown Axis"  # Fallback title in case of unexpected filename
 
-        # reduce white space
-        self.fig.tight_layout(pad=0.5)
+            self.ax.set_title(title)
+            # add the legend in the best location around the center of the graph
+            self.ax.legend(loc="best")
 
-        self.fig.set_canvas(self.canvas)
+            # reduce white space
+            self.fig.tight_layout(pad=0.5)
 
-        plt.close("all")  # close all figures to prevent memory leak
+            self.fig.set_canvas(self.canvas)
 
-        return self.canvas
+            plt.close("all")  # close all figures to prevent memory leak
+
+            return self.canvas
+
+        finally:
+            pass
 
     # calculate moving average of error values and
     # produce graph for positive and negative error separately
@@ -148,8 +152,8 @@ class BurninGraph:
         errors_list = [self.positive_errors, self.negative_errors]
         canvases = []
 
-        for i in range(len(errors_list)):
-            error_df = pd.DataFrame({"time": self.time, "error": errors_list[i]})
+        for i, errors in enumerate(errors_list):
+            error_df = pd.DataFrame({"time": self.time, "error": errors})
 
             error_df["moving_avg"] = (
                 error_df["error"].rolling(window=10000, min_periods=1).mean()

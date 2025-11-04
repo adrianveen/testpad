@@ -42,12 +42,14 @@ class BurninStats:
                 msg = "Expected h5py.Dataset for 'Error (counts)' and 'Time (s)'"
                 raise TypeError(msg)
 
-            self.error: NDArray[np.float64] = np.asarray(err_obj[()], dtype=float)
-            self.time: NDArray[np.float64] = np.asarray(time_obj[()], dtype=float)
+            # self.error: NDArray[np.float64] = np.asarray(err_obj[()], dtype=float)
+            self.error: NDArray[np.float64] = err_obj[:]
+            # self.time: NDArray[np.float64] = np.asarray(time_obj[()], dtype=float)
+            self.time = self.time[:]
 
         # Separate positive and negative errors
-        positive_errors = np.array([e if e > 0 else np.nan for e in self.error])
-        negative_errors = np.array([e if e < 0 else np.nan for e in self.error])
+        positive_errors = np.where(self.error > 0, self.error, np.nan)
+        negative_errors = np.where(self.error < 0, self.error, np.nan)
 
         # Calculate positive and negative error statistics
         self.positive_stats = self.calculate_stats(positive_errors)

@@ -8,13 +8,16 @@ displaying the burn-in graph and providing user interactions.
 import sys
 from typing import TYPE_CHECKING
 
-from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt import (
+    NavigationToolbar2QT as NavigationToolbar,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFileDialog,
     QGridLayout,
     QGroupBox,
+    QMessageBox,
     QPushButton,
     QTabWidget,
     QTextBrowser,
@@ -23,7 +26,6 @@ from PySide6.QtWidgets import (
 )
 
 from testpad.core.burnin.burnin_graph import BurninGraph
-from testpad.core.burnin.burnin_stats import BurninStats
 from testpad.core.burnin.config import DEFAULT_PATH_BURNIN_DATA
 
 if TYPE_CHECKING:
@@ -60,21 +62,6 @@ class BurninTab(QWidget):
         self._construct_ui()
         self.presenter: BurninPresenter  # Type annotation - will be set by factory
 
-    def _construct_ui(self) -> None:
-        """Construct the user interface for the Burn-in tab.
-
-        This method creates the user interface for the Burn-in tab, including
-        the selections group, the print statistics checkbox, the separate errors
-        checkbox, the moving average checkbox, and the print graph button.
-
-        """
-        # user interaction area
-        main_layout = QGridLayout(self)
-        main_layout.addWidget(self._build_selections_group(), 0, 0)
-        main_layout.addWidget(self._build_output_btns(), 1, 0)
-        main_layout.addWidget(self._build_text_display(), 2, 0)
-        main_layout.addWidget(self._build_graph_display(), 0, 1, 3, 1)
-
     def connect_signals(self, presenter: "BurninPresenter") -> None:
         """Connect all view signals for burn-in tab to handlers.
 
@@ -92,19 +79,52 @@ class BurninTab(QWidget):
         self._separated_errors_checkbox.toggled.connect(
             presenter.on_separate_errors_toggled
         )
+        self._moving_average_checkbox.toggled.connect(
+            presenter.on_moving_average_toggled
+        )
         self._print_graph_btn.clicked.connect(presenter.on_print_graph_clicked)
         self._generate_report_btn_new.clicked.connect(
             presenter.on_generate_report_clicked
         )
 
-        # TODO: Connect Print Graph button
+    def build_graph_display(self) -> QTabWidget:
+        """Build the graph display."""
+        self._new_graph_display = QTabWidget()
+        self._graph_display.addTab(self._create_main_graph_tab(), "Burn-in Graph")
+        return self._new_graph_display
 
-        # Connect Print Graph button
-        self._print_graph_btn.clicked.connect(presenter.on_print_graph_clicked)
-        # Connect Generate Report button
-        self._generate_report_btn_new.clicked.connect(
-            presenter.on_generate_report_clicked
+    def show_warning(self, message: str) -> None:
+        """Show a warning message in the text display."""
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.Icon.Warning)
+        message_box.setWindowTitle("Warning")
+        message_box.setText(message)
+        message_box.setStandardButtons(
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
         )
+
+        message_box.exec()
+
+    def display_selected_files(self, filepaths: list[str]) -> None:
+        """Display the selected burn-in files in the text display."""
+        self.text_display.append("Burn-in File(s): ")
+        for filepath in filepaths:
+            self.text_display.append(f"  {filepath}\n")
+
+    def _construct_ui(self) -> None:
+        """Construct the user interface for the Burn-in tab.
+
+        This method creates the user interface for the Burn-in tab, including
+        the selections group, the print statistics checkbox, the separate errors
+        checkbox, the moving average checkbox, and the print graph button.
+
+        """
+        # user interaction area
+        main_layout = QGridLayout(self)
+        main_layout.addWidget(self._build_selections_group(), 0, 0)
+        main_layout.addWidget(self._build_output_btns(), 1, 0)
+        main_layout.addWidget(self._build_text_display(), 2, 0)
+        main_layout.addWidget(self._build_graph_display(), 0, 1, 3, 1)
 
     def _build_selections_group(self) -> QGroupBox:
         """Build the selections group for the Burn-in tab."""
@@ -131,11 +151,6 @@ class BurninTab(QWidget):
 
         Returns:
             QWidget: The report button and its layout
-
-        **Future work**:
-            Expand to build entire section instead of single button:
-            - Add connection to report generation
-            - Return QWidget in later version
 
         """
         # Create parent widget to hold the button
@@ -166,6 +181,25 @@ class BurninTab(QWidget):
         self._graph_display = QTabWidget()
         return self._graph_display
 
+    def _create_main_graph_tab(self) -> None:
+        """Create the main graph tab."""
+        # burn_graph = self.burnin.get_graph()
+        # nav_tool = NavigationToolbar(burn_graph)
+
+        burn_widget = _MyQWidget(burnin_graph=self.burnin)
+        burn_widget.setContentsMargins(5, 5, 5, 5)
+        burn_layout = QVBoxLayout()
+        burn_layout.setContentsMargins(5, 5, 5, 5)
+        # burn_layout.addWidget(nav_tool)
+        # burn_layout.addWidget(burn_graph)
+        burn_widget.setLayout(burn_layout)
+
+    def _create_separated_error_graph_tab(self) -> None:
+        """Create the separated error graph tab."""
+
+    def _create_moving_average_graph_tab(self) -> None:
+        """Create the moving average graph tab."""
+
     def _on_burnin_file_clicked(self) -> None:
         """Handle burn-in file selection button click."""
         if not hasattr(self, "presenter"):
@@ -174,7 +208,7 @@ class BurninTab(QWidget):
             raise RuntimeError(msg)
 
         # TODO: Move values to config file
-        filepath = self._new_open_file_dialog(
+        filepath = self._open_file_dialog(
             "Select Burn-in File",
             QFileDialog.FileMode.ExistingFiles,
             "*.hdf5",
@@ -184,7 +218,7 @@ class BurninTab(QWidget):
             self.presenter.on_burnin_file_selected(filepath)
 
     def _on_save_folder_clicked(self) -> None:
-        filepath = self._new_open_file_dialog(
+        filepath = self._open_file_dialog(
             "Select Save Folder",
             QFileDialog.FileMode.Directory,
             None,
@@ -195,7 +229,7 @@ class BurninTab(QWidget):
             self.save_folder = filepath[0]
         self.text_display.append(self.save_folder + "\n")
 
-    def _new_open_file_dialog(
+    def _open_file_dialog(
         self,
         # TODO: turn args into kwargs or list of args
         window_title: str,
@@ -216,12 +250,6 @@ class BurninTab(QWidget):
             files = file_dialog.selectedFiles()
             return files if files else None
         return None
-
-    def display_selected_files(self, filepaths: list[str]) -> None:
-        """Display the selected burn-in files in the text display."""
-        self.text_display.append("Burn-in File(s): ")
-        for filepath in filepaths:
-            self.text_display.append(f"  {filepath}\n")
 
     def _block_signals(self, block: bool) -> None:
         """Block or unblock signals from all input widgets.
@@ -250,7 +278,7 @@ class BurninTab(QWidget):
                 self._separated_errors_checkbox.isChecked(),
             ],
         )
-        self.stats_class = BurninStats(filepath[0], self.text_display)
+        # self.stats_class = BurninStats(filepath[0], self.text_display)
 
         # Determine the axis name based on the filename
         if "_axis_A_" in filepath[0]:
@@ -269,12 +297,11 @@ class BurninTab(QWidget):
             test_number = "Unknown"
 
         # Update text display with axis-specific and test number message.
-        # Call printStats() as well
-        if self._summary_statistics_checkbox.isChecked():
-            self.text_display.append(
-                f"Summary Statistics for: {axis_name}; test no. {test_number}:\n",
-            )
-            self.stats_class.print_stats()
+
+        #     self.text_display.append(
+        #         f"Summary Statistics for: {axis_name}; test no. {test_number}:\n",
+        #     )
+        #     # self.stats_class.print_stats()
 
         burn_graph = self.burnin.get_graph()
         nav_tool = NavigationToolbar(burn_graph)
@@ -324,7 +351,9 @@ class BurninTab(QWidget):
             pos_error_layout.addWidget(pos_avg)
             pos_error_widget.setLayout(pos_error_layout)
 
-            self._graph_display.addTab(pos_error_widget, "Positive Error w/ Moving Avg")
+            self._graph_display.addTab(
+                pos_error_widget, "Positive Error w/ Moving Avg"
+            )
 
             # create tab for negative error values
             nav_tool_neg = NavigationToolbar(neg_avg)
@@ -337,7 +366,9 @@ class BurninTab(QWidget):
             neg_error_layout.addWidget(neg_avg)
             neg_error_widget.setLayout(neg_error_layout)
 
-            self._graph_display.addTab(neg_error_widget, "Negative Error w/ Moving Avg")
+            self._graph_display.addTab(
+                neg_error_widget, "Negative Error w/ Moving Avg"
+            )
         else:
             pass
 

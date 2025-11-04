@@ -9,6 +9,7 @@ Individual plots can pick and choose which constants to use.
 PRIMARY_COLOR = "#73A89E"  # FUS Instruments teal/green
 PRIMARY_COMP_COLOR = "#5A8FAE"
 SECONDARY_COLOR = "k"  # If you have a secondary brand color
+AVG_LINE_COLOR = "#A8737E"  # For moving averages or overlaid line plots
 ERROR_COLOR = "r"  # For error/warning indicators
 
 # === Line Styling ===

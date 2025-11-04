@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, fields
 from typing import TYPE_CHECKING, final
 
+import h5py
+import numpy as np
 from PySide6.QtCore import QDate
 
 from testpad.core.burnin.config import DEFAULT_TEST_DATE
@@ -34,7 +37,7 @@ class Metadata:
 
 
 @dataclass
-class BurninSettings:
+class BurninGraphOptions:
     """Settings for the burnin tab.
 
     Attributes:
@@ -52,19 +55,77 @@ class BurninSettings:
 
 
 @dataclass
-class BurninFileSettings:
-    """Settings for the burnin file and output.
+class BurninFileInfo:
+    """Information for the burnin file.
 
     Attributes:
-        burnin_file: Path to the burnin file.
-        output_folder: Folder to save the output.
-        output_file: File to save the output.
+        axis_names: Axis name for the burnin file.
+        test_number: test number for the burnin file.
 
     """
 
-    burnin_file_path: list[Path]
-    output_folder: Path | None = None
-    output_file: Path | None = None
+    file_path: Path
+    axis_name: str | None = None
+    test_number: int | None = None
+
+    @classmethod
+    def from_path(cls, path: Path) -> BurninFileInfo:
+        """Create a BurninFileInfo object from a path.
+
+        Args:
+            path: Path to the burnin file.
+
+        Returns:
+            BurninFileInfo: A BurninFileInfo object.
+
+        """
+        # Extract the axis name and test number from the file name
+        axis = cls._extract_axis_name(path)
+        test_num = cls._extract_test_number(path)
+        return cls(path, axis, test_num)
+
+    @staticmethod
+    def _extract_axis_name(path: Path) -> str | None:
+        """Extract the axis name from the file name.
+
+        Args:
+            path: Path to the burnin file.
+
+        Returns:
+            str: The axis name.
+
+        """
+        # Extract the axis name from the file name
+        if "_axis_A_" in path.name:
+            return "A"
+        if "_axis_B_" in path.name:
+            return "B"
+        return None
+
+    @staticmethod
+    def _extract_test_number(path: Path) -> int:
+        """Extract the test number from the file name.
+
+        Args:
+            path: Path to the burnin file.
+
+        Returns:
+            int: The test number.
+
+        """
+        # Extract the test number from the file name
+        match = re.search(r"error_(\d+)", path.name)
+        return int(match.group(1)) if match else -1
+
+
+@dataclass
+class BurninData:
+    time: np.ndarray
+    error: np.ndarray
+    positive_errors: np.ndarray
+    negative_errors: np.ndarray
+    axis_name: str | None
+    test_number: int | None
 
 
 # ------------------ Model ------------------
@@ -107,7 +168,7 @@ class BurninModel:
         self._print_stats_option: bool = False
         self._separate_errors_option: bool = False
         self._moving_average_option: bool = False
-        self._burnin_file_paths: list[Path] = []
+        self._burnin_file_infos: list[BurninFileInfo] = []
         self._output_folder: Path | None = None
         self._output_file: Path | None = None
 
@@ -151,22 +212,24 @@ class BurninModel:
     ======== Burnin File Settings ========
     """
 
-    def set_burnin_file(self, burnin_file_path: list[Path]) -> BurninFileSettings:
-        """Set the burnin file path."""
-        self._burnin_file_paths = burnin_file_path
-        return self.get_files_settings_state()
+    def set_burnin_files(self, burnin_file_infos: list[BurninFileInfo]) -> None:
+        """Set the burnin file path and stores the info BurninFileInfo objects."""
+        self._burnin_file_infos = burnin_file_infos
 
-    def clear_burning_file(self) -> BurninFileSettings:
+    def clear_burnin_file(self) -> None:
         """Clear the burnin file path."""
-        self._burnin_file_paths = []
-        return self.get_files_settings_state()
+        self._burnin_file_infos = []
 
-    def get_burnin_file(self) -> list[Path]:
+    def get_burnin_file(self) -> list[BurninFileInfo]:
         """Return the burnin file path."""
-        return self._burnin_file_paths
+        return self._burnin_file_infos
+
+    def has_burnin_file(self) -> bool:
+        """Return True if the burnin file path is not empty."""
+        return bool(self._burnin_file_infos)
 
     """
-    ======== Output Settings ========
+    ======== Output File Settings ========
     """
 
     def set_output_folder(self, output_folder: Path) -> None:
@@ -192,6 +255,81 @@ class BurninModel:
     def get_output_file(self) -> Path | None:
         """Return the output file."""
         return self._output_file
+
+    """
+    ======== Burnin Data ========
+    """
+
+    def load_burnin_data(self, file_info: BurninFileInfo) -> BurninData:
+        """Load burnin data from a file."""
+        with h5py.File(file_info.file_path, "r") as f:
+            time = np.array(f["Time (s)"])
+            error = np.array(f["Error (counts)"])
+
+        positive_errors = np.where(error > 0, error, np.nan)
+        negative_errors = np.where(error < 0, error, np.nan)
+
+        return BurninData(
+            time,
+            error,
+            positive_errors,
+            negative_errors,
+            file_info.axis_name or "Unknown",
+            file_info.test_number,
+        )
+
+    def calculate_moving_average(
+        self, array: np.ndarray, window: int = 10000
+    ) -> np.ndarray:
+        """Calculate centered moving average of the error values, handling NaN.
+
+        Args:
+            array: Input array (may contain NaN values)
+            window: Size of the moving average window (centered on each point)
+
+        Returns:
+            Moving average array of same length as input, with NaN where
+            insufficient valid data exists for averaging.
+
+        Note:
+            - Uses pure NumPy implementation to avoid heavy dependencies
+            - NaN values are excluded from the average calculation
+            - Uses cumulative sum approach for O(n) performance
+            - Window is centered: for window=5, uses [i-2, i-1, i, i+1, i+2]
+            - If window > len(array), uses entire array for all positions
+            - Empty arrays return empty results
+
+        """
+        # Handle empty array
+        if len(array) == 0:
+            return np.array([])
+
+        # Use cumulative sum approach for consistent centering
+        # Replace NaN with 0 for cumsum
+        arr_filled = np.where(np.isnan(array), 0, array)
+        valid_mask = ~np.isnan(array)
+
+        # Cumulative sums for values and counts
+        cumsum_vals = np.concatenate(([0], np.cumsum(arr_filled)))
+        cumsum_counts = np.concatenate(([0], np.cumsum(valid_mask.astype(int))))
+
+        # Calculate moving sum and count for each position
+        n = len(array)
+        result = np.full(n, np.nan)
+        half_window = window // 2
+
+        for i in range(n):
+            # Define centered window bounds
+            start = max(0, i - half_window)
+            end = min(n, i + half_window + 1)
+
+            window_sum = cumsum_vals[end] - cumsum_vals[start]
+            window_count = cumsum_counts[end] - cumsum_counts[start]
+
+            if window_count > 0:
+                result[i] = window_sum / window_count
+
+        return result
 
     """
     ======== Metadata Settings ========
@@ -221,10 +359,14 @@ class BurninModel:
         """Return a copy of the current metadata."""
         return Metadata(**asdict(self._meta_data))
 
-    def get_files_settings_state(self) -> BurninFileSettings:
-        """Return a copy of the current file settings state."""
-        return BurninFileSettings(
-            burnin_file_path=self._burnin_file_paths,
-            output_folder=self._output_folder,
-            output_file=self._output_file,
+    """
+    ======== Get States ========
+    """
+
+    def get_graph_options_state(self) -> BurninGraphOptions:
+        """Return a copy of the current display settings state."""
+        return BurninGraphOptions(
+            print_stats=self._print_stats_option,
+            separate_errors=self._separate_errors_option,
+            moving_average=self._moving_average_option,
         )
