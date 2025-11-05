@@ -1,0 +1,41 @@
+/* Button Styles for FUS Instruments Testpad
+ *
+ * Qt StyleSheet (QSS) for consistent button appearance across all tabs.
+ * Uses class-based selectors for flexibility.
+ */
+
+/* === Action Buttons ===
+ * Used for primary actions like "Print Graph", "Generate Report", etc.
+ * Apply with: button.setProperty("class", "action-button")
+ */
+QPushButton[class="action-button"] {
+    background-color: #66A366;
+    color: black;
+}
+
+QPushButton[class="action-button"]:hover {
+    background-color: #7AB47A;
+}
+
+QPushButton[class="action-button"]:pressed {
+    background-color: #558855;
+}
+
+QPushButton[class="action-button"]:disabled {
+    background-color: #CCCCCC;
+    color: #888888;
+}
+
+/* === Alternative: ID-based selector (if needed) ===
+ * For backwards compatibility or specific widget targeting
+ */
+QPushButton#printGraphBtn,
+QPushButton#generateReportBtn {
+    background-color: #66A366;
+    color: black;
+}
+
+/* === Generic disabled state for all buttons === */
+QPushButton:disabled {
+    color: gray;
+

@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
 from testpad.resources.palette.custom_palette import load_custom_palette
 from testpad.ui.splash import SplashScreen
 from testpad.ui.tabs.registry import TABS_SPEC, TabSpec, enabled_tabs
+from testpad.utils.path_display import truncate_to_testpad
+from testpad.utils.resources import load_stylesheet
 from testpad.version import __version__
 
 
@@ -39,7 +41,9 @@ def get_icon_path() -> str:
     if Path(icon_path_pkg).exists():
         icon_path = icon_path_pkg
     elif meipass:
-        icon_path = Path(meipass) / "testpad" / "resources" / "fus_icon_transparent.ico"
+        icon_path = (
+            Path(meipass) / "testpad" / "resources" / "fus_icon_transparent.ico"
+        )
     else:
         icon_path = (
             Path.cwd() / "src" / "testpad" / "resources" / "fus_icon_transparent.ico"
@@ -155,7 +159,7 @@ class _ApplicationWindow(QMainWindow):
                     ):
                         self.seen_files.add(origin)
                         with suppress(Exception):
-                            callback(f"Loading: {origin}")
+                            callback(f"Loading: {truncate_to_testpad(origin)}")
                         if per_file_cb is not None:
                             with suppress(Exception):
                                 per_file_cb(len(self.seen_files))
@@ -185,7 +189,7 @@ class _ApplicationWindow(QMainWindow):
         try:
             # Provide immediate feedback that this tab is the one being resolved.
             if progress_cb:
-                progress_cb(f"Loading: {label} ({module_path})")
+                progress_cb(f"Loading: {label} ({truncate_to_testpad(module_path)})")
             # Highlight module families that tend to dominate import time so the progress UI can
             # surface meaningful messages while the interpreter walks their files.
             heavy = {
@@ -247,13 +251,16 @@ def main() -> None:
     app_icon = QIcon(icon_path)
     app.setWindowIcon(app_icon)
 
-    app.setStyleSheet(
-        "QLabel{font-size: 11pt;}"
-    )  # increase font size slightly of QLabels
     app.setStyle("Fusion")
     dark_palette, palette_tooltip = load_custom_palette(palette_name="dark_palette")
     app.setPalette(dark_palette)
-    app.setStyleSheet(palette_tooltip)
+
+    # Load and combine stylesheets
+    button_styles = load_stylesheet("buttons.qss")
+    # increase font size slightly of QLabels in main window (not splash screen)
+    label_styles = "QMainWindow QLabel{font-size: 11pt;}"
+    combined_styles = f"{label_styles}\n{palette_tooltip}\n{button_styles}"
+    app.setStyleSheet(combined_styles)
 
     # Splash screen setup
     splash = SplashScreen(version_text=f"v{__version__}")

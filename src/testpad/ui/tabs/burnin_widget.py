@@ -12,6 +12,7 @@ from matplotlib.backends.backend_qt import (
     NavigationToolbar2QT as NavigationToolbar,
 )
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -26,20 +27,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from testpad.core.burnin.burnin_graph import BurninGraph
 from testpad.core.burnin.config import DEFAULT_PATH_BURNIN_DATA
 
 if TYPE_CHECKING:
     from testpad.core.burnin.burnin_presenter import BurninPresenter
-
-
-class _MyQWidget(QWidget):
-    def __init__(self, burnin_graph: BurninGraph) -> None:
-        super().__init__()
-        self.graph = burnin_graph
-
-    def resizeEvent(self, event) -> None:
-        self.graph.got_resize_event()
 
 
 class BurninTab(QWidget):
@@ -89,22 +80,23 @@ class BurninTab(QWidget):
             presenter.on_generate_report_clicked
         )
 
-    def create_figure_canvas_list(
-        self, figures: list[FigureCanvas]
-    ) -> list[FigureCanvas]:
-        """Create a list of FigureCanvas objects from a list of Figure objects."""
-        canvas_list = []
-        for figure in figures:
-            canvas = FigureCanvas(figure)
-            canvas_list.append(canvas)
-        return canvas_list
+    def display_graphs(self, figures: list[Figure]) -> None:
+        """Display the given figures in the graph display.
 
-    def create_graph_display(self, canvas_list: list[FigureCanvas]) -> None:
+        Args:
+            figures: List of Figures objects to display.
+
+        """
+        canvases = self._create_figure_canvas_list(figures)
+        self._create_graph_display(canvases)
+
+    def _create_figure_canvas_list(self, figures: list[Figure]) -> list[FigureCanvas]:
+        """Create a list of FigureCanvas objects from a list of Figure objects."""
+        return [FigureCanvas(figure) for figure in figures]
+
+    def _create_graph_display(self, canvas_list: list[FigureCanvas]) -> None:
         """Create a graph display with the given canvases."""
-        nav_tool_list = []
-        for canvas in canvas_list:
-            nav_tool = self._add_nav_toolbar(canvas)
-            nav_tool_list.append(nav_tool)
+        nav_tool_list = [self._add_nav_toolbar(canvas) for canvas in canvas_list]
 
         for i, canvas in enumerate(canvas_list):
             display_widget = QWidget()
@@ -112,7 +104,10 @@ class BurninTab(QWidget):
             display_widget.setLayout(display_layout)
             display_layout.addWidget(nav_tool_list[i])
             display_layout.addWidget(canvas)
-            self.graph_display.addTab(display_widget, "Axis " + str(i))
+
+            self.graph_display.addTab(
+                display_widget, f"{canvas.figure.get_suptitle()}"
+            )
 
     def show_warning(self, message: str) -> None:
         """Show a warning message in the text disqplay."""
@@ -179,17 +174,13 @@ class BurninTab(QWidget):
         layout = QVBoxLayout()
         widget.setLayout(layout)
 
-        # TODO: Move to stylesheet or config file
-        button_style = "background-color: #66A366; color: black;"  # Create Widgets
-
+        # Create buttons and apply stylesheet class
         self._print_graph_btn = QPushButton("Print Graph(s)")
-        self._print_graph_btn.setStyleSheet(
-            button_style,
-        )
+        self._print_graph_btn.setProperty("class", "action-button")
+
         self._generate_report_btn_new = QPushButton("Generate Report")
-        self._generate_report_btn_new.setStyleSheet(
-            button_style,
-        )
+        self._generate_report_btn_new.setProperty("class", "action-button")
+
         layout.addWidget(self._print_graph_btn)
         layout.addWidget(self._generate_report_btn_new)
 
@@ -203,11 +194,17 @@ class BurninTab(QWidget):
         self.graph_display = QTabWidget()
         return self.graph_display
 
+    def _add_nav_toolbar(self, canvas: FigureCanvas) -> NavigationToolbar:
+        """Add a NavigationToolbar to the canvas."""
+        return NavigationToolbar(canvas, self)
+
     def _create_separated_error_graph_tab(self) -> None:
         """Create the separated error graph tab."""
+        # TODO: possible remove this
 
     def _create_moving_average_graph_tab(self) -> None:
         """Create the moving average graph tab."""
+        # TODO: possible remove this
 
     def _on_burnin_file_clicked(self) -> None:
         """Handle burn-in file selection button click."""
@@ -260,10 +257,6 @@ class BurninTab(QWidget):
             return files if files else None
         return None
 
-    def _add_nav_toolbar(self, canvas: FigureCanvas) -> NavigationToolbar:
-        """Add a NavigationToolbar to the canvas."""
-        return NavigationToolbar(canvas, self)
-
     def _block_signals(self, block: bool) -> None:
         """Block or unblock signals from all input widgets.
 
@@ -278,112 +271,6 @@ class BurninTab(QWidget):
         for name in self.__dict__:
             attr = getattr(self, name)
             attr.blockSignals(block)
-
-    # prints burn-in graph with navigation tool bar to pan/zoom
-    def _print_graphs(self, filepath: list[str]) -> None:
-        # TODO: abstract to plotting module or something similar
-        self.graph_display.clear()
-
-        self.burnin = BurninGraph(
-            filepath[0],
-            [
-                self._moving_average_checkbox.isChecked(),
-                self._separated_errors_checkbox.isChecked(),
-            ],
-        )
-        # self.stats_class = BurninStats(filepath[0], self.text_display)
-
-        # Determine the axis name based on the filename
-        if "_axis_A_" in filepath[0]:
-            axis_name = "Axis A"
-        elif "_axis_B_" in filepath[0]:
-            axis_name = "Axis B"
-        else:
-            axis_name = "Unknown Axis"
-
-        # Extract the test number after the last underscore
-        try:
-            test_number = (
-                filepath[0].split("_")[-1].split(".")[0]
-            )  # Split by underscore and get the last part, then remove file extension
-        except IndexError:
-            test_number = "Unknown"
-
-        # Update text display with axis-specific and test number message.
-
-        #     self.text_display.append(
-        #         f"Summary Statistics for: {axis_name}; test no. {test_number}:\n",
-        #     )
-        #     # self.stats_class.print_stats()
-
-        burn_graph = self.burnin.get_graph()
-        nav_tool = NavigationToolbar(burn_graph)
-
-        burn_widget = _MyQWidget(burnin_graph=self.burnin)
-        burn_widget.setContentsMargins(5, 5, 5, 5)
-        burn_layout = QVBoxLayout()
-        burn_layout.setContentsMargins(5, 5, 5, 5)
-        burn_layout.addWidget(nav_tool)
-        burn_layout.addWidget(burn_graph)
-        burn_widget.setLayout(burn_layout)
-
-        self.graph_display.addTab(burn_widget, "Burn-in Graph")
-
-        # Create Tab for separated error values
-        if self._separated_errors_checkbox.isChecked():
-            seperate_graph = self.burnin.get_graphs_separated()
-            nav_tool_sep = NavigationToolbar(seperate_graph)
-            separated_widget = _MyQWidget(burnin_graph=self.burnin)
-            separated_widget.setContentsMargins(5, 5, 5, 5)
-            separated_layout = QVBoxLayout()
-            separated_layout.setContentsMargins(5, 5, 5, 5)
-            separated_layout.addWidget(nav_tool_sep)
-            separated_layout.addWidget(seperate_graph)
-            separated_widget.setLayout(separated_layout)
-
-            self.graph_display.addTab(
-                separated_widget,
-                "Error vs Time with directions separated",
-            )
-        else:
-            pass
-
-        # add tab for positive error and negative error if moving average is checked
-        if self._moving_average_checkbox.isChecked():
-            # call moving_avg_plot() function from BurninGraph class
-            pos_avg, neg_avg = self.burnin.moving_avg_plot()
-
-            # create tab for positive error values
-            nav_tool_pos = NavigationToolbar(pos_avg)
-
-            pos_error_widget = _MyQWidget(burnin_graph=self.burnin)
-            pos_error_widget.setContentsMargins(5, 5, 5, 5)
-            pos_error_layout = QVBoxLayout()
-            pos_error_layout.setContentsMargins(5, 5, 5, 5)
-            pos_error_layout.addWidget(nav_tool_pos)
-            pos_error_layout.addWidget(pos_avg)
-            pos_error_widget.setLayout(pos_error_layout)
-
-            self.graph_display.addTab(
-                pos_error_widget, "Positive Error w/ Moving Avg"
-            )
-
-            # create tab for negative error values
-            nav_tool_neg = NavigationToolbar(neg_avg)
-
-            neg_error_widget = _MyQWidget(burnin_graph=self.burnin)
-            neg_error_widget.setContentsMargins(5, 5, 5, 5)
-            neg_error_layout = QVBoxLayout()
-            neg_error_layout.setContentsMargins(5, 5, 5, 5)
-            neg_error_layout.addWidget(nav_tool_neg)
-            neg_error_layout.addWidget(neg_avg)
-            neg_error_widget.setLayout(neg_error_layout)
-
-            self.graph_display.addTab(
-                neg_error_widget, "Negative Error w/ Moving Avg"
-            )
-        else:
-            pass
 
 
 def _main() -> None:

@@ -119,17 +119,12 @@ class BurninPresenter:
             figures.extend(self._plot_error_and_moving_average(burnin_data))
 
         self._figures = figures  # can access this for the report
-        # Send figures to view
-        canvas_list = self._view.create_figure_canvas_list(figures)
-        self._view.create_graph_display(canvas_list)
+        # Send figures to view and tell it to display plots
+        self._view.display_graphs(figures)
 
         # Conditionally display stats
         if settings.print_stats:
             self._display_stats(burnin_file_infos)
-        # self._display_stats(burnin_data)
-        # Update view (still using legacy method temporarily)
-        # files = [str(info.file_path) for info in burnin_file_infos]
-        # self._view._print_graphs(files)
 
     def _plot_total_axis_error(self, burnin_data: list[BurninData]) -> list:
         """Plot the total axis error."""
@@ -141,7 +136,9 @@ class BurninPresenter:
                 "ylabel": "Error (counts)",
             }
             colors = [PRIMARY_COLOR if data.axis_name == "A" else PRIMARY_COMP_COLOR]
-            figures.append(plot_xy(data.time, data.error, labels, colors))
+            figure = plot_xy(data.time, data.error, labels, colors)
+            figure.suptitle(f"Axis {data.axis_name} Burn-in Error", alpha=0)
+            figures.append(figure)
         return figures
 
     def _plot_separated_error(self, burnin_data: list[BurninData]) -> list:
@@ -155,15 +152,16 @@ class BurninPresenter:
             }
             data_labels = ["Positive Errors", "Negative Errors"]
             colors = [PRIMARY_COLOR, PRIMARY_COMP_COLOR]
-            figures.append(
-                plot_x_multiple_y(
-                    data.time,
-                    [data.positive_errors, data.negative_errors],
-                    line_labels,
-                    data_labels,
-                    colors,
-                )
+            figure = plot_x_multiple_y(
+                data.time,
+                [data.positive_errors, data.negative_errors],
+                line_labels,
+                data_labels,
+                colors,
             )
+
+            figure.suptitle(f"Axis {data.axis_name} Error by Direction", alpha=0)
+            figures.append(figure)
         return figures
 
     def _plot_error_and_moving_average(self, burnin_data: list[BurninData]) -> list:
@@ -191,15 +189,20 @@ class BurninPresenter:
                     (PRIMARY_COLOR if data.axis_name == "A" else PRIMARY_COMP_COLOR),
                     AVG_LINE_COLOR,
                 ]
-                figures.append(
-                    plot_x_multiple_y(
-                        data.time,
-                        [signed_errors[i], avg],
-                        line_labels,
-                        data_labels,
-                        colors,
-                    )
+                figure = plot_x_multiple_y(
+                    data.time,
+                    [signed_errors[i], avg],
+                    line_labels,
+                    data_labels,
+                    colors,
                 )
+                figure.suptitle(
+                    f"Axis {data.axis_name} - {direction} Error w/ Moving Average",
+                    alpha=0,
+                )
+
+                figures.append(figure)
+
         return figures
 
     def _display_stats(self, burnin_file_info: list[BurninFileInfo]) -> None:

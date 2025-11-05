@@ -5,7 +5,14 @@ import os
 from pathlib import Path
 
 from PySide6.QtCore import QRect, QRectF, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QFontMetrics, QGuiApplication, QPainter, QPen, QPixmap
+from PySide6.QtGui import (
+    QColor,
+    QFontMetrics,
+    QGuiApplication,
+    QPainter,
+    QPen,
+    QPixmap,
+)
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
@@ -16,28 +23,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from testpad.utils.resources import resolve_resource_path
+
 try:
     from PySide6.QtSvg import QSvgRenderer
 except Exception:  # pragma: no cover - optional dependency at runtime
     QSvgRenderer = None  # type: ignore
-
-
-def resolve_resource_path(relative: str) -> str:
-    """Resolve a resource path for dev and PyInstaller builds.
-
-    Looks in package (this file's directory), PyInstaller's _MEIPASS, then project root.
-    """
-    base_dir = os.path.dirname(Path(__file__).parent)  # src/testpad
-    pkg_path = os.path.join(base_dir, "resources", relative)
-    if Path(pkg_path).exists():
-        return pkg_path
-    meipass = getattr(__import__("sys"), "_MEIPASS", "")
-    if meipass:
-        alt = os.path.join(meipass, "resources", relative)
-        if Path(alt).exists():
-            return alt
-    # fallback to repo-root layout during development
-    return os.path.join(Path.cwd(), "src", "testpad", "resources", relative)
 
 
 def _render_svg_to_pixmap(svg_path: str, size: QSize) -> QPixmap | None:
@@ -54,7 +45,9 @@ def _render_svg_to_pixmap(svg_path: str, size: QSize) -> QPixmap | None:
     # Preserve aspect ratio within given size
     view_box = renderer.viewBoxF()
     if not view_box.isEmpty():
-        scale = min(size.width() / view_box.width(), size.height() / view_box.height())
+        scale = min(
+            size.width() / view_box.width(), size.height() / view_box.height()
+        )
         w = view_box.width() * scale
         h = view_box.height() * scale
         x = (size.width() - w) / 2
@@ -101,7 +94,9 @@ class SplashScreen(QWidget):
     """
 
     def __init__(
-        self, version_text: str, logo_svg_relative: str = "FUS_logo_text_icon_ms_v3.svg"
+        self,
+        version_text: str,
+        logo_svg_relative: str = "FUS_logo_text_icon_ms_v3.svg",
     ) -> None:
         super().__init__(
             None,
@@ -141,7 +136,8 @@ class SplashScreen(QWidget):
         logo_row.setSpacing(12)
 
         self.logo_label = QLabel()
-        # Preserve aspect ratio by not scaling contents; we fix to the pixmap size below.
+        # Preserve aspect ratio by not scaling contents;
+        # we fix to the pixmap size below.
         self.logo_label.setScaledContents(False)
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_row.addWidget(self.logo_label, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -192,7 +188,9 @@ class SplashScreen(QWidget):
         self.message_label = QLabel("Starting…")
         self.message_label.setObjectName("messageLabel")
         self.message_label.setWordWrap(False)
-        self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.message_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
         self.message_label.setFixedHeight(22)
         self.message_label.setSizePolicy(
             QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
@@ -229,7 +227,9 @@ class SplashScreen(QWidget):
             self.logo_label.setText(base_name)
 
         # Wider splash, slightly taller than the logo aspect ratio
-        target_width = (pm.size().width() if isinstance(pm, QPixmap) else 760) + (m * 2)
+        target_width = (pm.size().width() if isinstance(pm, QPixmap) else 760) + (
+            m * 2
+        )
         self.resize(target_width, 360)
 
     def paintEvent(self, ev):
@@ -313,7 +313,7 @@ class RoundedProgressBar(QWidget):
             txt = txt.replace("%p%", f"{self._percent()}%")
         return txt
 
-    def paintEvent(self, ev) -> None:  # noqa: N802
+    def paintEvent(self, ev) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 

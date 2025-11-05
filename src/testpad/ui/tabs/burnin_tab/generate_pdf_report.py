@@ -260,6 +260,7 @@ class GenerateReport:
             new_x="LMARGIN",
             new_y="NEXT",
         )
+        self.pdf.ln(self.layout.section_spacing_mm)
         with self.pdf.table(col_widths=(50), align="C", markdown=True) as table:
             header_row = table.row()
             for header in headers:
