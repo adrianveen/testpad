@@ -11,12 +11,12 @@ from matplotlib.figure import Figure
 from testpad.config.plotting import (
     AVG_LINE_COLOR,
     DEFAULT_LINE_STYLE,
-    DEFAULT_LINE_WIDTH,
     GRID_ALPHA,
     GRID_ENABLED,
     GRID_LINE_STYLE,
     GRID_LINE_WIDTH,
     PRIMARY_COLOR,
+    THIN_LINE_WIDTH,
 )
 
 
@@ -47,9 +47,8 @@ def plot_xy(
         y,
         color=colors[0],
         linestyle=DEFAULT_LINE_STYLE,
-        linewidth=DEFAULT_LINE_WIDTH,
+        linewidth=THIN_LINE_WIDTH,
     )
-    fig.tight_layout(pad=0.5)
 
     title = labels["title"]
     xlabel = labels["xlabel"]
@@ -59,6 +58,8 @@ def plot_xy(
     plt.ylabel(ylabel)
     # Set title
     plt.title(title)
+
+    fig.tight_layout(pad=0.5)
 
     return fig
 
@@ -108,7 +109,7 @@ def plot_x_multiple_y(
             color=colors[i],
             label=data_labels[i],
             linestyle=DEFAULT_LINE_STYLE,
-            linewidth=DEFAULT_LINE_WIDTH,
+            linewidth=THIN_LINE_WIDTH,
         )
 
     # Set labels
@@ -127,6 +128,7 @@ def plot_x_multiple_y(
     )
 
     fig.tight_layout(pad=0.5)
+
     return fig
 
 
@@ -154,16 +156,15 @@ def plot_overlay(x: np.ndarray, y: list, labels: dict[str, str]) -> Figure:
                 y_vals,
                 color=PRIMARY_COLOR,
                 linestyle=DEFAULT_LINE_STYLE,
-                linewidth=DEFAULT_LINE_WIDTH,
+                linewidth=THIN_LINE_WIDTH,
             )
             ax.plot(
                 x,
                 y_vals,
                 color=AVG_LINE_COLOR,
                 linestyle=DEFAULT_LINE_STYLE,
-                linewidth=DEFAULT_LINE_WIDTH,
+                linewidth=THIN_LINE_WIDTH,
             )
-    fig.tight_layout(pad=0.5)
 
     title = labels["title"]
     xlabel = labels["xlabel"]
@@ -173,5 +174,7 @@ def plot_overlay(x: np.ndarray, y: list, labels: dict[str, str]) -> Figure:
     plt.ylabel(ylabel)
     # Set title
     plt.title(title)
+
+    fig.tight_layout(pad=0.5)
 
     return fig

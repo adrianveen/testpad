@@ -11,7 +11,6 @@ from testpad.config.plotting import (
     PRIMARY_COLOR,
     PRIMARY_COMP_COLOR,
 )
-from testpad.core.burnin.burnin_graph import BurninGraph
 from testpad.core.burnin.burnin_stats import BurninStats
 from testpad.core.burnin.model import BurninData, BurninFileInfo, BurninModel
 from testpad.core.plotting.plotting import plot_x_multiple_y, plot_xy
@@ -31,6 +30,8 @@ class BurninPresenter:
         self._view = view
         self._model = model
         self._updating = False
+        self._figures: list = []
+        self._stats_classes: list = []
 
     def initialize(self) -> None:
         """Call after view is constructed."""
@@ -95,6 +96,11 @@ class BurninPresenter:
         if not self._model.has_burnin_file():
             self._view.show_warning("No burn-in file selected.")
             return
+        # Clear previous figures and stats
+        self._figures = []
+        self._stats_classes = []
+        self._view.graph_display.clear()
+
         # Get data
         burnin_file_infos = self._model.get_burnin_file()
         settings = self._model.get_graph_options_state()
@@ -104,6 +110,7 @@ class BurninPresenter:
         # Generate figures based on settings
         figures = []
         # Always plot total error
+        figures.extend(self._plot_total_axis_error(burnin_data))
         # Conditionally add separated errors
         if settings.separate_errors:
             figures.extend(self._plot_separated_error(burnin_data))
@@ -111,13 +118,18 @@ class BurninPresenter:
         if settings.moving_average:
             figures.extend(self._plot_error_and_moving_average(burnin_data))
 
-        # Save figures (for debugging)
-        for fig in figures:
-            save_figure_to_temp_file(fig)
+        self._figures = figures  # can access this for the report
+        # Send figures to view
+        canvas_list = self._view.create_figure_canvas_list(figures)
+        self._view.create_graph_display(canvas_list)
 
+        # Conditionally display stats
+        if settings.print_stats:
+            self._display_stats(burnin_file_infos)
+        # self._display_stats(burnin_data)
         # Update view (still using legacy method temporarily)
-        files = [str(info.file_path) for info in burnin_file_infos]
-        self._view._print_graphs(files)
+        # files = [str(info.file_path) for info in burnin_file_infos]
+        # self._view._print_graphs(files)
 
     def _plot_total_axis_error(self, burnin_data: list[BurninData]) -> list:
         """Plot the total axis error."""
@@ -128,9 +140,8 @@ class BurninPresenter:
                 "xlabel": "Time (s)",
                 "ylabel": "Error (counts)",
             }
-            figures.append(
-                plot_xy(data.time, data.error, labels, colors=[PRIMARY_COLOR])
-            )
+            colors = [PRIMARY_COLOR if data.axis_name == "A" else PRIMARY_COMP_COLOR]
+            figures.append(plot_xy(data.time, data.error, labels, colors))
         return figures
 
     def _plot_separated_error(self, burnin_data: list[BurninData]) -> list:
@@ -169,12 +180,17 @@ class BurninPresenter:
             for i, avg in enumerate(averages):
                 direction = "Positive" if i == 0 else "Negative"
                 line_labels = {
-                    "title": f"Axis {data.axis_name} - {direction} Error with Moving Average",
+                    "title": f"Axis {data.axis_name} - {
+                        direction
+                    } Error with Moving Average",
                     "xlabel": "Time (s)",
                     "ylabel": "Error (counts)",
                 }
                 data_labels = ["Error Data", "Moving Average"]
-                colors = [PRIMARY_COLOR, AVG_LINE_COLOR]
+                colors = [
+                    (PRIMARY_COLOR if data.axis_name == "A" else PRIMARY_COMP_COLOR),
+                    AVG_LINE_COLOR,
+                ]
                 figures.append(
                     plot_x_multiple_y(
                         data.time,
@@ -185,6 +201,15 @@ class BurninPresenter:
                     )
                 )
         return figures
+
+    def _display_stats(self, burnin_file_info: list[BurninFileInfo]) -> None:
+        """Display the statistics in the textbox."""
+        for file in burnin_file_info:
+            stats_class = BurninStats(
+                str(file.file_path), file.axis_name, self._view.text_display
+            )
+            stats_class.print_stats()
+            self._stats_classes.append(stats_class)
 
     def on_generate_report_clicked(self) -> None:
         """Genearte a PDF report when "GENERATE REPORT" button is clicked.
@@ -197,20 +222,23 @@ class BurninPresenter:
 
         """
         # Check if file is selected
-        if not hasattr(self._view, "burnin_file") or not self._view.burnin_file:
-            QMessageBox.warning(
-                self._view,
-                "No File",
-                "Please select a burn-in file first",
-            )
+        if self._updating:
             return
 
+        if not self._model.has_burnin_file():
+            self._view.show_warning("No burn-in file selected.")
+            return
+
+        # Get data
+        burnin_file_infos = self._model.get_burnin_file()
+
         # Check if stats exist; generate if not
-        if (
-            not getattr(self._view, "stats_class", None)
-            or self._view.stats_class is None
-        ):
-            self._view.stats_class = BurninStats(self._view.burnin_file, textbox=None)
+        if self._stats_classes == [] or self._stats_classes is None:
+            for file in burnin_file_infos:
+                stats_class = BurninStats(
+                    str(file.file_path), file.axis_name, self._view.text_display
+                )
+                self._stats_classes.append(stats_class)
 
         dialog = MetadataDialog(parent=self._view)
         initial_values = self._model.get_metadata()
@@ -227,42 +255,15 @@ class BurninPresenter:
             "RK300 Serial #": metadata.rk300_serial,
         }
         # Generate report
-        # Get figures from BurninGraph
-        separate_errors_checked = self._view.separate_errors_box.isChecked()
-        moving_avg_checked = self._view.moving_avg_box.isChecked()
-        additional_plot_flags = [separate_errors_checked, moving_avg_checked]
-
-        burnin = BurninGraph(self._view.burnin_file, additional_plot_flags)
         # Create list for figures
-        list_of_figs = []
-        # Get main figure
-        main_canvas = burnin.get_graph()
-        main_fig = main_canvas.figure
-        list_of_figs.append(main_fig)
-        # Get saparated figure
-        if self._view.separate_errors_box.isChecked():
-            separate_canvas = burnin.get_graphs_separated()
-            separate_fig = separate_canvas.figure
-            list_of_figs.append(separate_fig)
-        else:
-            pass
-
-        # Moving Averages
-        if self._view.moving_avg_box.isChecked():
-            pos_canvas, neg_canvas = burnin.moving_avg_plot()
-            pos_avg_fig = pos_canvas.figure
-            neg_avg_fig = neg_canvas.figure
-            list_of_figs.append(pos_avg_fig)
-            list_of_figs.append(neg_avg_fig)
-        else:
-            pass
+        list_of_figs = self._figures
 
         list_of_pngs = [save_figure_to_temp_file(fig) for fig in list_of_figs]
 
         report_generator = GenerateReport(
             meta_data=report_meta,
-            burnin_stats=self._view.stats_class,
-            figures=list_of_pngs,
+            burnin_stats=self._stats_classes,
+            list_of_temp_pngs=list_of_pngs,
         )
 
         try:

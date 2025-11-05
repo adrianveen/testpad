@@ -22,8 +22,8 @@ class GenerateReport:
     def __init__(
         self,
         meta_data: dict[str, Any],
-        burnin_stats: "BurninStats",
-        figures: list,
+        burnin_stats: list["BurninStats"],
+        list_of_temp_pngs: list,
         output_dir: Path = DEFAULT_EXPORT_DIR,
         logo_path: Path = DEFAULT_FUS_LOGO_PATH,
     ) -> None:
@@ -33,22 +33,34 @@ class GenerateReport:
             meta_data (dict[str, Any]): Metadata dictionary containing test name,
                 location, date, and RK-300 serial number.
             burnin_stats (BurninStats): BurninStats object to generate the report
-            figures (list): List of matplotlib figures to include in the report.
+            list_of_temp_pngs (list): List of matplotlib figures to include in
+                the report.
             output_dir (Path): The path to the output PDF file.
             logo_path (Path): The path to the logo image file.
 
         """
         self.meta_data = meta_data
         self.burnin_stats = burnin_stats
+        self.axis_names = []
+        self.pos_stats = []
+        self.neg_stats = []
+        self.pos_neg_stats: list[tuple] = []
 
-        self.positive_stats = self.burnin_stats.positive_stats
-        self.negative_stats = self.burnin_stats.negative_stats
-        self.pos_neg_stats = (
-            self.burnin_stats.positive_stats,
-            self.burnin_stats.negative_stats,
-        )
+        for stats in self.burnin_stats:
+            axis_name = stats.axis_name
+            positive_stats = stats.positive_stats
+            negative_stats = stats.negative_stats
+            self.axis_names.append(axis_name)
+            self.pos_stats.append(positive_stats)
+            self.neg_stats.append(negative_stats)
+            self.pos_neg_stats.append((positive_stats, negative_stats))
 
-        self.figures = figures
+        # self.pos_neg_stats = (
+        #     self.pos_stats,
+        #     self.neg_stats,
+        # )
+
+        self.figures = list_of_temp_pngs
         self.output_dir = output_dir
         self.logo_path = logo_path
 
@@ -61,7 +73,9 @@ class GenerateReport:
         """Generate and export the PDF report for the Burnin Tab."""
         filename = (
             Path(self.output_dir)
-            / f"RK-300 Burnin Report {datetime.datetime.now().strftime('%Y-%m-%d')}.pdf"
+            / f"RK-300 Burnin Report {
+                datetime.datetime.now().strftime('%Y-%m-%d')
+            }.pdf"
         )
         filename = str(filename)
 
@@ -69,7 +83,8 @@ class GenerateReport:
         self._build_report_base(self.layout.left_margin_mm)
         self._build_header(logo_path=self.logo_path)
         self._build_title_block(meta_data=self.meta_data)
-        self._build_stats_table(self.pos_neg_stats)
+        for i, stats in enumerate(self.pos_neg_stats):
+            self._build_stats_table(stats, self.axis_names[i])
         self._build_graphs(self.figures)
 
         # Create and add figures to report
@@ -120,7 +135,7 @@ class GenerateReport:
         # Draw the report title
         self.pdf.ln(self.layout.title_spacing_mm)  # Add spacing after Header
         self.pdf.cell(
-            text=f"Burnin Report for {self.meta_data['Test Name']}",
+            text=f"Burnin Report for {self.meta_data['RK300 Serial #']}",
             align=Align.C,
             center=True,
             new_x="RIGHT",
@@ -146,24 +161,57 @@ class GenerateReport:
         )
 
         # Create a table for the title block
-        with self.pdf.table(col_widths=(60), align="C", markdown=True) as table:
+        # Calculate column widths for centering
+        # Page width minus margins
+        usable_width = self.pdf.w - (2 * self.layout.left_margin_mm)
+        # Two equal-width content columns with small spacing between
+        spacing_col = 10  # Space between the two metadata columns
+        content_col = int((usable_width - spacing_col) / 2)
+
+        with self.pdf.table(
+            col_widths=(content_col, spacing_col, content_col),
+            align="C",
+            markdown=True,
+        ) as table:
             for pair in rows:
                 row = table.row()
-                for label, value in pair:
+                # First column (left field)
+                label, value = pair[0]
+                if label == "Test Date":
+                    # Value is already a Python date object (converted by model)
+                    value = value.strftime("%Y-%m-%d")
+                row.cell(
+                    text=f"{label}: --{value}--",
+                    border=False,
+                    align=Align.C,
+                    style=value_font_style,
+                )
+                # Spacing column
+                row.cell(text="", border=False)
+                # Second column (right field) - handle odd number of fields
+                if len(pair) > 1:
+                    label, value = pair[1]
                     if label == "Test Date":
-                        # Value is already a Python date object (converted by model)
                         value = value.strftime("%Y-%m-%d")
                     row.cell(
                         text=f"{label}: --{value}--",
                         border=False,
-                        align=Align.L,
+                        align=Align.C,
                         style=value_font_style,
                     )
-                # If odd number of fields, pad the last line,
-                if len(pair) < 2:
-                    row.cell("")
+                else:
+                    # Odd number of fields, pad the last row
+                    row.cell("", border=False)
 
-    def _build_stats_table(self, stats: tuple[tuple, tuple]) -> None:
+    def _build_stats_table(self, stats: tuple[tuple, tuple], axis_name: str) -> None:
+        """Build a table for the positive and negative error values.
+
+        Args:
+            stats (tuple[tuple, tuple]): A tuple containing the positive
+                and negative error values.
+            axis_name (str): Name of the axis.
+
+        """
         pos_stats = stats[0]
         neg_stats = stats[1]
 
@@ -175,12 +223,12 @@ class GenerateReport:
             "Median",
             "Min",
             "Max",
-            "Std",
-            "Variance",
-            "25th Percentile",
-            "75th Percentile",
-            "Skewness",
-            "Kurtosis",
+            "Std. Dev.",
+            # "Variance",
+            # "25th Percentile",
+            # "75th Percentile",
+            # "Skewness",
+            # "Kurtosis",
             "Above Threshold",
             "Below Threshold",
             "Peaks Above Threshold",
@@ -204,6 +252,14 @@ class GenerateReport:
             color=self.styling_config.data_text_color,
         )
 
+        self.pdf.cell(
+            text=f"Axis {axis_name} Error Statistics",
+            align=Align.C,
+            center=True,
+            border=0,
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
         with self.pdf.table(col_widths=(50), align="C", markdown=True) as table:
             header_row = table.row()
             for header in headers:
@@ -238,7 +294,7 @@ class GenerateReport:
         # Calculate figure height in mm for PDF
         figure_height_mm = self.pdf.h / 2 - (2 * self.layout.top_margin_mm)
 
-        for j in range(4):
+        for j in range(len(temp_pngs)):
             try:
                 # Add to PDF
                 self.pdf.image(
@@ -270,11 +326,11 @@ def main() -> None:
         "min": 37,
         "max": 70,
         "std": 4.54,
-        "variance": 20.73,
-        "25th_percentile": -57,
-        "75th_percentile": -58,
-        "skewness": -2.16,
-        "kurtosis": 1.64,
+        # "variance": 20.73,
+        # "25th_percentile": -57,
+        # "75th_percentile": -58,
+        # "skewness": -2.16,
+        # "kurtosis": 1.64,
         "prcnt_above_thresh": 99.42,
         "prcnt_below_thresh": 0.58,
         "num_peaks_above_thresh": 3290,
@@ -283,7 +339,7 @@ def main() -> None:
     report = GenerateReport(
         meta_data=sample_meta_data,
         burnin_stats=sample_burnin_stats_pos,
-        figures=[],
+        list_of_temp_pngs=[],
     )
     report.generate_report()
 
