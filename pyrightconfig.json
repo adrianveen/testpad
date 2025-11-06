@@ -1,0 +1,19 @@
+{
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.12.11",
+  "venvPath": ".",
+  "venv": ".venv",
+
+  "exclude": ["**/node_modules", "**/__pycache__", ".git", "tests"],
+  "ignore": ["**/migrations"],
+  
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": "warning",
+  "reportGeneralTypeIssues": "error",
+  "reportPrivateUsage": "warning",
+  "reportOptionalMemberAccess": "error",
+  
+  "reportUnusedVariable": "none",
+  "reportUnusedImport": "none",
+  "reportUnnecessaryIsInstance": "none"
+}

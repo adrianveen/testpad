@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import PySide6.QtWidgets
+from PySide6.QtCore import QDate
 
 from testpad.config import DEFAULT_EXPORT_DIR
 
@@ -26,7 +27,7 @@ class DegasserPresenter:
         self._connect_signals()
 
     def _connect_signals(self) -> None:
-        """Connect view signals to presenter event handlers"""
+        """Connect view signals to presenter event handlers."""
         self._view.connect_signals(self)
 
     def on_name_changed(self, text: str) -> None:
@@ -41,7 +42,7 @@ class DegasserPresenter:
             return
         self._model.set_metadata_field("location", text)
 
-    def on_date_changed(self, date: Any) -> None:
+    def on_date_changed(self, date: datetime | QDate | None) -> None:
         """Handle date edit changes."""
         if self._updating:
             return
@@ -140,7 +141,7 @@ class DegasserPresenter:
         """Handle temperature edit changes.
 
         Args:
-            value (str): The new temperature value from the text field.
+            temp (str): The new temperature value from the text field.
 
         Raises:
             ValueError: If temperature is out of valid range.
@@ -332,5 +333,5 @@ class DegasserPresenter:
         """Cleanup hooks/resources."""
 
     # Future example:
-    def load_data(self, source: Any) -> None:
+    def load_data(self, source: None) -> None:
         """Load data (stub)."""

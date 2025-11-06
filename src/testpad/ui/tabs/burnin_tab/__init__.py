@@ -20,11 +20,11 @@ def create_burnin_tab(parent=None) -> BurninTab:
     try:
         model = BurninModel()
 
-        view = BurninTab(parent, presenter=None)
+        view = BurninTab(parent)
 
         presenter = BurninPresenter(model, view=view)
 
-        view._presenter = presenter
+        view.presenter = presenter
 
         presenter.initialize()
 
