@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Contains the BurninPresenter class, which is the presenter for the Burnin tab."""
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtWidgets import QDialog, QMessageBox
+from PySide6.QtWidgets import QDialog
 
 from testpad.config.plotting import (
     AVG_LINE_COLOR,
@@ -104,9 +105,17 @@ class BurninPresenter:
         # Get data
         burnin_file_infos = self._model.get_burnin_file()
         settings = self._model.get_graph_options_state()
-        burnin_data = [
-            self._model.load_burnin_data(info) for info in burnin_file_infos
-        ]
+        burnin_data = []
+        max_workers = min(4, len(burnin_file_infos))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_info = {
+                executor.submit(self._model.load_burnin_data, info): info
+                for info in burnin_file_infos
+            }
+            for future in as_completed(future_to_info):
+                data = future.result()
+                burnin_data.append(data)
+
         # Generate figures based on settings
         figures = []
         # Always plot total error
@@ -272,15 +281,22 @@ class BurninPresenter:
         try:
             report_generator.generate_report()
         except (ValueError, RuntimeError) as e:
-            QMessageBox.critical(
-                self._view,
-                "Report Generation Error",
+            self._view.show_critical(
                 f"Failed to generate report: {e}"
                 "\nConfirm the following before proceeding:"
                 "\n- Ensure you have write permissions for the output directory."
                 "\n- Close open instances of the report file if it already exists."
                 "\n- Check if the output directory is valid and accessible.",
             )
+            # QMessageBox.critical(
+            #     self._view,
+            #     "Report Generation Error",
+            #     f"Failed to generate report: {e}"
+            #     "\nConfirm the following before proceeding:"
+            #     "\n- Ensure you have write permissions for the output directory."
+            #     "\n- Close open instances of the report file if it already exists."
+            #     "\n- Check if the output directory is valid and accessible.",
+            # )
 
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""

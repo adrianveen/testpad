@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass, fields
+from datetime import date
 from typing import TYPE_CHECKING, final
 
 import h5py
 import numpy as np
-from PySide6.QtCore import QDate
 
 from testpad.core.burnin.config import DEFAULT_TEST_DATE
 
 if TYPE_CHECKING:
-    from datetime import date
     from pathlib import Path
 
 
@@ -300,34 +299,17 @@ class BurninModel:
             - Empty arrays return empty results
 
         """
-        # Handle empty array
-        if len(array) == 0:
-            return np.array([])
-
-        # Use cumulative sum approach for consistent centering
-        # Replace NaN with 0 for cumsum
-        arr_filled = np.where(np.isnan(array), 0, array)
         valid_mask = ~np.isnan(array)
+        arr_filled = np.where(valid_mask, 0, array)
 
-        # Cumulative sums for values and counts
-        cumsum_vals = np.concatenate(([0], np.cumsum(arr_filled)))
-        cumsum_counts = np.concatenate(([0], np.cumsum(valid_mask.astype(int))))
+        window_sums = np.convolve(arr_filled, np.ones(window), mode="same")
+        window_counts = np.convolve(
+            valid_mask.astype(int), np.ones(window), mode="same"
+        )
 
-        # Calculate moving sum and count for each position
-        n = len(array)
-        result = np.full(n, np.nan)
-        half_window = window // 2
-
-        for i in range(n):
-            # Define centered window bounds
-            start = max(0, i - half_window)
-            end = min(n, i + half_window + 1)
-
-            window_sum = cumsum_vals[end] - cumsum_vals[start]
-            window_count = cumsum_counts[end] - cumsum_counts[start]
-
-            if window_count > 0:
-                result[i] = window_sum / window_count
+        result = np.full(len(array), np.nan)
+        valid_avg = window_counts > 0
+        result[valid_avg] = window_sums[valid_avg] / window_counts[valid_avg]
 
         return result
 
@@ -351,7 +333,7 @@ class BurninModel:
         for k, v in data.items():
             if k in valid:
                 # Convert QDate to Python date for storage
-                if k == "test_date" and isinstance(v, QDate):
+                if k == "test_date" and not isinstance(v, date):
                     v = v.toPython()
                 setattr(self._meta_data, k, v)
 

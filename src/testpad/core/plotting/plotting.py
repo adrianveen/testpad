@@ -9,13 +9,11 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from testpad.config.plotting import (
-    AVG_LINE_COLOR,
     DEFAULT_LINE_STYLE,
     GRID_ALPHA,
     GRID_ENABLED,
     GRID_LINE_STYLE,
     GRID_LINE_WIDTH,
-    PRIMARY_COLOR,
     THIN_LINE_WIDTH,
 )
 
@@ -126,54 +124,6 @@ def plot_x_multiple_y(
         linestyle=GRID_LINE_STYLE,
         linewidth=GRID_LINE_WIDTH,
     )
-
-    fig.tight_layout(pad=0.5)
-
-    return fig
-
-
-### WE MIGHT NOT NEED THIS - can possibly use plot_x_multiple_y
-def plot_overlay(x: np.ndarray, y: list, labels: dict[str, str]) -> Figure:
-    """Plot data with an overlaid line.
-
-    Args:
-        x: x values
-        y: y values
-        labels: Dictionary of labels for x and y
-
-    Returns:
-        matplotlib Figure object ready for saving or display
-
-    """
-    # Create figure
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-
-    # Plot data
-    for i, y_vals in enumerate(y):
-        if i == 0:
-            ax.plot(
-                x,
-                y_vals,
-                color=PRIMARY_COLOR,
-                linestyle=DEFAULT_LINE_STYLE,
-                linewidth=THIN_LINE_WIDTH,
-            )
-            ax.plot(
-                x,
-                y_vals,
-                color=AVG_LINE_COLOR,
-                linestyle=DEFAULT_LINE_STYLE,
-                linewidth=THIN_LINE_WIDTH,
-            )
-
-    title = labels["title"]
-    xlabel = labels["xlabel"]
-    ylabel = labels["ylabel"]
-    # Set labels
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    # Set title
-    plt.title(title)
 
     fig.tight_layout(pad=0.5)
 
