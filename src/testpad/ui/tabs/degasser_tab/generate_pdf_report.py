@@ -14,6 +14,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     REPORT_VERSION,
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
+    TIME_SERIES_HEADERS,
 )
 from testpad.ui.tabs.degasser_tab.plotting import (
     make_time_series_figure,
@@ -107,7 +108,7 @@ class GenerateReport:
         """
         self.pdf = FPDF(orientation="P", unit="mm", format="letter")
         self.pdf.add_page()
-        self.pdf.set_margins(left=margins, top=margins, right=margins)
+        self.pdf.set_margins(left=margins, top=margins * 0.75, right=margins)
         self.pdf.set_font("helvetica", size=self.styling_config.header_text_size)
 
     def _build_header(self, logo_path: Path) -> None:
@@ -170,22 +171,48 @@ class GenerateReport:
             style=self.styling_config.subtitle_text_style,
             size=self.styling_config.metadata_text_size,
         )
+        # Create a table for the title block
+        # Calculate column widths for centering
+        # Page width minus margins
+        usable_width = self.pdf.w - (2 * self.layout.left_margin_mm)
+        # Two equal-width content columns with small spacing between
+        spacing_col = 10  # Space between the two metadata columns
+        content_col = int((usable_width - spacing_col) / 2)
 
-        with self.pdf.table(col_widths=(90), align="L", markdown=True) as table:
+        with self.pdf.table(
+            col_widths=(content_col, spacing_col, content_col),
+            align=Align.C,
+            markdown=True,
+        ) as table:
             for pair in rows:
                 row = table.row()
-                for label, value in pair:
+                # First column (left field)
+                label, value = pair[0]
+                if label == "Date":
+                    # Value is already a Python date object (converted by model)
+                    value = value.strftime("%Y-%m-%d")
+                row.cell(
+                    text=f"{label}: --{value}--",
+                    border=False,
+                    align=Align.C,
+                    style=value_font_style,
+                )
+                # Spacing column
+                row.cell(text="", border=False)
+                # Second column (right field) - handle odd number of fields
+                if len(pair) > 1:
+                    label, value = pair[1]
                     if label == "Date":
                         value = value.strftime("%Y-%m-%d")
                     row.cell(
                         text=f"{label}: --{value}--",
                         border=False,
-                        align="L",
+                        align=Align.C,
                         style=value_font_style,
                     )
-                # If odd number of fields, pad the last line
-                if len(pair) < 2:
-                    row.cell("")
+                else:
+                    # Odd number of fields, pad the last row
+                    row.cell("", border=False)
 
     def _build_test_table(self, test_data: list[dict[str, Any]]) -> None:
         """Draws the 8 row x 5 col table for the test results and default values.
@@ -238,7 +265,9 @@ class GenerateReport:
                     if spec_key
                     else (None, None)
                 )
-                units = DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else ""
+                units = (
+                    DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else ""
+                )
 
                 # Column 3: Spec_Min
                 if spec[0] is not None:
@@ -283,14 +312,15 @@ class GenerateReport:
             data: 2D array of time series data
 
         """
-        # Add spacer and set font style
-        self.pdf.ln(self.layout.large_spacing_mm)
+        # Add spacer
+        self.pdf.ln(self.layout.section_spacing_mm)
+
+        # Main title - bold, font 12
         self.pdf.set_font(
             style=self.styling_config.subtitle_text_style,
             size=self.styling_config.subtitle_text_size,
         )
-
-        title = "Dissolved Oxygen Re-circulation Test (1000 mL)"
+        title = "Dissolved Oxygen Re-circulation Test"
         self.pdf.cell(
             text=title,
             align=Align.C,
@@ -299,31 +329,53 @@ class GenerateReport:
             new_y="NEXT",
         )
 
-        # Set font style for measurements
+        # Subtitle - non-bold, font 12
+        self.pdf.set_font(
+            style=self.styling_config.values_text_style,
+            size=self.styling_config.subtitle_text_size,
+        )
+        self.pdf.cell(
+            text="1000 mL Distilled Water",
+            align=Align.L,
+            center=True,
+            new_x="RIGHT",
+            new_y="NEXT",
+        )
+
+        # Add spacer and get current y position of table
+        self.pdf.ln(self.layout.section_spacing_mm)
+        self.time_series_y = self.pdf.get_y()
+
+        # Define styles for table cells (FontFace only works in table context)
+        header_style = FontFace(
+            emphasis=self.styling_config.header_text_style,
+            size_pt=self.styling_config.header_text_size,
+        )
         data_style = FontFace(
             emphasis=self.styling_config.values_text_style,
             size_pt=self.styling_config.data_text_size,
             color=self.styling_config.data_text_color,
         )
-        # Add spacer and get current y position of table
-        self.pdf.ln(self.layout.section_spacing_mm)
-        self.time_series_y = self.pdf.get_y()
 
-        # Establish the table with a header row
-        col_names = ["Time (min)", "Dissolved Oxygen (mg/L)"]
-        self.pdf.set_font(style="", size=self.styling_config.data_text_size)
+        # Table with header row - bold, font 10
+        col_names = TIME_SERIES_HEADERS
         with self.pdf.table(col_widths=(30), align="L") as table:
             header_row = table.row()
             for col_name in col_names:
-                header_row.cell(col_name)
+                header_row.cell(col_name, style=header_style)
             for time, do_value in data.items():
                 row = table.row()
                 row.cell(str(time), align="C")
                 row.cell(f"{do_value:.2f}", align="C", style=data_style)
 
         # Add spacer and add temperature
-        self.pdf.ln(self.layout.section_spacing_mm)
-        self.pdf.cell(text=f"Temperature: {self.temperature} °C", align="L")
+        self.pdf.ln(self.layout.section_spacing_mm / 2)
+        self.pdf.set_font(
+            style=self.styling_config.values_text_style,
+            size=self.styling_config.data_text_size,
+        )
+        if self.temperature:
+            self.pdf.cell(text=f"Temperature: {self.temperature} °C", align="L")
 
     def _add_time_series_figure(self) -> None:
         """Create and add time series figure to PDF.
@@ -406,23 +458,27 @@ if __name__ == "__main__":
         {"description": "Vacuum Pressure:", "pass_fail": "Pass", "measured": -24.5},
         {"description": "Flow Rate:", "pass_fail": "Pass", "measured": 485.0},
         {
-            "description": "Dissolved Oxygen level test:",
+            "description": "Dissolved Oxygen Level Test:",
             "pass_fail": "Pass",
             "measured": 2.15,
         },
         {
-            "description": "Dissolved Oxygen re-circulation test (1000 mL):",
+            "description": "Dissolved Oxygen Re-circulation Test (1000 mL):",
             "pass_fail": "",
             "measured": None,
         },
-        {"description": "   Starting DO Level:", "pass_fail": "Pass", "measured": 8.65},
         {
-            "description": "   Time to read 4 mg/L (min):",
+            "description": "   Starting DO Level:",
+            "pass_fail": "Pass",
+            "measured": 8.65,
+        },
+        {
+            "description": "   Time to Reach 4 mg/L (min):",
             "pass_fail": "Pass",
             "measured": 4.0,
         },
         {
-            "description": "   Time to reach 2 mg/L (min):",
+            "description": "   Time to Reach 2 mg/L (min):",
             "pass_fail": "Pass",
             "measured": 8.0,
         },

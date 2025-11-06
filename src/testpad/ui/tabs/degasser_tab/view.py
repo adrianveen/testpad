@@ -53,6 +53,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TIME_SERIES_ROWS,
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
+    TIME_SERIES_HEADERS,
 )
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
@@ -548,9 +549,7 @@ class DegasserTab(BaseTab):
         self._time_series_widget.setItemDelegateForColumn(
             1, ValidatedFloatDelegate(self._time_series_widget)
         )
-        self._time_series_widget.setHorizontalHeaderLabels(
-            ["Time (minutes)", "Dissolved O2 (mg/L)"]
-        )
+        self._time_series_widget.setHorizontalHeaderLabels(TIME_SERIES_HEADERS)
         self._time_series_widget.verticalHeader().setVisible(True)  # Push to left
 
         for row in range(NUM_TIME_SERIES_ROWS):
