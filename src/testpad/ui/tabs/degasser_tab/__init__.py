@@ -33,21 +33,12 @@ def create_degasser_tab(parent=None) -> DegasserTab:
 
     try:
         model = DegasserModel()
-        print("[degasser_tab]   ✅ Model created")
-
         view = DegasserTab(parent, model=model, presenter=None)
-        print("[degasser_tab]   ✅ View created")
-
         presenter = DegasserPresenter(model, view)
-        print("[degasser_tab]   ✅ Presenter created")
 
         view.presenter = presenter
-        print("[degasser_tab]   ✅ Presenter assigned to view")
-
         presenter.initialize()
-        print("[degasser_tab]   ✅ Presenter initialized")
 
-        print("[degasser_tab] Degasser tab created successfully ✅")
         return view
     except Exception as e:
         print(f"[degasser_tab] ❌ ERROR creating tab: {e}")
