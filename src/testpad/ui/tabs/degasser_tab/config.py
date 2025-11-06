@@ -98,5 +98,5 @@ TEST_TABLE_HEADERS = [
     "Maximum Spec",
     "Data Measured",
 ]
-TIME_SERIES_HEADERS = ["Time (minutes)", "Dissolved Oxygen (mg/L)"]
+TIME_SERIES_HEADERS = ["Time (minutes)", "Dissolvea Oxygen (mg/L)"]
 DEFAULT_TEST_DATE = default_date

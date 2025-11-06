@@ -170,7 +170,7 @@ class GenerateReport:
 
         with self.pdf.table(
             col_widths=(content_col, spacing_col, content_col),
-            align="C",
+            align=Align.C,
             markdown=True,
         ) as table:
             for pair in rows:

@@ -171,6 +171,8 @@ class GenerateReport:
             style=self.styling_config.subtitle_text_style,
             size=self.styling_config.metadata_text_size,
         )
+
+        # TODO: Nearly identical code to burnin report - refactor to common method
         # Create a table for the title block
         # Calculate column widths for centering
         # Page width minus margins
@@ -192,7 +194,7 @@ class GenerateReport:
                     # Value is already a Python date object (converted by model)
                     value = value.strftime("%Y-%m-%d")
                 row.cell(
-                    text=f"{label}: --{value}--",
+                    text=f"{label}: --{value if value else '      '}--",
                     border=False,
                     align=Align.C,
                     style=value_font_style,
@@ -362,7 +364,7 @@ class GenerateReport:
         with self.pdf.table(col_widths=(30), align="L") as table:
             header_row = table.row()
             for col_name in col_names:
-                header_row.cell(col_name, style=header_style)
+                header_row.cell(col_name, align=Align.C, style=header_style)
             for time, do_value in data.items():
                 row = table.row()
                 row.cell(str(time), align="C")
