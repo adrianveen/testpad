@@ -1,5 +1,4 @@
-"""
-Matplotlib runtime hook to speed up first use by pointing MPLCONFIGDIR
+"""Matplotlib runtime hook to speed up first use by pointing MPLCONFIGDIR
 to a writable per-user cache, optionally seeded from a pre-baked cache
 shipped under resources/mpl_cache.
 
@@ -9,6 +8,7 @@ Behavior:
 - Set MPLCONFIGDIR to that per-user cache folder before Matplotlib loads.
 - Force the Qt backend to avoid auto-detection work.
 """
+
 from __future__ import annotations
 
 import glob
@@ -24,14 +24,14 @@ def _app_base_dir() -> str:
     if base and os.path.isdir(base):
         return base
     # Fallback to directory containing the executable (onedir) or script
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def _user_cache_dir(app_name: str = 'testpad_mpl_cache') -> str:
+def _user_cache_dir(app_name: str = "testpad_mpl_cache") -> str:
     # Prefer LOCALAPPDATA on Windows; else use user home or temp
-    base = os.getenv('LOCALAPPDATA') or os.path.expanduser('~') or tempfile.gettempdir()
+    base = os.getenv("LOCALAPPDATA") or os.path.expanduser("~") or tempfile.gettempdir()
     path = os.path.join(base, app_name)
     try:
         os.makedirs(path, exist_ok=True)
@@ -46,7 +46,7 @@ def _seed_mpl_cache(src_dir: str, dst_dir: str) -> None:
     if not os.path.isdir(src_dir):
         return
     # Copy over fontlist-*.json files if they don't exist in destination
-    for src in glob.glob(os.path.join(src_dir, 'fontlist-*.json')):
+    for src in glob.glob(os.path.join(src_dir, "fontlist-*.json")):
         name = os.path.basename(src)
         dst = os.path.join(dst_dir, name)
         if not os.path.exists(dst):
@@ -58,16 +58,15 @@ def _seed_mpl_cache(src_dir: str, dst_dir: str) -> None:
 
 def _configure_matplotlib():
     # Set fixed backend to avoid probing
-    os.environ.setdefault('MPLBACKEND', 'qtagg')
-    os.environ.setdefault('QT_API', 'PySide6')
+    os.environ.setdefault("MPLBACKEND", "qtagg")
+    os.environ.setdefault("QT_API", "PySide6")
 
     # Prepare config dir
     base = _app_base_dir()
-    shipped_cache = os.path.join(base, 'resources', 'mpl_cache')
+    shipped_cache = os.path.join(base, "resources", "mpl_cache")
     user_cache = _user_cache_dir()
     _seed_mpl_cache(shipped_cache, user_cache)
-    os.environ.setdefault('MPLCONFIGDIR', user_cache)
+    os.environ.setdefault("MPLCONFIGDIR", user_cache)
 
 
 _configure_matplotlib()
-

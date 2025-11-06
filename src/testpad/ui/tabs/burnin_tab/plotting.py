@@ -1,22 +1,22 @@
-"""Pure plotting functions for degasser time series charts.
+"""Pure plotting functions for burn-in error report.
 
-This module provides pure functions for creating matplotlib figures without
-any Qt dependencies, following separation of concerns principles.
+This module provides pure functions for creating matplotlib figures
+
 """
 
+import contextlib
 import os
 import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+import h5py
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from testpad.config.plotting import (
     DEFAULT_LINE_STYLE,
     DEFAULT_LINE_WIDTH,
-    DEFAULT_MARKER,
-    DEFAULT_MARKER_SIZE,
     GRID_ALPHA,
     GRID_ENABLED,
     GRID_LINE_STYLE,
@@ -25,17 +25,15 @@ from testpad.config.plotting import (
 )
 
 
-def make_time_series_figure(
-    data: Mapping[int, float] | Sequence[tuple[int, float]],
-    temperature_c: float | None = None,
+def make_axis_error_figure(
+    data: h5py.File,
     size_inches: tuple[float, float] = (5.0, 3.5),
     dpi: int = 300,
 ) -> Figure:
-    """Create a matplotlib figure for time series data.
+    """Create matplotlib figure for Axis error.
 
     Args:
-        data: Either a dict {minute: oxygen_level} or list of (minute, oxygen_level) tuples
-        temperature_c: Optional temperature in Celsius for title
+        data: hdf5 file containing time in seconds and error in counts
         size_inches: Figure size in inches (width, height)
         dpi: Dots per inch for the figure
 
@@ -43,12 +41,19 @@ def make_time_series_figure(
         matplotlib Figure object ready for saving or display
 
     """
+    with data as file:
+        error = list(file["Error (counts)"])
+        time = list(file["Time (s)"])
+
+    # Separate error values
+
     # Create figure
     fig = Figure(figsize=size_inches, tight_layout=True)
     ax = fig.add_subplot(111)
 
-    # Use the axis-level plotting function to avoid duplication
-    plot_time_series_on_axis(ax, data, temperature_c)
+    data_tuple = (time, error)
+    # Plot data
+    plot_time_series_on_axis(ax, data_tuple)
 
     # Set DPI
     fig.set_dpi(dpi)
@@ -76,17 +81,15 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
         return temp_path
     except Exception:
         # Clean up on error
-        try:
+        with contextlib.suppress(OSError):
             Path(temp_path).unlink()
-        except OSError:
-            pass
         raise
 
 
 def normalize_time_series_data(
     data: Mapping[int, float] | Sequence[tuple[int, float]],
 ) -> list[tuple[int, float]]:
-    """Normalize data to sorted list of (minute, oxygen) tuples."""
+    """Normalize data to sorted list of (seconds, error) tuples."""
     if hasattr(data, "items"):
         return sorted((int(k), float(v)) for k, v in data.items())
     return sorted((int(k), float(v)) for k, v in data)
@@ -95,7 +98,6 @@ def normalize_time_series_data(
 def plot_time_series_on_axis(
     ax: Axes,
     data: Mapping[int, float] | Sequence[tuple[int, float]],
-    temperature_c: float | None = None,
 ) -> None:
     """Plot time series data on an existing matplotlib axis.
 
@@ -105,8 +107,7 @@ def plot_time_series_on_axis(
 
     Args:
         ax: Matplotlib Axes object to plot on
-        data: Either a dict {minute: oxygen_level} or list of (minute, oxygen_level) tuples
-        temperature_c: Optional temperature in Celsius for title
+        data: Either a dict {seconds: error} or list of (seconds, erorr(counts)) tuples
 
     """
     # Normalize data to list of tuples
@@ -114,30 +115,22 @@ def plot_time_series_on_axis(
 
     # Plot data if available
     if pairs:
-        time_min, ox_level = zip(*pairs)
+        time_s, err_counts = zip(*pairs, strict=False)
         ax.plot(
-            time_min,
-            ox_level,
-            color="k",
-            marker=DEFAULT_MARKER,
-            markersize=DEFAULT_MARKER_SIZE,
-            mew=1,
-            mec="k",
-            mfc=PRIMARY_COLOR,
+            time_s,
+            err_counts,
+            color=PRIMARY_COLOR,
             linestyle=DEFAULT_LINE_STYLE,
             linewidth=DEFAULT_LINE_WIDTH,
-            label="Oxygen Level (mg/L)",
+            label="Error (counts)",
         )
 
-    # Set title with optional temperature
-    if temperature_c is not None:
-        ax.set_title(f"Dissolved Oxygen vs Time (Temp: {temperature_c:.1f} °C)")
-    else:
-        ax.set_title("Dissolved Oxygen vs Time")
+    # Set title
+    ax.set_title("Error (counts) vs Time (seconds)")
 
     # Set labels
-    ax.set_xlabel("Time (minutes)")
-    ax.set_ylabel("Dissolved O2 (mg/L)")
+    ax.set_xlabel("Time (seconds)")
+    ax.set_ylabel("Error (counts)")
 
     # Add grid
     ax.grid(

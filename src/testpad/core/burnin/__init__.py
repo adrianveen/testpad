@@ -1,1 +1,1 @@
-
+"""Burn-in core module."""

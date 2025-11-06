@@ -16,9 +16,9 @@ else:
     try:
         with Path.open(Path(__file__).parent.parent.parent / "VERSION") as f:
             __version__ = f.read().strip()
-    
+
     except (FileNotFoundError, OSError, PermissionError):
-        meipass = getattr(sys, '_MEIPASS', None)
+        meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
             try:
                 with Path.open(Path(meipass) / "VERSION") as f:

@@ -1,7 +1,7 @@
 # Custom QLineEdit that changes color based on validation
 import math
 
-from PySide6.QtGui import QIntValidator, QDoubleValidator
+from PySide6.QtGui import QDoubleValidator, QIntValidator
 from PySide6.QtWidgets import QLineEdit
 
 
@@ -27,7 +27,7 @@ class ValidatedLineEdit(QLineEdit):
 
     def validate_input(self):
         # Extract the current color and border properties from the stylesheet
-        color = self.get_style_property('color')
+        color = self.get_style_property("color")
 
         # Set valid or invalid color and keep other properties intact
         if self.hasAcceptableInput():
@@ -36,8 +36,11 @@ class ValidatedLineEdit(QLineEdit):
         else:
             # If invalid, change only the color to red, leave border unchanged
             new_style = self.original_style
-            new_style = f"color: red; {new_style}" if not color else (f"color: red; "
-                                                                      f"{new_style.replace(f'color: {color}', '')}")
+            new_style = (
+                f"color: red; {new_style}"
+                if not color
+                else (f"color: red; {new_style.replace(f'color: {color}', '')}")
+            )
             self.setStyleSheet(new_style)
 
 
@@ -91,6 +94,7 @@ class FixupIntValidator(QIntValidator):
                 # If the value is within the valid range, adjust it to the closest integer
                 inp = str(value)
         return inp
+
 
 # Example usage
 # self.bbb_start_edit = ValidatedLineEdit(parent=self.bbb_algo_gbox)

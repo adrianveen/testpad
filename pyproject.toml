@@ -1,31 +1,29 @@
 [project]
-authors = [
-	{name = "Adrian", email = "adrian.veen@gmail.com"}
-	]
 name = "testpad"
 version = "0.1.0"
 description = "Multi-tool for QA and R&D at FUS Instruments"
 readme = "README.md"
 requires-python = ">=3.12.1"
+authors = [{ name = "Adrian", email = "adrian.veen@gmail.com" }]
 dependencies = [
-	"pyside6==6.9.3",
-	"shiboken6==6.9.3",
-	"numpy>=1.26",
-	"matplotlib>=3.8",
-	"scipy>=1.11",
-	"h5py>=2.1",
-	"pandas>=2.1",
-	"pyyaml>=6",
-	"fpdf2",
+  "fpdf2",
+  "h5py>=2.1",
+  "matplotlib>=3.8",
+  "numpy>=1.26",
+  "pandas>=2.1",
+  "pyside6==6.9.3",
+  "pyyaml>=6",
+  "scipy>=1.11",
+  "shiboken6==6.9.3",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "ipykernel>=7.0.1",
-    "pytest>=8.4.2",
-    "pytest-cov>=6.0.0",
-    "ruff>=0.14.1",
-    "pyinstaller>=6.16.0",
+  "ipykernel>=7.0.1",
+  "pytest>=8.4.2",
+  "pytest-cov>=6.0.0",
+  "ruff>=0.14.1",
+  "pyinstaller>=6.16.0",
 ]
 
 [build-system]
@@ -36,21 +34,50 @@ build-backend = "setuptools.build_meta"
 # Set the line length (default: 88)
 line-length = 88
 
-# Target Python 3.12
-target-version = "py312"
+[tool.ruff.lint]
+extend-select = [
+  "ALL",
+  "PTH",
+  "E501",
+  "D417",
+  "D401",
+  "ERA001",
+  "RET504",
+  "Q000",
+  "SIM105",
+  "ANN",
+  "EXE001"
+]
+ignore = [
+  "T201",
+  "DTZ005",
+  "D203",
+  "D213",
+  "COM812",
+  "INP001",
+  "D100",
+  "D101",
+  "D102",
+  "D104",
+  "D107",
+  "N802",
+  "N806",
+  "ERA001"
+]
 
 [tool.ruff.format]
 # Use double quotes for strings
 quote-style = "double"
-
 # Indent with spaces (recommended by PEP 8)
 indent-style = "space"
-
 # Use `\n` line endings for all files
 line-ending = "lf"
-
 # Format code snippets in docstrings
 docstring-code-format = true
-
 # Respect magic trailing commas
 skip-magic-trailing-comma = false
+
+[dependency-groups]
+dev = [
+    "ty>=0.0.1a25",
+]

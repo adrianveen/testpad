@@ -1,16 +1,26 @@
-import numpy as np
-import os
 import decimal
+from pathlib import Path
 
-from PySide6.QtWidgets import QTextBrowser, QMessageBox
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from PySide6.QtWidgets import QMessageBox, QTextBrowser
 
-from testpad.utils.vpp_stats import classify_vpp, check_new_vpp
+from testpad.utils.vpp_stats import check_new_vpp, classify_vpp
 
-class sweep_graph():
-    def __init__(self, data_mtx, transducer, freq: str, save_folder, markersize, textbox: QTextBrowser,
-                 generate_figure: bool = True, show_feedback: bool = True):
+
+class sweep_graph:
+    def __init__(
+        self,
+        data_mtx,
+        transducer,
+        freq: str,
+        save_folder: str,
+        markersize: int,
+        textbox: QTextBrowser,
+        generate_figure: bool = True,
+        show_feedback: bool = True,
+    ) -> None:
         self.data_mtx = data_mtx
         self.generate_figure = generate_figure
         self.save_folder = save_folder
@@ -23,7 +33,7 @@ class sweep_graph():
         self.ax = None
         self.show_feedback = show_feedback
 
-    def _show_feedback(self, text):
+    def _show_feedback(self, text: str) -> None:
         if not self.show_feedback:
             return
 
@@ -32,14 +42,14 @@ class sweep_graph():
         else:
             print(text)
 
-    def generate_graph(self):
+    def generate_graph(self) -> FigureCanvas | None:
         # By default rounding setting in python is decimal.ROUND_HALF_EVEN
         decimal.getcontext().rounding = decimal.ROUND_DOWN
 
         # Applied voltage in mVpp (Voltage across the transducer)
         x = self.data_mtx[:, 1]
-        x_last = self.data_mtx[-1][1] # last x point
-        x_first = self.data_mtx[0][1] # first x point
+        x_last = self.data_mtx[-1][1]  # last x point
+        x_first = self.data_mtx[0][1]  # first x point
 
         # Peak pressure within the focus of the transducer in MPa
         y = self.data_mtx[:, 0]
@@ -48,28 +58,30 @@ class sweep_graph():
         # Force the y-intercept to go through the origin, i.e. b=0
         A = np.vstack([x]).T
 
-        self._show_feedback('Full m and r square values:')
+        self._show_feedback("Full m and r square values:")
 
         self.m = np.linalg.lstsq(A, y, rcond=None)[0][0]
 
-        self._show_feedback(f'[+] m value: {self.m}')
+        self._show_feedback(f"[+] m value: {self.m}")
 
         correlation_matrix = np.corrcoef(x, y)
         correlation_xy = correlation_matrix[0, 1]
-        r_squared = correlation_xy ** 2
-        self._show_feedback(f'[+] r squared: {r_squared}')
+        r_squared = correlation_xy**2
+        self._show_feedback(f"[+] r squared: {r_squared}")
 
         # Safely parse frequency in MHz for numeric comparisons/formatting
         freq_mhz_val = None
         try:
             if isinstance(self.freq, str):
                 # Expect formats like "1.65 MHz" or "1.65"
-                freq_mhz_val = float(self.freq.partition(' ')[0])
+                freq_mhz_val = float(self.freq.partition(" ")[0])
             else:
                 freq_mhz_val = float(self.freq)
         except Exception:
             freq_mhz_val = None
-        freq_label = f"{freq_mhz_val:.3f} MHz" if freq_mhz_val is not None else str(self.freq)
+        freq_label = (
+            f"{freq_mhz_val:.3f} MHz" if freq_mhz_val is not None else str(self.freq)
+        )
 
         # Calculate and show voltage at 1 MPa
         if self.m != 0:
@@ -101,18 +113,29 @@ class sweep_graph():
         is_ok = check_new_vpp(voltage_at_1mpa)
 
         if (freq_mhz_val is not None) and abs(freq_mhz_val - 1.65) < 1e-6 and not is_ok:
-            self._show_feedback(f"[ ! ] Voltage at 1 MPa is outside of the expected range. Classification: '{vpp_info['classification']}'")
-            QMessageBox.warning(None, "Warning",
-            f"Voltage at 1 MPa ({voltage_at_1mpa:.2f} Vpp) is outside of the expected range for {freq_label} transducer. Classification: '{vpp_info['classification']}'\n\n"
-            "Ensure that the transducer has been properly aligned.\n\n"
-            "If this warning persists, please contact Marc Santos or Rajiv Chopra for guidance on how to proceed."
+            self._show_feedback(
+                f"[ ! ] Voltage at 1 MPa is outside of the expected range. \
+                    Classification: '{vpp_info['classification']}'"
+            )
+            QMessageBox.warning(
+                None,
+                "Warning",
+                f"Voltage at 1 MPa ({voltage_at_1mpa:.2f} Vpp) is outside of the \
+                    expected range for {freq_label} transducer. \
+                        Classification: '{vpp_info['classification']}'\n\n"
+                "Ensure that the transducer has been properly aligned.\n\n"
+                "If this warning persists, please contact Marc Santos or Rajiv \
+                    Chopra for guidance on how to proceed.",
             )
         elif (freq_mhz_val is not None) and abs(freq_mhz_val - 1.65) < 1e-6 and is_ok:
-            self._show_feedback(f"[+] Voltage at 1 MPa is within the expected range for {freq_label} transducer. Classification: '{vpp_info['classification']}'")
+            self._show_feedback(
+                f"[+] Voltage at 1 MPa is within the expected range for {freq_label} \
+                    transducer. Classification: '{vpp_info['classification']}'"
+            )
 
         # Truncate the m value and r squared value to 6 decimal places
-        self._show_feedback('\nTruncated m and r squared values:')
-        self._show_feedback(f'[+] truncated m value: {self.m:.6f}')
+        self._show_feedback("\nTruncated m and r squared values:")
+        self._show_feedback(f"[+] truncated m value: {self.m:.6f}")
         r_trunc = decimal.Decimal(r_squared)
         self.r_trunc_out = float(round(r_trunc, 6))
         self._show_feedback(f"[+] truncated r squared: {self.r_trunc_out}")
@@ -125,32 +148,44 @@ class sweep_graph():
 
         # create dummy arrays to populate our line of best fit for display
         x_fit = np.array(
-            [0, x_last + (x_first)])  # changes x-fit to last point + the difference between the first x and 0
+            [0, x_last + (x_first)]
+        )  # changes x-fit to last point + the difference between the first x and 0
         y_fit = self.m * x_fit + 0
 
         # temporarily change plot style
         if self.generate_figure:
-            with plt.rc_context({
-                # 'figure.figsize': [6.50, 3.25],
-                'font.family': 'calibri',
-                'font.weight': 'medium',
-                'axes.labelweight': 'medium',
-                'axes.titleweight': 'medium',
-            }):
-
-                plt.style.use('seaborn-v0_8-whitegrid')
-
+            with plt.rc_context(
+                {
+                    # 'figure.figsize': [6.50, 3.25],
+                    "font.family": "calibri",
+                    "font.weight": "medium",
+                    "axes.labelweight": "medium",
+                    "axes.titleweight": "medium",
+                }
+            ):
+                plt.style.use("seaborn-v0_8-whitegrid")
 
                 self.fig, self.ax = plt.subplots(1, 1)
                 self.fig.set_size_inches(6.5, 3.5, forward=True)
                 self.canvas = FigureCanvas(self.fig)
 
-                self.ax.set_xlabel('Voltage Across the Transducer, Vpp')
-                self.ax.set_ylabel('Peak Negative Pressure, MPa')
-                self.ax.set_title(f"Frequency: {self.freq}, R squared: {self.r2_trunc_out:0.4f}")
-                self.ax.plot(x_fit, y_fit, 'k-', linewidth=1.5, label='Fitted calibration')
-                self.ax.plot(x, y, 'o', color='#74BEA3', mec='k',
-                             label='Measured data', markersize=self.markersize)  # Old color was 6DA4BF
+                self.ax.set_xlabel("Voltage Across the Transducer, Vpp")
+                self.ax.set_ylabel("Peak Negative Pressure, MPa")
+                self.ax.set_title(
+                    f"Frequency: {self.freq}, R squared: {self.r2_trunc_out:0.4f}"
+                )
+                self.ax.plot(
+                    x_fit, y_fit, "k-", linewidth=1.5, label="Fitted calibration"
+                )
+                self.ax.plot(
+                    x,
+                    y,
+                    "o",
+                    color="#74BEA3",
+                    mec="k",
+                    label="Measured data",
+                    markersize=self.markersize,
+                )  # Old color was 6DA4BF
                 self.ax.legend()
 
                 self.fig.set_canvas(self.canvas)
@@ -158,11 +193,14 @@ class sweep_graph():
         # Note this will be none if generate_figure is false
         return self.canvas
 
-    def save_graph(self):
+    def save_graph(self) -> None:
         save_filename = "calibration_" + self.transducer + "_f0.svg"
         if self.fig is not None:
-            self.fig.savefig(os.path.join(self.save_folder, save_filename), dpi=96, bbox_inches='tight',
-                             format='svg', pad_inches=0, transparent=True)
-
-
-
+            self.fig.savefig(
+                Path(self.save_folder) / save_filename,
+                dpi=96,
+                bbox_inches="tight",
+                format="svg",
+                pad_inches=0,
+                transparent=True,
+            )

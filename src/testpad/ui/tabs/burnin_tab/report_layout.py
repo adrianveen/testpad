@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Report layout configuration for PDF generation.
 
 This module defines layout constants and configuration objects
@@ -56,10 +58,11 @@ class ReportLayout:
         )
 
         return max(
-            self.figure_min_width_mm, min(self.figure_max_width_mm, available_width)
+            self.figure_min_width_mm,
+            min(self.figure_max_width_mm, available_width),
         )
 
-    def get_figure_position(self, page_width_mm: float) -> tuple[float, float]:
+    def get_figure_position(self) -> tuple[float, float]:
         """Calculate figure position (x, y) in mm.
 
         Args:
@@ -120,6 +123,7 @@ class ReportStyleConfig:
 
     Centralizes all typography, colors, and branding for PDF reports.
     Use DEFAULT_STYLE_CONFIG for standard styling.
+
     """
 
     # Typography

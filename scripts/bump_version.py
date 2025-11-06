@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""
-Version bumping script for semantic versioning.
+"""Version bumping script for semantic versioning.
+
 Updates VERSION file, creates git commit and tag.
 
 Usage:
@@ -15,9 +15,11 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd, check=True):
+def run_command(cmd: str, check=True) -> str:
     """Run shell command and return output."""
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        cmd, check=False, shell=True, capture_output=True, text=True
+    )
     if check and result.returncode != 0:
         print(f"❌ ERROR: Command failed: {cmd}")
         print(result.stderr)
@@ -25,7 +27,7 @@ def run_command(cmd, check=True):
     return result.stdout.strip()
 
 
-def check_git_status():
+def check_git_status() -> None:
     """Ensure clean working directory."""
     status = run_command("git status --porcelain")
     if status:
@@ -34,10 +36,10 @@ def check_git_status():
         sys.exit(1)
 
 
-def check_branch():
+def check_branch() -> None:
     """Warn if not on release/hotfix branch."""
     branch = run_command("git branch --show-current")
-    if not (branch.startswith("release/") or branch.startswith("hotfix/") or branch.startswith("refactor/")):
+    if not (branch.startswith(("release/", "hotfix/", "refactor/"))):
         print(f"⚠️  WARNING: You're on branch '{branch}'")
         print("   Expected: release/* or hotfix/*")
         print("   Running version bump on the wrong branch can cause issues!")
@@ -47,15 +49,15 @@ def check_branch():
             sys.exit(1)
 
 
-def check_tag_exists(tag):
+def check_tag_exists(tag: str) -> bool:
     """Check if tag already exists."""
     result = subprocess.run(
-        f"git tag -l {tag}", shell=True, capture_output=True, text=True
+        f"git tag -l {tag}", check=False, shell=True, capture_output=True, text=True
     )
     return bool(result.stdout.strip())
 
 
-def read_version():
+def read_version() -> str:
     """Read current version from VERSION file."""
     version_file = Path("VERSION")
     if not version_file.exists():
@@ -64,12 +66,13 @@ def read_version():
     return version_file.read_text().strip()
 
 
-def parse_version(version_string):
+def parse_version(version_string: str) -> tuple[int, ...]:
     """Parse version string into major, minor, patch integers."""
     try:
         parts = version_string.split(".")
         if len(parts) != 3:
-            raise ValueError("Version must have exactly 3 parts")
+            msg = "Version must have exactly 3 parts"
+            raise ValueError(msg)
         return tuple(map(int, parts))
     except ValueError:
         print(f"❌ ERROR: Invalid version format '{version_string}'")
@@ -77,7 +80,7 @@ def parse_version(version_string):
         sys.exit(1)
 
 
-def bump_version(current_version, bump_type):
+def bump_version(current_version: str, bump_type: str) -> str:
     """Calculate new version based on bump type."""
     major, minor, patch = parse_version(current_version)
 
@@ -91,8 +94,8 @@ def bump_version(current_version, bump_type):
     return f"{major}.{minor}.{patch}"
 
 
-def main():
-    """Main execution function."""
+def main() -> None:
+    """Define and run main program logic."""
     # Read current version
     current = read_version()
 
@@ -162,7 +165,7 @@ def main():
     print("\n📋 Next steps:")
     print("   1. Review: git log -1 --stat")
     print("   2. Push: git push origin <branch>")
-    print("\n⚠️  Rollback before push:")
+    print("\n [CAUTION]  Rollback before push:")
     print("   git reset --hard HEAD~1")
 
 

@@ -1,14 +1,23 @@
-
-from PySide6.QtCore import Slot
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QPushButton, QGridLayout, QGroupBox, 
-                                QLabel, QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QPushButton,
+    QTabWidget,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
+)
 
 from testpad.core.temp_analysis.temperature_graph import TemperatureGraph
 
 
 class TempAnalysisTab(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         self.temperature_data_files = None
@@ -42,7 +51,7 @@ class TempAnalysisTab(QWidget):
         # TEXT CONSOLE
         self.text_display = QTextBrowser()
 
-        # GRAPH DISPLAY 
+        # GRAPH DISPLAY
         self.graph_tab = QTabWidget()
 
         # MAIN LAYOUT
@@ -51,7 +60,7 @@ class TempAnalysisTab(QWidget):
         main_layout.addWidget(self.text_display, 1, 0)
         main_layout.addWidget(self.graph_tab, 0, 1, 2, 1)
         self.setLayout(main_layout)
-    
+
     def resizeEvent(self, event):
         """Recalculate the position of the image when the window is resized."""
         super().resizeEvent(event)
@@ -61,7 +70,7 @@ class TempAnalysisTab(QWidget):
         """Update the image's position and size based on the legend's height and direction."""
         if self.temperature_object is None:
             return
-        
+
         self.img = self.temperature_object.image
 
         if self.image_ax:
@@ -70,39 +79,53 @@ class TempAnalysisTab(QWidget):
         if self.temperature_object.legend is not None:
             # Get the legend's position and size
             legend_bbox = self.temperature_object.legend.get_window_extent()
-            fig_bbox = self.temperature_object.fig.transFigure.inverted().transform(legend_bbox)
+            fig_bbox = self.temperature_object.fig.transFigure.inverted().transform(
+                legend_bbox
+            )
 
             # Get the position and size in figure coordinates
             x_position, y_position = fig_bbox[0][0], fig_bbox[0][1]
 
             # Use the height of the legend for the image's height
             legend_height = legend_bbox.height  # In pixels
-            image_width = legend_height  # Make image width proportional to legend height
+            image_width = (
+                legend_height  # Make image width proportional to legend height
+            )
             image_height = legend_height  # Fixed size based on the legend height
 
             # Determine whether the legend is on the left or right side of the figure
-            shift_x = (legend_bbox.width/self.temperature_object.fig.bbox.width) * 1.1
+            shift_x = (legend_bbox.width / self.temperature_object.fig.bbox.width) * 1.1
             if x_position > 0.5:
                 # Move the image to the left side if the legend is on the right
-                shift_x = - (legend_bbox.width/self.temperature_object.fig.bbox.width) * 0.80 # A small offset to the left
+                shift_x = (
+                    -(legend_bbox.width / self.temperature_object.fig.bbox.width) * 0.80
+                )  # A small offset to the left
 
             # Add new axes for the image (positioned relative to the legend)
-            self.image_ax = self.temperature_object.fig.add_axes([x_position + shift_x, y_position, image_width / self.temperature_object.fig.bbox.width,
-                                                image_height / self.temperature_object.fig.bbox.height])
+            self.image_ax = self.temperature_object.fig.add_axes(
+                [
+                    x_position + shift_x,
+                    y_position,
+                    image_width / self.temperature_object.fig.bbox.width,
+                    image_height / self.temperature_object.fig.bbox.height,
+                ]
+            )
         else:
             # display image in top right corner
-            self.image_ax = self.temperature_object.fig.add_axes([0.855, 0.8, 0.08, 0.08])
+            self.image_ax = self.temperature_object.fig.add_axes(
+                [0.855, 0.8, 0.08, 0.08]
+            )
         # Display the image
         self.image_ax.imshow(self.img)
-        self.image_ax.axis('off')  # Hide the axes
+        self.image_ax.axis("off")  # Hide the axes
 
         # self.temperature_object.draw()
 
     @Slot()
     def openFileDialog(self, d_type):
-        if d_type == "csv": # open temperature csv
+        if d_type == "csv":  # open temperature csv
             self.dialog1 = QFileDialog(self)
-            
+
             if self.compare_box.isChecked():
                 self.dialog1.setFileMode(QFileDialog.ExistingFiles)
                 self.dialog1.setWindowTitle("Temperature Data CSV Files")
@@ -111,16 +134,16 @@ class TempAnalysisTab(QWidget):
                 self.dialog1.setWindowTitle("Temperature Data CSV File")
 
             self.dialog1.setNameFilter("*.csv")
-            self.dialog1.setDefaultSuffix("csv") # default suffix of csv
-            
-            if self.dialog1.exec(): 
+            self.dialog1.setDefaultSuffix("csv")  # default suffix of csv
+
+            if self.dialog1.exec():
                 self.text_display.append("Temperature Data File(s): ")
                 self.temperature_data_files = self.dialog1.selectedFiles()
                 for file in self.temperature_data_files:
-                    self.text_display.append(file +"\n")
-        
+                    self.text_display.append(file + "\n")
+
         # NOT IMPLEMENTED YET
-        elif d_type == "save": # save graph SVG location 
+        elif d_type == "save":  # save graph SVG location
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
             # self.dialog.setDefaultSuffix("*.txt")
@@ -128,16 +151,18 @@ class TempAnalysisTab(QWidget):
             if self.dialog.exec():
                 self.text_display.append("Save Location: ")
                 self.file_save_location = self.dialog.selectedFiles()[0]
-                self.text_display.append(self.file_save_location+"\n")
-    
+                self.text_display.append(self.file_save_location + "\n")
+
     @Slot()
     def create_graph(self):
         if self.temperature_data_files is not None:
             self.graph_tab.clear()
 
             self.temperature_object = TemperatureGraph(self.temperature_data_files)
-            self.graph = self.temperature_object.get_graphs(self.compare_box.isChecked())
-            
+            self.graph = self.temperature_object.get_graphs(
+                self.compare_box.isChecked()
+            )
+
             nav_tool = NavigationToolbar(self.graph)
 
             graph_widget = QWidget()

@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -23,13 +23,14 @@ class TimeSeriesChartWidget(QWidget):
         layout.addWidget(self._canvas)
 
     def update_plot(
-        self, measurements: Sequence[tuple[int, float]], temperature_c: Optional[float]
+        self, measurements: Sequence[tuple[int, float]], temperature_c: float | None
     ) -> None:
         """Update the matplotlib plot with new time series data.
 
         Args:
             measurements: Sequence of (minute, oxygen_level) tuples.
             temperature_c: Optional temperature in Celsius to display in title.
+
         """
         # Clear the existing plot
         self._ax.clear()
