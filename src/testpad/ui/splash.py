@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import os
 from pathlib import Path
 
 from PySide6.QtCore import QRect, QRectF, QSize, Qt, QTimer
@@ -28,7 +27,7 @@ from testpad.utils.resources import resolve_resource_path
 try:
     from PySide6.QtSvg import QSvgRenderer
 except Exception:  # pragma: no cover - optional dependency at runtime
-    QSvgRenderer = None  # type: ignore
+    QSvgRenderer = None
 
 
 def _render_svg_to_pixmap(svg_path: str, size: QSize) -> QPixmap | None:
@@ -64,7 +63,7 @@ def _load_logo_pixmap(
 ) -> QPixmap | None:
     # Try preferred PNG
     p_png = resolve_resource_path(preferred_png)
-    if os.path.exists(p_png):
+    if Path(p_png).exists():
         pm = QPixmap(p_png)
         if not pm.isNull():
             return pm.scaled(
@@ -74,7 +73,7 @@ def _load_logo_pixmap(
             )
     # Fallback PNG
     f_png = resolve_resource_path(fallback_png)
-    if os.path.exists(f_png):
+    if Path(f_png).exists():
         pm = QPixmap(f_png)
         if not pm.isNull():
             return pm.scaled(
@@ -368,7 +367,7 @@ if __name__ == "__main__":
     ]
     state = {"i": 0}
 
-    def tick() -> None:
+    def _tick() -> None:
         i = state["i"]
         percent = min(100, int((i + 1) / len(steps) * 100))
         splash.update_progress(percent, steps[i])
@@ -379,7 +378,7 @@ if __name__ == "__main__":
                 timer.stop()
 
     timer = QTimer()
-    timer.timeout.connect(tick)
+    timer.timeout.connect(_tick)
     timer.setInterval(400)
     timer.start()
 
