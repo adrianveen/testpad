@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
@@ -19,7 +20,7 @@ from testpad.core.burnin.model import BurninModel, Metadata
 class MetadataDialog(QDialog):
     """Custom dialog window to capture metadata for report title block."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Capture metadata for report title block.
 
         Custom dialog window to collect metadata from the user before generating

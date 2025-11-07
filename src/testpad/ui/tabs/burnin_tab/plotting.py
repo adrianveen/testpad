@@ -10,18 +10,7 @@ import tempfile
 from pathlib import Path
 
 import h5py
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-
-from testpad.config.plotting import (
-    DEFAULT_LINE_STYLE,
-    DEFAULT_LINE_WIDTH,
-    GRID_ALPHA,
-    GRID_ENABLED,
-    GRID_LINE_STYLE,
-    GRID_LINE_WIDTH,
-    PRIMARY_COLOR,
-)
 
 
 def make_axis_error_figure(
