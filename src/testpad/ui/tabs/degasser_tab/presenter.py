@@ -22,7 +22,7 @@ class DegasserPresenter:
         self._updating = False
 
     def initialize(self) -> None:
-        """Called after view is constructed."""
+        """Call after view is constructed."""
         self._refresh_view()
         self._connect_signals()
 
@@ -133,7 +133,9 @@ class DegasserPresenter:
         try:
             self._model.set_measurement(row, value)
             self._refresh_view()
-            self._view.log_message(f"Set oxygen level at minute {row} to {value} mg/L")
+            self._view.log_message(
+                f"Set oxygen level at minute {row} to {value} mg/L"
+            )
         except ValueError as e:
             self._view.log_message(f"Invalid oxygen level at minute {row}: {e}")
 
@@ -322,7 +324,9 @@ class DegasserPresenter:
                 "\n- Check if the output directory is valid and accessible.",
             )
         except Exception as e:
-            self._view.log_message(f"❌ Unexpected error during report generation: {e}")
+            self._view.log_message(
+                f"❌ Unexpected error during report generation: {e}"
+            )
             PySide6.QtWidgets.QMessageBox.critical(
                 self._view,
                 "Report Generation Error",
