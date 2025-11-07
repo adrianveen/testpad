@@ -276,7 +276,7 @@ class DegasserPresenter:
             return
         timestamp = datetime.now().strftime("%y%m%d-%H%M%")
         # TODO: remove pyside dependency
-        path, _ = PySide6.QtWidgets.QFileDialog.getSaveFileName(
+        path, _ = QFileDialog.getSaveFileName(
             self._view,
             "Export Degasser Data",
             f"degasser_data_{timestamp}.csv",  # Filename + time stamp
@@ -339,5 +339,5 @@ class DegasserPresenter:
         """Cleanup hooks/resources."""
 
     # Future example:
-    def load_data(self, source: None) -> None:
+    def load_data(self) -> None:
         """Load data (stub)."""

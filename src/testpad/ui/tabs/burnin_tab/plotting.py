@@ -1,34 +1,12 @@
-"""Pure plotting functions for burn-in error report.
-
-This module provides pure functions for creating matplotlib figures
-
-"""
+"""Plotting functions for burn-in error report."""
+# TODO: Refactor to include plotting calls in presenter (possibly)
 
 import contextlib
 import os
 import tempfile
 from pathlib import Path
 
-import h5py
 from matplotlib.figure import Figure
-
-
-def make_axis_error_figure(
-    data: h5py.File,
-    size_inches: tuple[float, float] = (5.0, 3.5),
-    dpi: int = 300,
-) -> None:
-    """Create matplotlib figure for Axis error.
-
-    Args:
-        data: hdf5 file containing time in seconds and error in counts
-        size_inches: Figure size in inches (width, height)
-        dpi: Dots per inch for the figure
-
-    Returns:
-        matplotlib Figure object ready for saving or display
-
-    """
 
 
 def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
@@ -48,9 +26,10 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
 
     try:
         figure.savefig(temp_path, dpi=figure.get_dpi(), bbox_inches="tight")
-        return temp_path
     except Exception:
         # Clean up on error
         with contextlib.suppress(OSError):
             Path(temp_path).unlink()
         raise
+    else:
+        return temp_path

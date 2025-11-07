@@ -221,7 +221,8 @@ class GenerateReport:
         """Draws the 8 row x 5 col table for the test results and default values.
 
         Args:
-            test_data: List of dictionaries containing measured data and pass/fail inputs
+            test_data: List of dictionaries containing measured data and
+                pass/fail inputs
 
         """
         headers = TEST_TABLE_HEADERS
