@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QStyledItemDelegate,
     QTableWidget,
@@ -389,6 +390,46 @@ class DegasserTab(BaseTab):
             return float(text)
         except ValueError:
             return None
+
+    def question_dialog(self, title: str, text: str) -> bool:
+        """Show a question dialog and return the result."""
+        reply = QMessageBox.question(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
+    def info_dialog(self, title: str, text: str) -> bool:
+        """Show an info dialog."""
+        reply = QMessageBox.information(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
+
+    def warning_dialog(self, title: str, text: str) -> bool:
+        """Show a warning dialog."""
+        reply = QMessageBox.warning(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
+
+    def critical_dialog(self, title: str, text: str) -> bool:
+        """Show a critical dialog."""
+        reply = QMessageBox.critical(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
 
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""

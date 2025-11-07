@@ -128,6 +128,7 @@ class BurninTab(QWidget):
         message_box.setWindowTitle("Critical Error")
         message_box.setText(message)
         message_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        message_box.exec()
 
     def display_selected_files(self, filepaths: list[str]) -> None:
         """Display the selected burn-in files in the text display."""

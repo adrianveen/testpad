@@ -1,5 +1,6 @@
 """Report generation for the Degasser Tab."""
 
+import contextlib
 import datetime
 from pathlib import Path
 from typing import Any
@@ -404,7 +405,7 @@ class GenerateReport:
         )
 
         # Save to temporary file
-        temp_path = save_figure_to_temp_file(figure, str(self.output_dir))
+        temp_path = save_figure_to_temp_file(figure, str(Path.cwd()))
 
         try:
             # Calculate figure height in mm for PDF
@@ -423,10 +424,8 @@ class GenerateReport:
 
         finally:
             # Clean up temporary file
-            try:
+            with contextlib.suppress(OSError):
                 Path(temp_path).unlink()
-            except OSError:
-                pass
 
 
 if __name__ == "__main__":

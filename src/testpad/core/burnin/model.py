@@ -334,7 +334,7 @@ class BurninModel:
             if k in valid:
                 # Convert QDate to Python date for storage
                 if k == "test_date" and not isinstance(v, date):
-                    v = v.toPython()
+                    v.toPython()
                 setattr(self._meta_data, k, v)
 
     def get_metadata(self) -> Metadata:
