@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from PIL import Image
 
 
-def gaussian_kernel(size, sigma=1.0) -> float:
+def gaussian_kernel(size: int, sigma: float = 1.0) -> NDArray[np.float64]:
     """Generate a gaussian kernal for convolution filtering."""
     kernel = np.exp(-(np.linspace(-sigma, sigma, size) ** 2))
     return kernel / kernel.sum()  # Normalize the kernel so the sum is 1
@@ -21,7 +21,7 @@ def gaussian_kernel(size, sigma=1.0) -> float:
 class NanobubblesGraph:
     """NanobubblesGraph class."""
 
-    def __init__(self, nanobubble_txt, data_selection: str) -> None:
+    def __init__(self, nanobubble_txt: str | list[str], data_selection: str) -> None:
         """Initialize the NanobubblesGraph class."""
         self.nanobubble_txt = nanobubble_txt
         self.raw_data = []
@@ -36,9 +36,9 @@ class NanobubblesGraph:
         # Process each file if nanobubble_txt is a list
         if isinstance(nanobubble_txt, list):
             for file in nanobubble_txt:
-                self._process_file(file, data_selection)
+                self._process_file(file)
         else:
-            self._process_file(nanobubble_txt, data_selection)
+            self._process_file(nanobubble_txt)
 
     def resource_path(self, relative_path: str) -> str:
         """Get the absolute path to a resource."""
@@ -59,29 +59,12 @@ class NanobubblesGraph:
         image = Image.open(path)
         return np.array(image)
 
-    def _process_file(self, file, data_selection) -> None:
+    def _process_file(self, file: str) -> None:
         if file is None:
             msg = "No file selected"
             raise ValueError(msg)  # File cannot be None
 
-        # OLD APPROACH
-        # try:
-        #     # Read the file, setting row 89 as the header and skipping rows 90 to 290
-        #     data = pd.read_csv(
-        #         file,
-        #         delimiter="\t",
-        #         encoding="utf-8",
-        #         header=88  # Row 89 is the header; 0-indexed
-        #     )
-        # except UnicodeDecodeError:
-        #     # Fallback to latin1 encoding if utf-8 fails
-        #     data = pd.read_csv(
-        #         file,
-        #         delimiter="\t",
-        #         encoding="latin1",
-        #         header=88
-        #     )
-        with open(file) as f:
+        with Path(file).open() as f:
             lines = f.readlines()
 
         drop_lines_index = 0
@@ -93,25 +76,6 @@ class NanobubblesGraph:
 
         remaining_lines = lines[drop_lines_index:]
 
-        # OLD APPROACH
-        # Identify the first row index where "Size / nm" is negative
-        # negative_index = data[data["Size / nm"] < 0].index.min()
-
-        # If a negative value exists, drop all rows up to and including that row
-        # if not np.isnan(negative_index):  # Check if a negative value was found
-        # data = data.iloc[negative_index + 1:]  # Remove rows up to and including the negative value row
-
-        # DEBUGGING
-        # print statements to confirm array matches data
-        # print(f"First row of data: {data.iloc[0]}")
-        # print(f"Last row of data: {data.iloc[-1]}")
-
-        # OLD APPROACH
-        # Ensure we have the required columns
-        # required_columns = ["Size / nm", "Number"]
-        # if not all(col in data.columns for col in required_columns):
-        #     raise ValueError(f"Missing required columns: {required_columns}")
-        # data = data[required_columns]
         col_names = [
             "Size / nm",
             "Number",
@@ -125,33 +89,11 @@ class NanobubblesGraph:
         data_io = StringIO(data_str)
 
         self.data = pd.read_csv(data_io, sep="\t", header=None, names=col_names)
-        # self.set_data_selection(data_selection, self.data)
-        # self.raw_data.append(self.data)
-
-    # def set_data_selection(self, data_selection, data):
-    #     self.raw_data = []
-    #     if data_selection == "Size Distribution":
-    #         # Filter rows based on conditions
-    #         filtered = data[(data["Size / nm"] >= 0) & (data["Number"] >= 0)]
-    #         # Select the first (index 0) and second (index 1) columns
-    #         data = filtered.iloc[:, [0, 1]]
-    #         data_array = data.to_numpy()
-
-    #     elif data_selection == "Concentration Per mL":
-    #         filtered = data[(data["Size / nm"] >= 0) & (data["Concentration / cm-3"] >= 0)]
-    #         # Select the first (index 0) and third (index 2) columns
-    #         data = filtered.iloc[:, [0, 2]]
-    #         data_array = data.to_numpy()
-
-    #     if data_array.size == 0:
-    #         raise ValueError("Filtered data is empty. Ensure the input file has valid values.")
-
-    #     self.raw_data.append(data_array)
 
     # Generate a color palette based on the base color provided
     def _generate_color_palette(self, base_color: str, num_colors: int) -> list[str]:
         base_rgb = to_rgb(base_color)
-        palette = [
+        return [
             to_hex(
                 (
                     base_rgb[0] * (1 - i / num_colors),
@@ -160,32 +102,33 @@ class NanobubblesGraph:
                 )
             )
             for i in range(num_colors)
-        ]
-        return palette
+        ]  # Returns a palette of colors
 
     # returns canvas of mpl graph to UIapply_convolution_filter
 
     def get_graphs(
         self,
-        bins,
-        scale,
-        normalize=False,
-        overlaid=False,
-        data_selection=None,
-        apply_convolution_filter=False,
-        convolution_size=3,
+        bins: int | NDArray[np.int_],
+        scale: bool,
+        overlaid: bool = False,
+        data_selection: str = "",
+        apply_convolution_filter: bool = False,
+        convolution_size: int = 3,
     ) -> FigureCanvas:
         """Generate and return a histogram plot of nanobubble size distributions.
 
         Args:
-            bin_width (int): The width of each bin in the histogram. If log scale is
-                selected, this will determine the number of bins.
+            bins (int | NDArray[np.int_]): The number of bins to use for the histogram
+                If scale is True, this will determine the number of bins.
             scale (bool): If True, the x-axis will be in log scale; otherwise,
                 it will be in linear scale.
-            normalize (bool, optional): If True, the histogram will be normalized.
-                Default is False.
             overlaid (bool, optional): If True, multiple histograms will be overlaid.
                 Default is False.
+            data_selection (str, optional): The type of data to plot. Valid options
+            apply_convolution_filter (bool, optional): If True, a Gaussian convolution
+                filter will be applied to the data. Default is False.
+            convolution_size (int, optional): The size of the Gaussian convolution
+                filter. Default is 3.
 
         Returns:
             FigureCanvas: The canvas containing the generated plot.
@@ -196,7 +139,6 @@ class NanobubblesGraph:
         self.fig, self.ax = plt.subplots(1, 1)
         self.canvas = FigureCanvas(self.fig)
         # Generate a color palette based on the base color (FUS Green)
-        colors = self._generate_color_palette("#73A89E", len(self.raw_data))
         # load fus_icon png and conver to np array
         image_path = self.resource_path("resources\\fus_icon_transparent.png")
         image = self.load_icon(image_path)
@@ -220,6 +162,9 @@ class NanobubblesGraph:
             elif data_selection == "Concentration Per mL":
                 x = np_data[:, 0]  # first column
                 y = np_data[:, 2]  # third column
+            else:
+                msg = f"Invalid data_selection: {data_selection}"
+                raise ValueError(msg)
 
             if apply_convolution_filter:
                 y = np.convolve(
@@ -231,7 +176,10 @@ class NanobubblesGraph:
 
             # Validate that `data` is a 2D array with two columns
             # if data.ndim != 2 or data.shape[1] != 2:
-            #     raise ValueError(f"`self.raw_data[0]` is not a valid 2D array. Current shape: {data.shape}")
+            #     raise ValueError(
+            #         f"`self.raw_data[0]` is not a valid 2D array. "
+            #         f"Current shape: {data.shape}"
+            #     )
             # Create a giant array where each size is repeated 'count' times
             # sizes = np.repeat(data[:, 0], data[:, 1].astype(int))
 
@@ -246,8 +194,7 @@ class NanobubblesGraph:
 
         elif overlaid:
             # Plot multiple overlaid and translucent histograms
-            for i, data in enumerate(self.data):
-                data = self.data
+            for i, data in enumerate(self.raw_data):
                 np_data = data.to_numpy()
 
                 if data_selection == "Size Distribution":
@@ -259,6 +206,10 @@ class NanobubblesGraph:
                     x = np_data[:, 0]
                     y = np_data[:, 2]
                     print(y[100:110])
+                else:
+                    msg = f"Invalid data_selection: {data_selection}"
+                    raise ValueError(msg)
+
                 bar_widths = np.diff(np_data[:, 0])
                 bar_widths = np.append(
                     bar_widths, bar_widths[-1] * bar_widths[-1] / bar_widths[-2]
@@ -318,15 +269,17 @@ class NanobubblesGraph:
         return self.canvas
 
     # save the canvas graph as a SVG
-    def save_graph(self, folder, overlaid: bool = False):
+    def save_graph(self, folder: str, overlaid: bool = False) -> Path:
         # Check if nanobubble_txt is a list and get the first file path
         if overlaid:
             nanobubble_svg_filename = "multi_batch_histogram"
         else:
-            nanobubble_svg_filename = (Path(self.nanobubble_txt[0]).name).split(".")[0]
+            nanobubble_svg_filename = (Path(self.nanobubble_txt[0]).name).split(".")[
+                0
+            ]
 
         # full_save_name = os.path.join(folder, str(nanobubble_svg_filename) + ".svg")
-        full_save_name = Path(folder) / str(nanobubble_svg_filename) / ".svg"
+        full_save_name = Path(folder) / f"{nanobubble_svg_filename}.svg"
 
         # Debugging statement
         print(f"Saving graph to: {full_save_name}")
@@ -342,9 +295,18 @@ class NanobubblesGraph:
 
 
 if __name__ == "__main__":
-    # n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt")
-    # n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt")
-    # n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt")
-    n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS.txt", "")
-    n.get_graphs(bins=100, overlaid=True, scale=1)
+    # Example paths:
+    # n = NanobubblesGraph(
+    #     r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt", ""
+    # )
+    # n = NanobubblesGraph(
+    #     r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt", ""
+    # )
+    # n = NanobubblesGraph(
+    #     r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt", ""
+    # )
+    n = NanobubblesGraph(
+        r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS.txt", ""
+    )
+    n.get_graphs(bins=100, overlaid=True, scale=True)
     plt.show()

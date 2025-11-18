@@ -37,7 +37,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 # Set the line length (default: 88)
-line-length = 86
+line-length = 88
 
 [tool.ruff.lint]
 extend-select = [
@@ -54,23 +54,23 @@ extend-select = [
   "EXE001"
 ]
 ignore = [
-  "T201",
-  "DTZ005",
-  "D203",
-  "D213",
-  "COM812",
-  "INP001",
-  "D100",
-  "D101",
-  "D102",
-  "D104",
-  "D107",
-  "FIX002",
-  "N802",
-  "N806",
-  "ERA001",
-  "TD002",
-  "TD003",
+  "T201",  # Checks for print statements.
+  "DTZ005",  # Checks for datetime formatting (no timezone).
+  "D203",  # Checks for blank lines at the end of the file.
+  "D213",  # Checks for multi-line docstrings.
+  "COM812",  # Checks for trailing commas in lists, tuples, and dicts.
+  "INP001",  # Checks for packages that are missing an __init__.py file.
+  "D100",  # Checks for undocumented public module definitions.
+  "D101",  # Checks for undocumented public class definitions.
+  "D102",  # Checks for undocumented public method definitions.
+  "D104",  # Checks for undocumented public package definitions.
+  "D107",  # Checks for public __init__ method definitions that are missing docstrings
+  "FIX002",  # Checks for "TODO" comments.
+  "N802",  # Checks for functions names that do not follow the snake_case naming convention. - include eventually
+  "N806",  # Checks for the use of non-lowercase variable names in functions. - include eventually
+  "ERA001",  # Checks for commented-out Python code.
+  "TD002",  # Checks that a TODO comment includes an author.
+  "TD003",  # Checks that a TODO comment is associated with a link to a relevant issue or ticket.
 ]
 
 [tool.ruff.format]

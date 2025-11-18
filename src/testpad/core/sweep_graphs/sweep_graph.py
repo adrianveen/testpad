@@ -1,6 +1,5 @@
 """A module for generating graphs of the sweep data."""
 
-import os
 import re
 import sys
 from pathlib import Path
@@ -18,12 +17,13 @@ from PIL import Image
 class SweepGraph:
     """A class for generating graphs of the sweep data."""
 
-    def __init__(self, hdf5_file, time_delta: float = 16e-9) -> None:
+    def __init__(self, hdf5_file: str, time_delta: float = 16e-9) -> None:
         """Initialize a SweepGraph object with an HDF5 file and a time delta.
 
         Args:
             hdf5_file (str): The path to the HDF5 file containing the sweep data.
-            time_delta (float): The time delta between each sweep measurement in seconds.
+            time_delta (float): The time delta between each sweep measurement
+                in seconds.
 
         Raises:
             ValueError: If no file is selected.
@@ -44,10 +44,10 @@ class SweepGraph:
 
     def _resource_path(self, relative_path: str) -> str:
         """Get the absolute path to a resource."""
-        base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
-        return os.path.join(base_path, relative_path)
+        base_path = getattr(sys, "_MEIPASS", Path.cwd())
+        return str(Path(base_path) / relative_path)
 
-    def _load_icon(self, path) -> NDArray:
+    def _load_icon(self, path: str) -> NDArray:
         image = Image.open(path)
         return np.array(image)
 
@@ -67,7 +67,7 @@ class SweepGraph:
             for i in range(num_colors)
         ]
 
-    def _process_files(self, file_paths) -> list:
+    def _process_files(self, file_paths: str | list[str]) -> list:
         """Process one or more HDF5 files and extract relevant data.
 
         Currently only supports one HDF5 file at a time.
@@ -92,10 +92,11 @@ class SweepGraph:
         if re.match(pattern, harmonic_folder, re.IGNORECASE):
             self.harmonic_folder = harmonic_folder
         else:
-            raise ValueError(
+            msg = (
                 f"Unexpected harmonic folder name: '{harmonic_folder}'. "
                 "Expected format like '1st Harmonic', '2nd Harmonic', etc."
             )
+            raise ValueError(msg)
 
         filename = first_path.name
         # extract serial number from file name - all text up to second underscore
@@ -110,7 +111,7 @@ class SweepGraph:
                     # Access the Scan group
                     scan_group = f["Scan"]
                     # Extract the raw pressure waveform data
-                    raw_pressure_waveforms = scan_group["Raw pressure waveforms (Pa)"][
+                    raw_pressure_waveforms = scan_group["Raw pressure waveforms (Pa)"][  # type: ignore[index]
                         :
                     ]
                     # Convert the data into a pandas DataFrame
@@ -118,22 +119,24 @@ class SweepGraph:
                     # Append the DataFrame to raw_data
                     self.scan_data.append(df)
 
-            except Exception as e:
-                print(f"Error processing file {file_path}: {e}")
+            except (OSError, KeyError, ValueError) as e:
+                # OSError: file not found, permissions, corrupted file
+                # KeyError: missing expected HDF5 groups/datasets
+                # ValueError: invalid data format
+                msg = f"Failed to process HDF5 file '{file_path}': {e}"
+                raise RuntimeError(msg) from e
 
         return self.scan_data
 
-    def get_graphs(
-        self, trace_index, graph_type: str = " time"
-    ) -> tuple[FigureCanvas, FigureCanvas]:
-        """Generate a graph based on the selected trace for both the time and frequency domains.
+    def get_graphs(self, trace_index: int) -> tuple[FigureCanvas, FigureCanvas]:
+        """Generate a graph based on the selected trace for both domains.
 
         Args:
-            trace_no (int): The trace number to plot.
-            graph_type (str): The box_type of graph to plot. Options are 'time' or 'fft'.
+            trace_index (int): The trace number to plot.
 
         Returns:
-            tuple: A tuple containing the time domain and frequency domain graphs as FigureCanvas objects.
+            tuple: A tuple containing the time domain and frequency domain
+                graphs as FigureCanvas objects.
 
         """
         # load FUS icon

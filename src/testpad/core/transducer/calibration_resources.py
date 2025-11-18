@@ -1,4 +1,3 @@
-import os
 import re
 from pathlib import Path
 
@@ -13,7 +12,7 @@ from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from PySide6.QtWidgets import QTextBrowser
 from scipy.interpolate import RegularGridInterpolator, interp1d
 
-from testpad.core.transducer.calibration_figure_2 import sweep_graph
+from testpad.core.transducer.calibration_figure_2 import SweepGraph
 from testpad.core.transducer.cm_data import cm_data
 
 # PARULA MAP! (list of colormap data is in separate file)
@@ -40,7 +39,20 @@ EB-50 METHODS COPIED FROM UNIFIED CALIBRATION RESOURCES
 
 
 # find the closest frequency to the requested frequency (parsing YAML file)
-def closest_frequency(frequency, filename, textbox: QTextBrowser):
+def closest_frequency(
+    frequency: float, filename: str | Path, textbox: QTextBrowser
+) -> tuple[str, dict]:
+    """Find the closest frequency to the requested frequency.
+
+    Args:
+        frequency (float): The requested frequency.
+        filename (str | Path): The path to the EB-50 file.
+        textbox (QTextBrowser): The text box to which to write any errors or warnings.
+
+    Returns:
+        tuple: A tuple containing the closest frequency and the EB-50 dictionary.
+
+    """
     # requested frequency
     frequency, ending = fmt(frequency)
     textbox.append("Requested frequency: " + str(frequency) + ending)
@@ -49,7 +61,8 @@ def closest_frequency(frequency, filename, textbox: QTextBrowser):
     with Path(filename).open() as file:
         lines = yaml.safe_load(file)
 
-    # find closest frequency (can later be changed into interpolation of two frequencies)
+    # find closest frequency (can later be changed into interpolation of two
+    # frequencies)
     frequencies = list(
         lines["frequencies"].keys()
     )  # for all the frequencies in the eb50 file
@@ -69,14 +82,33 @@ def closest_frequency(frequency, filename, textbox: QTextBrowser):
 
 
 # find number in array closest to value
-def find_nearest(array, value):
+def find_nearest(array: list | np.ndarray, value: float) -> np.floating:
+    """Find the number in an array closest to a given value.
+
+    Args:
+        array (list | np.ndarray): The array to search.
+        value (float): The value to find.
+
+    Returns:
+        np.floating: The number in the array closest to the given value.
+
+    """
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx]
 
 
 # convert Hz to kHz, MHz
-def fmt(freq):
+def fmt(freq: float) -> tuple[float, str]:
+    """Convert a frequency from Hz to kHz or MHz.
+
+    Args:
+        freq (float): The frequency to convert.
+
+    Returns:
+        tuple: A tuple containing the converted frequency and the frequency unit.
+
+    """
     SI_Frequency = [(1, "kHz"), (1000, "MHz")]
     useFactor, useName = SI_Frequency[0]
     for factor, name in SI_Frequency:
@@ -85,7 +117,7 @@ def fmt(freq):
     return freq / useFactor, useName
 
 
-def _split_array(data_mtx, col1):
+def _split_array(data_mtx: list[str], col1: int) -> np.ndarray:
     array1 = np.array([])
 
     for i in range(len(data_mtx)):
@@ -96,7 +128,7 @@ def _split_array(data_mtx, col1):
 
 
 # extracts eb50 data, returns eb50 dictionary
-def eb50_dictionary(closest_frequency, filename: Path) -> dict:
+def eb50_dictionary(closest_frequency: str, filename: Path) -> dict:
     # start_time = timeit.default_timer()
     """Extract the eb50 data from a .txt file given the closest frequency.
 
@@ -120,9 +152,16 @@ def eb50_dictionary(closest_frequency, filename: Path) -> dict:
     ]  # find the indices of all the line endings
 
     # extract the relevant data and store it as a list
+    first_index = -1  # Initialize to avoid unbound variable
     for line in lines:
         if closest_frequency in line:
             first_index = lines.index(line)  # find the index of the requested frequency
+            break
+
+    if first_index == -1:
+        msg = f"Frequency '{closest_frequency}' not found in file"
+        raise ValueError(msg)
+
     last_index = indices[
         next(x[0] for x in enumerate(indices) if x[1] >= first_index)
     ]  # find the last line of relevant data
@@ -145,8 +184,10 @@ def eb50_dictionary(closest_frequency, filename: Path) -> dict:
         "output voltage": output_voltage,  # assuming the resistance is 50 ohms
         "power gain": 10 * np.log10(output_power / input_power),  # power gain
         "gain": 20 * np.log10(output_voltage / amplitude),  # voltage gain
-        # "interpolated input power": interpolate.interp1d(output_power, input_power, fill_value="extrapolate"),
-        # "interpolated output power": interpolate.interp1d(input_power, output_power, fill_value="extrapolate")
+        # "interpolated input power": interpolate.interp1d(output_power,
+        # input_power, fill_value="extrapolate"),
+        # "interpolated output power": interpolate.interp1d(input_power,
+        # output_power, fill_value="extrapolate")
     }
 
     # print("Time for eb50 data extraction: ", end='')
@@ -159,7 +200,20 @@ UTILITY METHODS
 
 
 # fetch data for axial/lateral scan graphs
-def fetch_data(filename, axial_or_lateral):
+def fetch_data(
+    filename: str | Path, axial_or_lateral: str
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, list | None]:
+    """Fetch data from a .h5 file.
+
+    Args:
+        filename (str | Path): The path to the .h5 file.
+        axial_or_lateral (str): The type of scan (axial or lateral).
+
+    Returns:
+        tuple: A tuple containing the x, y, z, pressure, intensity, and pointer location
+            arrays.
+
+    """
     # full_filename = os.path.join(folder, filename)
 
     with h5py.File(filename, "r") as f:
@@ -203,13 +257,13 @@ def fetch_data(filename, axial_or_lateral):
 
 
 def fwhmx(
-    horizontal,
-    pressure_or_intensity,
-    left_field_length,
-    right_field_length,
-    axis,
-    type_of_scan,
-    type_of_data,
+    horizontal: np.ndarray,
+    pressure_or_intensity: np.ndarray,
+    left_field_length: float,
+    right_field_length: float,
+    axis: str,
+    type_of_scan: str,
+    type_of_data: str,
     textbox: QTextBrowser,
 ) -> tuple[float | str, float]:
     """FWHMX CALCULATION.
@@ -237,22 +291,26 @@ def fwhmx(
     maximum_location = np.where(
         norm_pressure == 1.0
     )  # where is the maximum pressure value?
-    # which curve (column) does the maximum pressure value belong to in the norm_pressure array?
+    # which curve (column) does the maximum pressure value belong to in the
+    # norm_pressure array?
     max_curve = maximum_location[1][0]
 
     new_pressure_or_intensity = []  # list for isolating the maximum pressure curve
 
     # for loop to isolate the maximum pressure curve
-    for i in range(len(pressure_or_intensity)):
-        new_pressure_or_intensity.append(norm_pressure[i][max_curve])
+    new_pressure_or_intensity = [
+        norm_pressure[i][max_curve] for i in range(len(pressure_or_intensity))
+    ]
 
     new_pressure_or_intensity = np.array(
         new_pressure_or_intensity
     )  # convert list to numpy array
 
     # INTERPOLATED
-    # x = np.arange(np.min(horizontal), (np.max(horizontal)+interp_step), interp_step) # new x array to interpolate over
-    # y = np.interp(x, horizontal, new_pressure_or_intensity) # interpolated pressure/intensity array
+    # x = np.arange(np.min(horizontal), (np.max(horizontal)+interp_step), interp_step)
+    # new x array to interpolate over
+    # y = np.interp(x, horizontal, new_pressure_or_intensity)
+    # interpolated pressure/intensity array
 
     # NONINTERPOLATED
     x = horizontal
@@ -281,34 +339,55 @@ def fwhmx(
     # THE FOV METHOD (OBSOLETE)
     # idx = np.argwhere(y >= 0.5) # indices of values where y is bigger than 0.5
     # # print("FOV:", idx[0], idx[-1])
-    # idx = idx[x[idx] >= left_field_length] # limits the first index to be greater than the left field length (in case there are multiple peaks)
-    # idx = idx[x[idx] <= right_field_length] # limits the last index to be greater than the right field length
+    # idx = idx[x[idx] >= left_field_length] # limits the first index to be greater than
+    # the left field length (in case there are multiple peaks)
+    # idx = idx[x[idx] <= right_field_length] # limits the last index to be greater than
+    # the right field length
     # # # print(x[idx])
     # first_index = x[idx[0]] # first x-coordinate where the 0.5 line is crossed
     # last_index = x[idx[-1]] # last x-coordinate where the 0.5 line is crossed
 
     fwhmx = last_index - first_index  # FWHMX calculation
-    # print(axis, type_of_scan+type_of_data+':', '{0:.1f}'.format(last_index), "-", '{0:.1f}'.format(first_index), "=", '{0:.1f}'.format(fwhmx)+'\n') # print statement for testing purposes
+    # print(axis, type_of_scan+type_of_data+':', '{0:.1f}'.format(last_index), "-",
+    #'{0:.1f}'.format(first_index), "=", '{0:.1f}'.format(fwhmx)+'\n') # print statements
+    # for testing purposes
 
     offset = (first_index + last_index) / 2
     return fwhmx, offset
 
 
 """
-FILE CREATION METHODS 
+FILE CREATION METHODS
 """
 
 
 # sweep file creation, returns an averaged file of all sweeps
 def create_sweep_file(
-    sweep_list,
-    save_folder,
-    transducer,
-    freq,
-    save,
+    sweep_list: list[str],
+    save_folder: str,
+    transducer: str,
+    freq: str,
+    save: bool,
     eb50_file: str = "",
     textbox: QTextBrowser | None = None,
 ) -> None | tuple[()] | FigureCanvas:
+    """Create a sweep file.
+
+    Args:
+        sweep_list (list[str]): A list of paths to the sweep files.
+        save_folder (str): The path to the folder where the sweep file should be saved.
+        transducer (str): The transducer serial number.
+        freq (str): The frequency of the sweep.
+        save (bool): Whether to save the sweep file.
+        eb50_file (str, optional): The path to the EB-50 file. Defaults to "".
+        textbox (QTextBrowser | None, optional): The text box to which to write any
+            errors or warnings. Defaults to None.
+
+    Returns:
+        None | tuple[()] | FigureCanvas: None if save is False, otherwise a tuple
+            containing the sweep file path and a FigureCanvas object.
+
+    """
     if eb50_file is None:
         eb50_file = ""
     # filename = os.path.join(folder, sweep_filename)
@@ -316,7 +395,8 @@ def create_sweep_file(
     number_freq = float(
         re.sub("[^0-9.]", "", freq)
     )  # find the frequency without the kHz/MHz ending
-    if eb50_file != "":
+    eb50_dict: dict = {}  # Initialize to avoid unbound variable
+    if eb50_file != "" and textbox is not None:
         freq, eb50_dict = closest_frequency(number_freq, eb50_file, textbox)
 
     fn_gen_amplitudes = []  # amplitudes in each file
@@ -348,7 +428,7 @@ def create_sweep_file(
                 fwd_pwr = np.zeros(fwd_pwr_hdf5.shape)
                 fwd_pwr_hdf5.read_direct(fwd_pwr)
                 powers.append(fwd_pwr)
-                if eb50_file != "":
+                if eb50_file != "" and textbox is not None:
                     textbox.append(
                         "\nUsing the power values in the sweep instead of inferring \
                             with the EB-50 YAML file.\n"
@@ -356,8 +436,8 @@ def create_sweep_file(
                     eb50_file = ""
 
                 # Get the reflected power meter data, this is less important
-                # so we can fill it with float(nan)
-                # if it is missing. Only attempt this if we already got f meter data.
+                # so we can fill it with float(nan) if it is missing.
+                # Only attempt this if we already got f meter data.
                 try:
                     ref_pwr_hdf5 = f["Scan/Reverse power meter readings (W)"]
                     ref_pwr = np.zeros(ref_pwr_hdf5.shape)
@@ -366,22 +446,23 @@ def create_sweep_file(
                 except KeyError:
                     # Append a ndarray of nans equal in shape to fwd_pwr
                     print(
-                        "Warning, fwd power found but not ref power in the sweep file.\
-                            This is unusual."
+                        "Warning, fwd power found but not ref power in the "
+                        "sweep file. This is unusual."
                     )
                     ref_powers.append(np.full(fwd_pwr.shape, np.nan))
             except KeyError as e:
-                textbox.append("KeyError: " + str(e))
-                if eb50_file == "":
+                if textbox is not None:
+                    textbox.append("KeyError: " + str(e))
+                    if eb50_file == "":
+                        textbox.append(
+                            "WARNING: No power reading found in sweep file. "
+                            "Please enter an EB-50 file.\n"
+                        )
+                        return None
                     textbox.append(
-                        "WARNING: No power reading found in sweep file. Please enter an\
-                            EB-50 file.\n"
+                        "No power reading found in sweep file - switching to "
+                        "EB-50 file for power inference.\n"
                     )
-                    return None
-                textbox.append(
-                    "No power reading found in sweep file - switching to EB-50 file for\
-                        power inference.\n"
-                )
 
             neg_pressure = np.multiply(abs(min_mV), 1e-6)  # Pa to MPa
             # print(neg_pressure)
@@ -418,16 +499,21 @@ def create_sweep_file(
     averaged_fn_gen_amplitudes = np.average(fn_gen_amplitudes_list_to_array, axis=1)
 
     # if an EB-50 file exists:
+    eb50 = ""  # Initialize to avoid unbound variable
     if eb50_file != "":
         # EB-50 GAINS
         raw_gain = eb50_dict["gain"]
         interpolated_gain = interp1d(
-            eb50_dict["amplitudes"], raw_gain, fill_value="extrapolate", kind="linear"
+            eb50_dict["amplitudes"],
+            raw_gain,
+            fill_value="extrapolate",
+            kind="linear",  # type: ignore[arg-type]
         )  # interpolate the gain
         # v_in = averaged_fn_gen_amplitudes * 1e-3  # in Vpp
         gain_EB50 = interpolated_gain(averaged_fn_gen_amplitudes)
         v_out = averaged_fn_gen_amplitudes * (10 ** (gain_EB50 / 20.0))
         fwd_pwr = v_out**2 / 8.0 / 50.0  # electrical power
+        ref_pwr = np.full(len(averaged_pressures), np.nan)  # No ref power from EB-50
         eb50 = eb50_file.split("/")[-1]
         # EB-50 sanity test graph
         # data_mtx_2 = np.zeros((len(averaged_pressures), 4))
@@ -461,7 +547,7 @@ def create_sweep_file(
                 ref_powers_list_to_array[:, i] = np.array([x[i] for x in ref_powers])
             averaged_ref_powers = np.average(ref_powers_list_to_array, axis=1)
             ref_pwr = averaged_ref_powers
-        except Exception as e:
+        except (ValueError, TypeError, IndexError) as e:
             print("Error averaging reflected power data across files:", e)
             ref_pwr = np.full(fwd_pwr.shape, np.nan)
 
@@ -479,12 +565,13 @@ def create_sweep_file(
         )
         data_mtx[:, 4] = ref_pwr  # reflected power
     except ValueError as e:
-        textbox.append("\nValueError: " + str(e))
-        textbox.append(
-            "\nThe sizes of the data are incompatible with each other.\
-                Did you select sweep files from the same batch?\
-                    Does one of your files have an error in it?"
-        )
+        if textbox is not None:
+            textbox.append("\nValueError: " + str(e))
+            textbox.append(
+                "\nThe sizes of the data are incompatible with each other. "
+                "Did you select sweep files from the same batch? "
+                "Does one of your files have an error in it?"
+            )
         return ()
 
     # set the marker size of the sweep graph
@@ -497,7 +584,9 @@ def create_sweep_file(
 
     # generate sweep graph using Marc's program
     sweep_freq, sweep_freq_ending = fmt(number_freq)
-    graph = sweep_graph(
+    if textbox is None:
+        return None
+    graph = SweepGraph(
         data_mtx,
         transducer,
         str(sweep_freq) + " " + sweep_freq_ending,
@@ -515,15 +604,15 @@ def create_sweep_file(
     # header array in the txt file, m-value rounded to 6 decimal places
     if eb50_file != "":  # if the EB-50 exists, add it to the header array
         header_arr = (
-            f"Frequency: {original_freq}\nEB-50: {eb50}\nm-value: {m:.6f} MPa/Vpp\n\
-                r squared: {r_trunc_out}\n\n"
+            f"Frequency: {original_freq}\nEB-50: {eb50}\n"
+            f"m-value: {m:.6f} MPa/Vpp\nr squared: {r_trunc_out}\n\n"
             f"Peak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), "
             f"Electrical Power (W), Input Voltage (Vpp), Reflected Power (W)"
         )
     else:
         header_arr = (
-            f"Frequency: {original_freq}\nm-value: {m:.6f} MPa/Vpp\n\
-                r squared: {r_trunc_out}\n\n"
+            f"Frequency: {original_freq}\nm-value: {m:.6f} MPa/Vpp\n"
+            f"r squared: {r_trunc_out}\n\n"
             f"Peak Negative Pressure (MPa), Voltage Across the Transducer (Vpp), "
             f"Electrical Power (W), Input Voltage (Vpp), Reflected Power (W)"
         )
@@ -533,15 +622,16 @@ def create_sweep_file(
         graph.save_graph()  # save the sweep graph from Marc's program
 
         counter = 1
+        f = None  # Initialize to avoid unbound variable
 
         while True:
             try:
-                filename = os.path.join(
-                    save_folder, "sweep_" + transducer + "_" + original_freq
+                filename = str(
+                    Path(save_folder) / f"sweep_{transducer}_{original_freq}"
                 )
                 # DATA WITH HEADER ARRAY
                 full_filename2 = filename + "_" + str(counter) + ".txt"
-                with open(full_filename2, "x"):
+                with Path(full_filename2).open("x"):
                     np.savetxt(
                         full_filename2,
                         data_mtx,
@@ -557,7 +647,7 @@ def create_sweep_file(
                 # Remove input voltage column
                 data_mtx = np.delete(data_mtx, 3, 1)
                 full_filename1 = filename + "_DATA_" + str(counter) + ".txt"
-                with open(full_filename1, "x"):
+                with Path(full_filename1).open("x"):
                     np.savetxt(full_filename1, data_mtx, fmt="%.3f", delimiter=",")
 
                 break
@@ -569,7 +659,8 @@ def create_sweep_file(
         # print(f"\nSaving sweep to {full_filename1}...")
         # print(f"Saving sweep data to {full_filename2}...")
 
-        f.close()
+        if f is not None:
+            f.close()
 
     return returned_graph
 
@@ -577,17 +668,17 @@ def create_sweep_file(
 # field graph svg
 @mpl.rc_context(style_1)  # use plot style style_1 above
 def field_graph(
-    horizontal,
-    vertical,
-    pressure_or_intensity,
+    horizontal: np.ndarray,
+    vertical: np.ndarray,
+    pressure_or_intensity: np.ndarray,
     left_field_length: float,
     right_field_length: float,
     field_height: float,
     name: str,
-    type_of_scan,
-    type_of_data,
-    interp_step,
-    save,
+    type_of_scan: str,
+    type_of_data: str,
+    interp_step: float,
+    save: bool,
     save_folder: str,
     textbox: QTextBrowser,
 ) -> FigureCanvas:
@@ -630,7 +721,8 @@ def field_graph(
     canvas = FigureCanvas(fig1)
     ax1.tick_params(
         axis="both", direction="in", pad=7
-    )  # sets the ticks to be inside the plot frame and also adds padding space between the axis and the tick labels
+    )  # sets the ticks to be inside the plot frame and also adds padding space between
+    # the axis and the tick labels
     # fig1.canvas.manager.set_window_title(name+"field_plot") # names window
     # fig1.set_size_inches(7, 4) # actual graph window size
     ax1.set_aspect("equal")  # makes 1:1 aspect ratio
@@ -651,12 +743,14 @@ def field_graph(
         (horizontal, vertical),
         pressure_or_intensity,
         bounds_error=False,
-        fill_value=None,
+        fill_value=0.0,
         method="cubic",
     )  # interpolator method
     # interp = RectBivariateSpline(horizontal, vertical, pressure_or_intensity)
 
     # new arrays for interpolation
+    x = np.array([])  # Initialize to avoid unbound variable
+    y = np.array([])  # Initialize to avoid unbound variable
     try:
         x = np.arange(
             np.min(horizontal), (np.max(horizontal) + interp_step), interp_step
@@ -677,7 +771,8 @@ def field_graph(
     # Z1 = Z1/np.amax(pressure_or_intensity)
     Z1 = Z1.reshape(X1.shape)
 
-    # fname = r"C:\Users\RKPC\Documents\transducer_calibrations\538-T550H825\550kHz\report\pressure_values.txt"
+    # fname = r"C:\Users\RKPC\Documents\transducer_calibrations\538-T550H825\
+    # 550kHz\report\pressure_values.txt"
 
     # try:
     #     with open(fname, 'x') as f:
@@ -687,16 +782,19 @@ def field_graph(
 
     pcm = ax1.pcolormesh(
         X1, Y1, Z1, cmap=cmap, shading="nearest", rasterized=True
-    )  # the actual pcolormesh, rasterized NEEDS to be set to True to prevent SVGs saving weirdly
+    )  # the actual pcolormesh, rasterized NEEDS to be set to True to prevent SVGs
+    # saving weirdly
 
     # if 'lateral' in name and 'pressure' in name:
-    #     matlab_raw = pd.read_excel(r"C:\Users\RKPC\Documents\summer_2023\Calibration Reports\514_MATLAB_raw.xlsx", header=None)
+    #     matlab_raw = pd.read_excel(r"C:\Users\RKPC\Documents\summer_2023\
+    # Calibration Reports\514_MATLAB_raw.xlsx", header=None)
     #     # print(matlab_raw)
     #     print(Z1)
     # print(np.allclose(matlab_raw, Z1))
 
     # IMSHOW (WORKS, BUT THE AXIAL IMAGE IS WARPED...)
-    # pcm = ax1.imshow(pressure, extent=(np.min(horizontal), np.max(horizontal), np.min(vertical), np.max(vertical)), cmap=cmap, interpolation='none')
+    # pcm = ax1.imshow(pressure, extent=(np.min(horizontal), np.max(horizontal),
+    # np.min(vertical), np.max(vertical)), cmap=cmap, interpolation='none')
     # print(np.min(horizontal), np.max(horizontal), np.min(vertical), np.max(vertical))
     # print(-field_length, field_length, -field_height, field_height)
 
@@ -758,12 +856,13 @@ def field_graph(
 
     # cbar.ax.invert_yaxis() # To invert the colourbar stripe
 
-    cbar.set_ticks(positions, labels=[0, 0.2, 0.4, 0.6, 0.8, 1])  # colorbar tick labels
+    cbar.set_ticks(positions, labels=["0", "0.2", "0.4", "0.6", "0.8", "1"])
 
     # SAVE DATA
     if save:
-        save_filename = os.path.join(save_folder, name + "field_plot.svg")
-        # print(f"\nSaving {type_of_scan}{type_of_data} field scan to {save_filename}...")
+        save_filename = str(Path(save_folder) / f"{name}field_plot.svg")
+        # print(f"\nSaving {type_of_scan}{type_of_data} field scan to "
+        # f"{save_filename}...")
         fig1.savefig(
             save_filename,
             bbox_inches="tight",
@@ -778,20 +877,43 @@ def field_graph(
 
 
 # line graph svg
-# used for both combined_calibration_figures_python.py and linear_scan_graph_generator.py
+# used for both combined_calibration_figures_python.py and
+# linear_scan_graph_generator.py
 @mpl.rc_context(style_1)
 def line_graph(
-    horizontal,
-    pressure_or_intensity,
-    left_field_length,
-    right_field_length,
-    name,
-    type_of_scan,
-    type_of_data,
-    save,
-    save_folder,
+    horizontal: np.ndarray,
+    pressure_or_intensity: np.ndarray,
+    left_field_length: float | str,
+    right_field_length: float | str,
+    name: str,
+    type_of_scan: str,
+    type_of_data: str,
+    save: bool,
+    save_folder: str,
     textbox: QTextBrowser,
 ) -> FigureCanvas:
+    """Generate a line graph for a given transducer at a given frequency.
+
+    Args:
+        horizontal (np.ndarray): The horizontal positions of the transducer at which
+            the data was taken.
+        pressure_or_intensity (np.ndarray): The pressure or intensity values at each
+            position of the transducer.
+        left_field_length (float | str): The length of the field in the negative x
+            direction.
+        right_field_length (float | str): The length of the field in the positive x
+            direction.
+        name (str): The name of the transducer.
+        type_of_scan (str): The type of scan (lateral or axial).
+        type_of_data (str): The type of data (pressure or intensity).
+        save (bool): If True, saves the line graph as an SVG file.
+        save_folder (str): The folder in which to save the line graph.
+        textbox (QTextBrowser): The text box to which to write any errors or warnings.
+
+    Returns:
+        FigureCanvas: The canvas object representing the figure.
+
+    """
     _minimum = pressure_or_intensity.min()
     maximum = pressure_or_intensity.max()
 
@@ -803,19 +925,23 @@ def line_graph(
     # fig2.canvas.manager.set_window_title(name+"line_plot") # names window
     # ax2.set_aspect(5/3)
 
-    # ax2.set_aspect(abs((-abs(left_field_length)-abs(right_field_length))/(-2))*2) # 2:1 aspect ratio
+    # ax2.set_aspect(abs((-abs(left_field_length)-abs(right_field_length))
+    # /(-2))*2) # 2:1 aspect ratio
     # ax2.set_aspect('equal') # makes 1:1 aspect ratio
 
     """
-    x axis 
+    x axis
     """
     if left_field_length != "linear" and right_field_length != "linear":
+        # Cast to float since we know they're not "linear" strings
+        left_float = float(left_field_length)
+        right_float = float(right_field_length)
         ax2.set_aspect(
-            abs((-abs(left_field_length) - abs(right_field_length)) / (-2)) * (3.75 / 4)
-        )  # aspect ratio (FOR MANUAL ADJUSTMENT, change 3.75/4 to your desired ratio)
+            abs((-abs(left_float) - abs(right_float)) / (-2)) * (3.75 / 4)
+        )  # aspect ratio (FOR MANUAL ADJUSTMENT, change 3.75/4 to desired ratio)
 
-        left_field_length = abs(left_field_length)
-        right_field_length = abs(right_field_length)
+        left_field_length = abs(left_float)
+        right_field_length = abs(right_float)
 
         ax2.set_xlim(-left_field_length, right_field_length)
         x_ticks = list(range(-int(left_field_length), int(right_field_length) + 1))
@@ -830,7 +956,7 @@ def line_graph(
     # ax2.xaxis.set_major_locator(locator)
 
     """
-    y axis 
+    y axis
     """
     ax2.set_ylim(0, 1)
     y_ticks = [0, 0.2, 0.4, 0.6, 0.8, 1]
@@ -843,18 +969,16 @@ def line_graph(
     maximum_location = np.where(
         norm_pressure == 1.0
     )  # where is the maximum pressure value?
-    max_curve = maximum_location[
-        1
-    ][
-        0
-    ]  # which curve (column) does the maximum pressure value belong to in the norm_pressure array?
+    # which curve (column) does the maximum pressure value belong to in the
+    # norm_pressure array?
+    max_curve = maximum_location[1][0]
 
     new_pressure_or_intensity = []  # list for isolating the maximum pressure curve
 
-    # for loop to isolate the maximum pressure curve
-    for i in range(len(pressure_or_intensity)):
-        new_pressure_or_intensity.append(norm_pressure[i][max_curve])
-
+    # Isolate the maximum pressure curve
+    new_pressure_or_intensity = [
+        norm_pressure[i][max_curve] for i in range(len(pressure_or_intensity))
+    ]  # convert list to numpy array
     new_pressure_or_intensity = np.array(
         new_pressure_or_intensity
     )  # convert list to numpy array
@@ -897,8 +1021,9 @@ def line_graph(
 
     # SAVE DATA
     if save:
-        save_filename = os.path.join(save_folder, name + "line_plot.svg")
-        # print(f"\nSaving {type_of_scan}{type_of_data} linear scan to {save_filename}...")
+        save_filename = str(Path(save_folder) / f"{name}line_plot.svg")
+        # print(f"\nSaving {type_of_scan}{type_of_data} linear scan to "
+        # f"{save_filename}...")
         fig2.savefig(
             save_filename,
             bbox_inches="tight",
