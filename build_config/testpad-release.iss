@@ -1,14 +1,14 @@
 ; Inno Setup Script for FUS Testpad (Release)
-; 
+
 ; IMPORTANT: Version is automatically set from testpad/VERSION file during CI/CD builds.
 ; The hardcoded MyAppVersion below is only a fallback for manual local builds.
-; 
+
 ; Manual build: ISCC build_config\testpad-release.iss
 ; Override version: ISCC /DMyAppVersion=1.2.3 build_config\testpad-release.iss
 
 #ifndef MyAppVersion
   ; Fallback version for manual builds (overridden in CI/CD from VERSION file)
-  #define MyAppVersion "1.11.0"
+  #define MyAppVersion "1.12.0"
 #endif
 
 #define MyCompany       "FUS Instruments"
@@ -17,7 +17,7 @@
 #define MyAppShort      "Testpad"
 #define RepoRoot        AddBackslash(SourcePath) + ".."
 #define DistDir         AddBackslash(SourcePath) + "..\\dist"
-#define BuildFolder     "testpad-v" + MyAppVersion
+#define BuildFolder     "testpad"
 #define MyAppExeName    "testpad.exe"
 
 [Setup]

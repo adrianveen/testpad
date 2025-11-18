@@ -73,6 +73,10 @@ ignore = [
   "TD003",  # Checks that a TODO comment is associated with a link to a relevant issue or ticket.
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+"tests_*.py" = ["S101"]
+
 [tool.ruff.format]
 # Use double quotes for strings
 quote-style = "double"
