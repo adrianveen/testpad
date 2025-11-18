@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
@@ -19,7 +20,7 @@ from testpad.core.burnin.model import BurninModel, Metadata
 class MetadataDialog(QDialog):
     """Custom dialog window to capture metadata for report title block."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Capture metadata for report title block.
 
         Custom dialog window to collect metadata from the user before generating
@@ -68,42 +69,6 @@ class MetadataDialog(QDialog):
             self._date_edit.setDate(qdate)
         self._serial_number_edit.setText(metadata.rk300_serial)
 
-    def _build_form(self) -> None:
-        """Build the form layout for the dialog.
-
-        Adds rows to the form layout for entering metadata.
-        """
-        self._tested_by_edit = QLineEdit(self)
-        self.form_layout.addRow("Tested By: ", self._tested_by_edit)
-        self._test_name_edit = QLineEdit(self)
-        self.form_layout.addRow("Test Name: ", self._test_name_edit)
-        self._date_edit = QDateEdit(self)
-        self._date_edit.setCalendarPopup(True)
-        self._date_edit.setDisplayFormat(ISO_8601_DATE_FORMAT)
-        self.form_layout.addRow("Date: ", self._date_edit)
-        self._serial_number_edit = QLineEdit(self)
-        self.form_layout.addRow("RK-300 Serial #: ", self._serial_number_edit)
-
-    def _add_buttons(self) -> None:
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
-            parent=self,
-        )
-        ok_btn = buttons.button(QDialogButtonBox.StandardButton.Ok)
-        ok_btn.setText("Generate Report")
-        ok_btn.setDefault(True)
-        ok_btn.setAutoDefault(True)
-
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
-        self.main_layout.addWidget(buttons)
-
-    def _accept(self) -> None:
-        super().accept()
-        # Save metadata to model
-        self.close()
-
     def get_metadata(self) -> dict:
         """Return the metadata collected by the dialog as a dictionary.
 
@@ -124,6 +89,43 @@ class MetadataDialog(QDialog):
             "test_date": test_date,
             "rk300_serial": rk300_serial,
         }
+
+    def _build_form(self) -> None:
+        """Build the form layout for the dialog.
+
+        Adds rows to the form layout for entering metadata.
+        """
+        self._tested_by_edit = QLineEdit(self)
+        self.form_layout.addRow("Tested By: ", self._tested_by_edit)
+        self._test_name_edit = QLineEdit(self)
+        self.form_layout.addRow("Test Name: ", self._test_name_edit)
+        self._date_edit = QDateEdit(self)
+        self._date_edit.setCalendarPopup(True)
+        self._date_edit.setDisplayFormat(ISO_8601_DATE_FORMAT)
+        self.form_layout.addRow("Date: ", self._date_edit)
+        self._serial_number_edit = QLineEdit(self)
+        self.form_layout.addRow("RK-300 Serial #: ", self._serial_number_edit)
+
+    def _add_buttons(self) -> None:
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
+        )
+        ok_btn = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        ok_btn.setText("Generate Report")
+        ok_btn.setDefault(True)
+        ok_btn.setAutoDefault(True)
+
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        self.main_layout.addWidget(buttons)
+
+    def _accept(self) -> None:
+        super().accept()
+        # Save metadata to model
+        self.close()
 
 
 def _main() -> None:

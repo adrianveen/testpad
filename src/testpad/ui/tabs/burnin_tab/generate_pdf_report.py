@@ -170,7 +170,7 @@ class GenerateReport:
 
         with self.pdf.table(
             col_widths=(content_col, spacing_col, content_col),
-            align="C",
+            align=Align.C,
             markdown=True,
         ) as table:
             for pair in rows:
@@ -314,35 +314,44 @@ class GenerateReport:
 
 
 def main() -> None:
-    """Allow standalone execution of the GenerateReport class."""
-    sample_meta_data = {
-        "tested_by": "Tester Lastname",
-        "test_date": datetime.datetime.now(),
-        "test_name": "RK-300",
-        "RK-300_serial_number": "1234567890",
+    """Allow standalone execution of the GenerateReport class for manual testing."""
+
+    class _MockBurninStats:
+        def __init__(
+            self,
+            axis_name: str,
+            positive_stats: tuple[float, ...],
+            negative_stats: tuple[float, ...],
+        ) -> None:
+            self.axis_name = axis_name
+            self.positive_stats = positive_stats
+            self.negative_stats = negative_stats
+
+    sample_meta_data: dict[str, Any] = {
+        "Test Name": "RK-300 Burnin Test",
+        "Test Date": datetime.date(2025, 1, 15),
+        "Location": "Lab A",
+        "RK300 Serial #": "SN-123456",
     }
-    sample_burnin_stats_pos = {
-        "mean": 56,
-        "median": 58,
-        "min": 37,
-        "max": 70,
-        "std": 4.54,
-        # "variance": 20.73,
-        # "25th_percentile": -57,
-        # "75th_percentile": -58,
-        # "skewness": -2.16,
-        # "kurtosis": 1.64,
-        "prcnt_above_thresh": 99.42,
-        "prcnt_below_thresh": 0.58,
-        "num_peaks_above_thresh": 3290,
-        "num_peaks_below_thresh": 0,
-    }
+
+    stats_x = _MockBurninStats(
+        "X",
+        (56.2, 58.1, 37.5, 70.3, 4.54, 99.42, 0.58, 3290, 0),
+        (-54.8, -57.2, -68.9, -35.1, 4.32, 98.76, 1.24, 3145, 2),
+    )
+    stats_y = _MockBurninStats(
+        "Y",
+        (52.1, 53.4, 34.2, 68.7, 5.12, 98.52, 1.48, 3201, 1),
+        (-53.6, -54.9, -69.3, -33.8, 4.98, 97.89, 2.11, 3087, 3),
+    )
+
     report = GenerateReport(
         meta_data=sample_meta_data,
-        burnin_stats=sample_burnin_stats_pos,
+        burnin_stats=[stats_x, stats_y],  # type: ignore[arg-type]
         list_of_temp_pngs=[],
     )
     report.generate_report()
+    print(f"Test report generated in: {DEFAULT_EXPORT_DIR}")
 
 
 if __name__ == "__main__":

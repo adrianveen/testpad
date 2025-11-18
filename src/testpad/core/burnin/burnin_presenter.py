@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Contains the BurninPresenter class, which is the presenter for the Burnin tab."""
 
 from concurrent.futures import ThreadPoolExecutor, as_completed

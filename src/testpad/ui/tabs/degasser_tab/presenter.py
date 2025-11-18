@@ -1,8 +1,9 @@
+"""Degasser tab presenter."""
+
 from datetime import datetime
 from typing import TYPE_CHECKING, cast
 
-import PySide6.QtWidgets
-from PySide6.QtCore import QDate
+from PySide6.QtWidgets import QFileDialog
 
 from testpad.config import DEFAULT_EXPORT_DIR
 
@@ -22,7 +23,7 @@ class DegasserPresenter:
         self._updating = False
 
     def initialize(self) -> None:
-        """Called after view is constructed."""
+        """Call after view is constructed."""
         self._refresh_view()
         self._connect_signals()
 
@@ -42,11 +43,14 @@ class DegasserPresenter:
             return
         self._model.set_metadata_field("location", text)
 
-    def on_date_changed(self, date: datetime | QDate | None) -> None:
+    def on_date_changed(
+        self, date
+    ) -> None:  # TODO: Add proper type hints for this workflow
         """Handle date edit changes."""
         if self._updating:
             return
-        self._model.set_metadata_field("test_date", date.toPython())
+        if not isinstance(date, datetime):
+            self._model.set_metadata_field("test_date", date.toPython())
 
     def on_serial_changed(self, text: str) -> None:
         """Handle serial edit changes."""
@@ -133,7 +137,9 @@ class DegasserPresenter:
         try:
             self._model.set_measurement(row, value)
             self._refresh_view()
-            self._view.log_message(f"Set oxygen level at minute {row} to {value} mg/L")
+            self._view.log_message(
+                f"Set oxygen level at minute {row} to {value} mg/L"
+            )
         except ValueError as e:
             self._view.log_message(f"Invalid oxygen level at minute {row}: {e}")
 
@@ -160,6 +166,74 @@ class DegasserPresenter:
             except ValueError as e:
                 self._view.log_message(f"Temperature error: {e}")
 
+    def on_reset(self) -> None:
+        """Handle reset button click - clear all data."""
+        if self._updating:
+            return
+
+        # Confirmation dialog
+        reply = self._view.question_dialog(
+            "Confirm Reset Data",
+            "Are you sure you want to reset all data? This action cannot be undone.",
+        )
+
+        if reply:
+            self._model.reset()
+            self._refresh_view()
+            self._view.log_message("All data reset.")
+
+    def on_generate_report(self) -> None:
+        """Generate a PDF report when 'Generate Report' button is clicked.
+
+        Passes data to model for report generation.
+
+        Raises:
+            ValueError: If report generation fails due to invalid state.
+            Exception: For any other unexpected errors.
+
+        """
+        if self._updating:
+            return
+        data_dict = self._model.to_dict()
+        time_series = data_dict["time_series"]
+        temperature_c = data_dict["temperature_c"]
+        metadata = data_dict["metadata"]
+        test_data = data_dict["test_table"]
+
+        output_path = DEFAULT_EXPORT_DIR
+
+        report_generator = GenerateReport(
+            time_series=time_series,
+            metadata=metadata,
+            test_data=test_data,
+            temperature=temperature_c,
+            output_dir=output_path,
+        )
+        try:
+            report_generator.generate_report()
+            self._view.log_message(
+                "✅ Report generated successfully. "
+                f"The report was saved to {output_path}"
+            )
+        except (ValueError, OSError) as e:
+            self._view.log_message(f"❌ Report generation error: {e}")
+            self._view.critical_dialog(
+                title="Report Generation Error",
+                text=f"Failed to generate report: {e}"
+                "\nConfirm the following before proceeding:"
+                "\n- Ensure you have write permissions for the output directory."
+                "\n- Close any open instances of the report file if it already exists."
+                "\n- Check if the output directory is valid and accessible.",
+            )
+        except Exception as e:
+            self._view.log_message(
+                f"❌ Unexpected error during report generation: {e}"
+            )
+            self._view.critical_dialog(
+                title="Report Generation Error",
+                text=f"An unexpected error occurred: {e}",
+            )
+
     def _on_import_csv(self) -> None:
         """Handle import CSV button click.
 
@@ -170,7 +244,8 @@ class DegasserPresenter:
         """
         if self._updating:
             return
-        path, _ = PySide6.QtWidgets.QFileDialog.getOpenFileName(
+        # TODO: remove pyside dependency
+        path, _ = QFileDialog.getOpenFileName(
             self._view,
             "Import Degasser Data",
             "",
@@ -200,7 +275,8 @@ class DegasserPresenter:
         if self._updating:
             return
         timestamp = datetime.now().strftime("%y%m%d-%H%M%")
-        path, _ = PySide6.QtWidgets.QFileDialog.getSaveFileName(
+        # TODO: remove pyside dependency
+        path, _ = QFileDialog.getSaveFileName(
             self._view,
             "Export Degasser Data",
             f"degasser_data_{timestamp}.csv",  # Filename + time stamp
@@ -259,79 +335,9 @@ class DegasserPresenter:
             time_series_table_rows=time_series_rows,
         )
 
-    def on_reset(self) -> None:
-        """Handle reset button click - clear all data."""
-        if self._updating:
-            return
-        # Confirmation dialog
-        reply = PySide6.QtWidgets.QMessageBox.question(
-            self._view,
-            "Confirm Reset Data",
-            "Are you sure you want to reset all data? This action cannot be undone.",
-            PySide6.QtWidgets.QMessageBox.StandardButton.Yes
-            | PySide6.QtWidgets.QMessageBox.StandardButton.No,
-        )
-
-        if reply == PySide6.QtWidgets.QMessageBox.StandardButton.Yes:
-            self._model.reset()
-            self._refresh_view()
-            self._view.log_message("All data reset.")
-
-    def on_generate_report(self) -> None:
-        """Generate a PDF report when 'Generate Report' button is clicked.
-
-        Passes data to model for report generation.
-
-        Raises:
-            ValueError: If report generation fails due to invalid state.
-            Exception: For any other unexpected errors.
-
-        """
-        if self._updating:
-            return
-        data_dict = self._model.to_dict()
-        time_series = data_dict["time_series"]
-        temperature_c = data_dict["temperature_c"]
-        metadata = data_dict["metadata"]
-        test_data = data_dict["test_table"]
-
-        output_path = DEFAULT_EXPORT_DIR
-
-        report_generator = GenerateReport(
-            time_series=time_series,
-            metadata=metadata,
-            test_data=test_data,
-            temperature=temperature_c,
-            output_dir=output_path,
-        )
-        try:
-            report_generator.generate_report()
-            self._view.log_message(
-                "✅ Report generated successfully. "
-                f"The report was saved to {output_path}"
-            )
-        except (ValueError, OSError) as e:
-            self._view.log_message(f"❌ Report generation error: {e}")
-            PySide6.QtWidgets.QMessageBox.critical(
-                self._view,
-                "Report Generation Error",
-                f"Failed to generate report: {e}"
-                "\nConfirm the following before proceeding:"
-                "\n- Ensure you have write permissions for the output directory."
-                "\n- Close any open instances of the report file if it already exists."
-                "\n- Check if the output directory is valid and accessible.",
-            )
-        except Exception as e:
-            self._view.log_message(f"❌ Unexpected error during report generation: {e}")
-            PySide6.QtWidgets.QMessageBox.critical(
-                self._view,
-                "Report Generation Error",
-                f"An unexpected error occurred: {e}",
-            )
-
     def shutdown(self) -> None:
         """Cleanup hooks/resources."""
 
     # Future example:
-    def load_data(self, source: None) -> None:
+    def load_data(self) -> None:
         """Load data (stub)."""

@@ -122,10 +122,10 @@ class HydrophoneGraph:
         low_peaks = peaks[f[peaks] <= freq_cut]
         # if low_peaks.size:
         #     # pick the one with the largest amplitude
-        #     peak_idx = low_peaks[np.argmax(y[low_peaks])]  # noqa: ERA001
-        # else:  # noqa: ERA001
+        #     peak_idx = low_peaks[np.argmax(y[low_peaks])]
+        # else:
         #     # fallback to the very first peak
-        #     peak_idx = peaks[0]  # noqa: ERA001
+        #     peak_idx = peaks[0]
 
         peak_idx = low_peaks[np.argmax(y[low_peaks])] if low_peaks.size else peaks[0]
 
@@ -169,7 +169,9 @@ class HydrophoneGraph:
                 pd.DataFrame({"freq": f, "sens": s}) for f, s, *rest in self.raw_data
             ]
             big = pd.concat(dfs, ignore_index=True).sort_values("freq")
-            self.bandwidth = self._compute_bandwidth(big["freq"], big["sens"])
+            self.bandwidth = self._compute_bandwidth(
+                big["freq"].to_numpy(), big["sens"].to_numpy()
+            )
         elif mode == "overlaid":
             self._plot_overlaid()
             # self.bandwidths already set
@@ -192,7 +194,7 @@ class HydrophoneGraph:
         self.ax.xaxis.set_major_locator(MultipleLocator(0.2))
         self.ax.xaxis.set_major_formatter(ScalarFormatter())
         self.ax.ticklabel_format(style="plain", axis="x")
-        self.ax.grid(True, color="#dddddd")
+        self.ax.grid(visible=True, color="#dddddd")
 
     def _finalize_plot(self, title: str) -> None:
         self.ax.set_title(title)

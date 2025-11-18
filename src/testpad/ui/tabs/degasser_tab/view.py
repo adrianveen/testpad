@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QStyledItemDelegate,
     QTableWidget,
@@ -53,6 +54,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TIME_SERIES_ROWS,
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
+    TIME_SERIES_HEADERS,
 )
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
@@ -389,6 +391,46 @@ class DegasserTab(BaseTab):
         except ValueError:
             return None
 
+    def question_dialog(self, title: str, text: str) -> bool:
+        """Show a question dialog and return the result."""
+        reply = QMessageBox.question(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
+    def info_dialog(self, title: str, text: str) -> bool:
+        """Show an info dialog."""
+        reply = QMessageBox.information(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
+
+    def warning_dialog(self, title: str, text: str) -> bool:
+        """Show a warning dialog."""
+        reply = QMessageBox.warning(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
+
+    def critical_dialog(self, title: str, text: str) -> bool:
+        """Show a critical dialog."""
+        reply = QMessageBox.critical(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
+
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
         widget = QWidget()
@@ -548,9 +590,7 @@ class DegasserTab(BaseTab):
         self._time_series_widget.setItemDelegateForColumn(
             1, ValidatedFloatDelegate(self._time_series_widget)
         )
-        self._time_series_widget.setHorizontalHeaderLabels(
-            ["Time (minutes)", "Dissolved O2 (mg/L)"]
-        )
+        self._time_series_widget.setHorizontalHeaderLabels(TIME_SERIES_HEADERS)
         self._time_series_widget.verticalHeader().setVisible(True)  # Push to left
 
         for row in range(NUM_TIME_SERIES_ROWS):

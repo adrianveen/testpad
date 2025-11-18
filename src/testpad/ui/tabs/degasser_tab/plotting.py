@@ -4,6 +4,7 @@ This module provides pure functions for creating matplotlib figures without
 any Qt dependencies, following separation of concerns principles.
 """
 
+import contextlib
 import os
 import tempfile
 from collections.abc import Mapping, Sequence
@@ -23,6 +24,7 @@ from testpad.config.plotting import (
     GRID_LINE_WIDTH,
     PRIMARY_COLOR,
 )
+from testpad.ui.tabs.degasser_tab.config import TIME_SERIES_HEADERS
 
 
 def make_time_series_figure(
@@ -34,7 +36,8 @@ def make_time_series_figure(
     """Create a matplotlib figure for time series data.
 
     Args:
-        data: Either a dict {minute: oxygen_level} or list of (minute, oxygen_level) tuples
+        data: Either a dict {minute: oxygen_level} or list of
+            (minute, oxygen_level) tuples
         temperature_c: Optional temperature in Celsius for title
         size_inches: Figure size in inches (width, height)
         dpi: Dots per inch for the figure
@@ -76,10 +79,8 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
         return temp_path
     except Exception:
         # Clean up on error
-        try:
+        with contextlib.suppress(OSError):
             Path(temp_path).unlink()
-        except OSError:
-            pass
         raise
 
 
@@ -105,7 +106,8 @@ def plot_time_series_on_axis(
 
     Args:
         ax: Matplotlib Axes object to plot on
-        data: Either a dict {minute: oxygen_level} or list of (minute, oxygen_level) tuples
+        data: Either a dict {minute: oxygen_level} or list of
+            (minute, oxygen_level) tuples
         temperature_c: Optional temperature in Celsius for title
 
     """
@@ -114,7 +116,7 @@ def plot_time_series_on_axis(
 
     # Plot data if available
     if pairs:
-        time_min, ox_level = zip(*pairs)
+        time_min, ox_level = zip(*pairs, strict=False)
         ax.plot(
             time_min,
             ox_level,
@@ -136,8 +138,8 @@ def plot_time_series_on_axis(
         ax.set_title("Dissolved Oxygen vs Time")
 
     # Set labels
-    ax.set_xlabel("Time (minutes)")
-    ax.set_ylabel("Dissolved O2 (mg/L)")
+    ax.set_xlabel(TIME_SERIES_HEADERS[0])
+    ax.set_ylabel(TIME_SERIES_HEADERS[1])
 
     # Add grid
     ax.grid(

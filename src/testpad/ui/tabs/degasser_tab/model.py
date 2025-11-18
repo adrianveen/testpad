@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import csv
 from dataclasses import asdict, dataclass
-from datetime import date
 from pathlib import Path
-from typing import Any, final
+from typing import TYPE_CHECKING, Any, final
 
 from .config import (
     DEFAULT_TEST_DATE,
@@ -12,6 +11,9 @@ from .config import (
     MAX_MINUTE,
     MIN_MINUTE,
 )
+
+if TYPE_CHECKING:
+    from datetime import date
 
 
 # ------------------ Data Structures ------------------
@@ -75,8 +77,8 @@ class DegasserModel:
         """Initialize a new DegasserModel instance.
 
         The model is initialized with an empty time series and a default set of test
-        result rows. The temperature is set to None, and the metadata is initialized with
-        the default test date.
+        result rows. The temperature is set to None, and the metadata is initialized
+        with the default test date.
 
         Returns:
             None
@@ -104,7 +106,7 @@ class DegasserModel:
 
     @staticmethod
     def _coerce_minute(raw: str) -> int:
-        """Parse a raw time value into a valid minute slot, raising if coercion fails."""
+        """Parse a raw time value into a valid minute slot, raise if coercion fails."""
         try:
             m = int(float(raw))
         except Exception as e:
@@ -115,7 +117,7 @@ class DegasserModel:
 
     @staticmethod
     def _validate_oxygen(value: float | str) -> float:
-        """Normalize an oxygen reading to float and enforce the > 0 mg/L requirement."""
+        """Normalize oxygen readings to float and enforce the > 0 mg/L requirement."""
         try:
             v = float(value)
         except Exception as e:
@@ -156,7 +158,7 @@ class DegasserModel:
         return sorted(self._oxygen_data.items())
 
     def build_time_series_rows(self) -> list[tuple[int, float | None]]:
-        """Generate an 11-row minute grid with gaps filled by ``None`` for the UI table."""
+        """Return the time series data as a list of rows for the UI table."""
         return [
             (m, self._oxygen_data.get(m)) for m in range(MIN_MINUTE, MAX_MINUTE + 1)
         ]
@@ -292,8 +294,8 @@ class DegasserModel:
 
         Args:
             path (str): The file path to write the CSV data to.
-            include_temperature (bool): If True, includes the temperature column if set.
-                Defaults to True.
+            include_temperature (bool): If True, includes the temperature
+                column if set. Defaults to True.
 
         """
         with Path(path).open("w", newline="", encoding="utf-8") as f:

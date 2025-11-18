@@ -16,7 +16,8 @@ from testpad.core.transducer.calibration_resources import (
 )
 
 """
-A script to write voltage sweep txts and to generate axial and lateral field/line plots as SVGs.
+A script to write voltage sweep txts and to generate axial and lateral
+field/line plots as SVGs.
 
 - Cheap construction; heavy work done in run()
 - Strong typing via a small config dataclass
@@ -89,7 +90,7 @@ def _parse_transducer_and_freq(
 
 
 class _CombinedCalibrationImpl:
-    """Internal implementation that generates sweep/field/line graphs from calibration files.
+    """Generates sweep/field/line graphs from calibration files.
 
     Construction is cheap; call run() to perform the work.
     getGraphs() lazily calls run() if needed, preserving legacy call sites
@@ -117,6 +118,12 @@ class _CombinedCalibrationImpl:
 
         plt.close("all")  # closes previous graphs
         self._log("\n*******************GENERATING GRAPHS***********************\n")
+
+        # Ensure textbox is available for required function calls
+        if self.textbox is None:
+            msg = "Textbox required for graph generation"
+            raise ValueError(msg)
+        textbox = self.textbox  # Create non-optional reference
 
         cfg = self.config
 
@@ -196,9 +203,10 @@ class _CombinedCalibrationImpl:
                 raise NameError(msg)
         except NameError as e:
             self._log(
-                f"\nNameError: {e}\nOops! One or more of the scan files does not exist. \
-                  \nDid you input the right folder?\nAre there scans missing?\n\
-                  Did you select the correct checkboxes?\n"
+                f"\nNameError: {e}\n"
+                "Oops! One or more of the scan files does not exist.\n"
+                "Did you input the right folder?\nAre there scans missing?\n"
+                "Did you select the correct checkboxes?\n"
             )
             self._ran = True
             return
@@ -210,7 +218,7 @@ class _CombinedCalibrationImpl:
             while True:
                 try:
                     full_filename1 = save_dir / f"files_used_{counter}.txt"
-                    with open(full_filename1, "x") as f:
+                    with full_filename1.open("x") as f:
                         self._log(f"\nSaving files used to {full_filename1}...")
                         f.writelines(str(file) + "\n" for file in files_list)
                     break
@@ -238,7 +246,7 @@ class _CombinedCalibrationImpl:
                 freq_label if freq_label else "",
                 cfg.save,
                 str(cfg.eb50_file) if cfg.eb50_file else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[0] = sweep_graph
 
@@ -261,7 +269,7 @@ class _CombinedCalibrationImpl:
                 cfg.interp_step,
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[1] = ax_pressure_field_graph
             # Intensity field
@@ -490,7 +498,8 @@ class _CombinedCalibrationImpl:
                 )
             else:
                 self._log(
-                    "Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty."
+                    "Couldn't output FWHMX for x-axis and z-axis. "
+                    "Your data may be faulty."
                 )
 
             offsets_str = [f"{i:0.2f}" for i in offsets]
@@ -498,7 +507,7 @@ class _CombinedCalibrationImpl:
 
         self._ran = True
 
-    def get_graphs(self):
+    def get_graphs(self) -> list[object | None]:
         # Preserve legacy behavior: compute on first request
         """Return the list of graphs computed by the run() method.
 
@@ -517,7 +526,7 @@ class _CombinedCalibrationImpl:
 
 # Backwards-compatible wrapper for existing call sites
 class CombinedCalibration:
-    """Public API that accepts either CombinedCalibrationConfig or legacy list signature.
+    """Public API that accepts CombinedCalibrationConfig or legacy list signature.
 
     Supports both modern and legacy usage:
     - Modern: CombinedCalibration(config_obj, textbox).get_graphs()
@@ -570,7 +579,7 @@ class CombinedCalibration:
 
         self._impl = _CombinedCalibrationImpl(cfg, textbox)
 
-    def get_graphs(self):
+    def get_graphs(self) -> list[object | None]:
         """Return the list of graphs computed by the run() method."""
         return self._impl.get_graphs()
 

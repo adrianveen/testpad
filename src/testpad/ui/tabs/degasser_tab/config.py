@@ -28,18 +28,18 @@ METADATA_FIELDS = {
 DEFAULT_TEST_DESCRIPTIONS = [
     "Vacuum Pressure:",
     "Flow Rate:",
-    "Dissolved Oxygen level test:",
-    "Dissolved Oxygen re-circulation test (1000 mL):",
+    "Dissolved Oxygen Level Test:",
+    "Dissolved Oxygen Re-circulation Test (1000 mL):",
     "   Starting DO Level:",
-    "   Time to read 4 mg/L (min):",
-    "   Time to reach 2 mg/L (min):",
+    "   Time to Reach 4 mg/L (min):",
+    "   Time to Reach 2 mg/L (min):",
 ]
 
 # === DS-50 Specification Ranges ===
 # Default specification ranges for each test
 # Format: (min, max) where None means no limit
 DS50_SPEC_RANGES = {
-    "vacuum_pressure": (-22, None),
+    "vacuum_pressure": (None, -22),
     "flow_rate": (300, 700),
     "do_level": (None, 3.0),
     "recirculation_start": (7.0, None),
@@ -98,4 +98,5 @@ TEST_TABLE_HEADERS = [
     "Maximum Spec",
     "Data Measured",
 ]
+TIME_SERIES_HEADERS = ["Time (minutes)", "Dissolvea Oxygen (mg/L)"]
 DEFAULT_TEST_DATE = default_date

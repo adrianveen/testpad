@@ -1,6 +1,6 @@
 """Script for generating radiation force balance figures."""
 
-import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,9 +17,9 @@ class CreateRFBGraph:
     def __init__(
         self,
         filenames: list,
-        save_folder: str = None,
+        save_folder: str = "",
         save: bool = False,
-        textbox: QTextBrowser = None,
+        textbox: QTextBrowser | None = None,
     ) -> None:
         plt.close("all")
         self.filenames = filenames
@@ -31,14 +31,19 @@ class CreateRFBGraph:
         self.data_mtx = np.zeros(
             (len(self.filenames), 4)
         )  # np array where all the average data will be stored
-        self.textbox.append("********************GENERATING GRAPHS********************")
+        self._log("********************GENERATING GRAPHS********************")
         self.extractInfoAndGraph()
 
-    def extractInfoAndGraph(self):
+    def _log(self, message: str) -> None:
+        """Log a message to the textbox if it exists."""
+        if self.textbox is not None:
+            self.textbox.append(message)
+
+    def extractInfoAndGraph(self) -> None:
         # open the filename, read the lines
         # print(self.filenames)
         for filename in self.filenames:
-            with open(filename) as f:
+            with Path(filename).open() as f:
                 self.lines = f.readlines()
 
             # get the indices of the data summary heading and the header row
@@ -51,12 +56,12 @@ class CreateRFBGraph:
                         Balance reading (g),Acoustic power (W)\n"
                 )  # header row to start finding data
             except ValueError as e:
-                self.textbox.append("\nValueError: " + str(e))
-                self.textbox.append(
-                    "Did you select the correct file? The necessary raw data \
-                        values were not found.\n"
+                self._log("\nValueError: " + str(e))
+                self._log(
+                    "Did you select the correct file? The necessary raw data "
+                    "values were not found.\n"
                 )
-                return ()
+                return
             self._get_data_summary()
             self.averages_mtx(self.filenames.index(filename))
             self._get_raw_data()
@@ -70,16 +75,22 @@ class CreateRFBGraph:
             self.data_mtx[:, 3]
         )  # average of the average efficiencies
         std_average_efficiency = np.std(self.data_mtx[:, 3])
-        self.textbox.append(
-            f"\nAverage of all average efficiencies: {average_average_efficiency:.1f} ± {std_average_efficiency:.1f}%"
+        self._log(
+            f"\nAverage of all average efficiencies: "
+            f"{average_average_efficiency:.1f} ± {std_average_efficiency:.1f}%"
         )
 
         # save the array of average information to a txt
         if self.save:
-            self.textbox.append("[+] creating txt file...")
-            header = f"Average of average efficiences (%): {average_average_efficiency:.1f} ± {std_average_efficiency:.1f}\n\nAverage forward power (W), Average reflected power (W), Average acoustic power (W), Average efficiency (%)"
-            filename = os.path.join(self.save_folder, "average_data.txt")
-            filename_table = os.path.join(self.save_folder, "average_data_TABLE.txt")
+            self._log("[+] creating txt file...")
+            header = (
+                f"Average of average efficiences (%): "
+                f"{average_average_efficiency:.1f} ± {std_average_efficiency:.1f}\n\n"
+                f"Average forward power (W), Average reflected power (W), "
+                f"Average acoustic power (W), Average efficiency (%)"
+            )
+            filename = Path(self.save_folder) / "average_data.txt"
+            filename_table = Path(self.save_folder) / "average_data_TABLE.txt"
             table_for_report = np.delete(self.data_mtx, 1, 1)
             np.savetxt(
                 filename,
@@ -90,14 +101,16 @@ class CreateRFBGraph:
                 comments="",
             )
             np.savetxt(
-                filename_table, table_for_report, fmt="%.1f", delimiter=",", comments=""
+                filename_table,
+                table_for_report,
+                fmt="%.1f",
+                delimiter=",",
+                comments="",
             )
-            self.textbox.append("[+] finished creating txt")
+            self._log("[+] finished creating txt")
 
-        self.textbox.append(
-            "********************FINISHED EXECUTING*******************\n"
-        )
-        return None
+        self._log("********************FINISHED EXECUTING*******************\n")
+        return
 
     # gets the raw data lines
     def _get_raw_data(self) -> None:
@@ -127,9 +140,9 @@ class CreateRFBGraph:
     def _get_data_summary(self) -> None:
         # DATA SUMMARY
         self.data_summary = {}
-        for line in self.lines[
-            (self.heading + 1) : (self.header_row - 2)
-        ]:  # goes to header_row - 2 because of the line of whitespace between DATA SUMMARY and RAW DATA
+        # goes to header_row - 2 because of the line of whitespace
+        # between DATA SUMMARY and RAW DATA
+        for line in self.lines[(self.heading + 1) : (self.header_row - 2)]:
             line = line.split(",")
             # print(line)
             self.data_summary[line[0]] = float(line[1])
@@ -141,7 +154,7 @@ class CreateRFBGraph:
         self.average_efficiency = self.data_summary["Average efficiency (%)"]
 
     # creates an array of all the average values from the data summary
-    def averages_mtx(self, rownum: int):
+    def averages_mtx(self, rownum: int) -> None:
         # store the data summary in matrix
         # print(rownum)
 
@@ -152,7 +165,8 @@ class CreateRFBGraph:
 
         # print(self.data_mtx)
 
-    # used to find the nearest number in an array (NOT CURRENTLY BEING USED ANY LONGER)
+    # used to find the nearest number in an array
+    # (NOT CURRENTLY BEING USED ANY LONGER)
     # def find_nearest(self, array, value):
     #     array = np.asarray(array)
     #     idx = (np.abs(array - value)).argmin()
@@ -167,13 +181,15 @@ class CreateRFBGraph:
 
         # find nearest power, use as graph heading
         # list_of_power = [0.5, 1.0, 1.5, 2.0, 2.5]
-        # graph_heading = str(self.find_nearest(list_of_power, max(self.fwd_pwr)))+"W" # to find the nearest power heading for the graph
+        # graph_heading = str(
+        #     self.find_nearest(list_of_power, max(self.fwd_pwr))
+        # ) + "W"  # to find the nearest power heading for the graph
 
         # use max power rounded to 2 dp as graph heading
         graph_heading = f"{max(self.fwd_pwr):.2f}W"  # to find the heading for the graph
         self.ax.set_title("Maximum forward power: " + graph_heading)
 
-        self.textbox.append(f"[+] creating {graph_heading} graph...")
+        self._log(f"[+] creating {graph_heading} graph...")
 
         color = "black"
         self.ax.plot(
@@ -201,9 +217,9 @@ class CreateRFBGraph:
         ax2.tick_params(axis="y", labelcolor=color)
         average_efficiency = self.data_summary["Average efficiency (%)"] / 100
         # print(average_efficiency)
-        ax2.set_ylim(
-            None, max(self.bal_read) / average_efficiency
-        )  # setting the peak of the balance reading graphs to be at the average efficiency level
+        # setting the peak of the balance reading graphs to be at the
+        # average efficiency level
+        ax2.set_ylim(None, max(self.bal_read) / average_efficiency)
         # set bounds to align grid with axis 1
         first_bound = ax2.get_ybound()[0]
         second_bound = ax2.get_ybound()[1]
@@ -218,19 +234,17 @@ class CreateRFBGraph:
 
         # print average efficiency per graph
         printed_average_efficiency = self.data_summary["Average efficiency (%)"]
-        self.textbox.append(
-            f"[+] average efficiency: {printed_average_efficiency:.1f}%"
-        )
+        self._log(f"[+] average efficiency: {printed_average_efficiency:.1f}%")
         # print(average_efficiency)
-        # ax2.set_ylim(None, max(self.bal_read)/average_efficiency) # setting the peak of the acoustic power graphs to be at the average efficiency level
+        # setting the peak of the acoustic power graphs to be at the
+        # average efficiency level
+        # ax2.set_ylim(None, max(self.bal_read)/average_efficiency)
 
         self.fig.tight_layout()
 
         if self.save:
-            self.textbox.append("[+] saving graphs...")
-            filename = os.path.join(
-                self.save_folder, "rfb_measurements_" + graph_heading + ".svg"
-            )
+            self._log("[+] saving graphs...")
+            filename = Path(self.save_folder) / f"rfb_measurements_{graph_heading}.svg"
             self.fig.savefig(
                 filename,
                 format="svg",
@@ -239,7 +253,7 @@ class CreateRFBGraph:
                 transparent=True,
             )
 
-        self.textbox.append(f"[+] finished making {graph_heading} graph")
+        self._log(f"[+] finished making {graph_heading} graph")
         self.fig.set_canvas(canvas)
 
         self.graphs_list.append([canvas, graph_heading])

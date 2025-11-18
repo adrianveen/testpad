@@ -9,11 +9,11 @@ from PySide6.QtWidgets import QMessageBox, QTextBrowser
 from testpad.utils.vpp_stats import check_new_vpp, classify_vpp
 
 
-class sweep_graph:
+class SweepGraph:
     def __init__(
         self,
-        data_mtx,
-        transducer,
+        data_mtx: np.ndarray,
+        transducer: str,
         freq: str,
         save_folder: str,
         markersize: int,
@@ -77,13 +77,14 @@ class sweep_graph:
                 freq_mhz_val = float(self.freq.partition(" ")[0])
             else:
                 freq_mhz_val = float(self.freq)
-        except Exception:
+        except (ValueError, TypeError):
             freq_mhz_val = None
         freq_label = (
             f"{freq_mhz_val:.3f} MHz" if freq_mhz_val is not None else str(self.freq)
         )
 
         # Calculate and show voltage at 1 MPa
+        voltage_at_1mpa = 0.0  # Initialize to avoid unbound variable
         if self.m != 0:
             voltage_at_1mpa = 1 / self.m
             self._show_feedback(f"[+] Voltage at 1 MPa: {voltage_at_1mpa:.2f} Vpp")
@@ -96,8 +97,8 @@ class sweep_graph:
         # is_ok_std = v_range_min <= voltage_at_1mpa <= v_range_max
 
         ####
-        # Hampel median/MAD outlier screen: compute robust z=|x-median|/MAD* and flag OK (<=3.0)
-        # SUSPECT (3.0-4.5), OUTLIER (>4.5)
+        # Hampel median/MAD outlier screen: compute robust z=|x-median|/MAD*
+        # and flag OK (<=3.0), SUSPECT (3.0-4.5), OUTLIER (>4.5)
         # Thresholds in Vpp for 1.65 MHz transducer:
         #   OK band: ± (3 * 0.7413) = ± 2.2239 → 11.4761 to 15.9238 Vpp
         #   SUSPECT band: 11.4761 > value ≥ 10.3642 OR 15.9239 ≤ value < 17.0359 Vpp

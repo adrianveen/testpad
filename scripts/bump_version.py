@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd: str, check=True) -> str:
+def run_command(cmd: str, check: bool = True) -> str:
     """Run shell command and return output."""
     result = subprocess.run(
         cmd, check=False, shell=True, capture_output=True, text=True
@@ -68,15 +68,17 @@ def read_version() -> str:
 
 def parse_version(version_string: str) -> tuple[int, ...]:
     """Parse version string into major, minor, patch integers."""
+    parts = version_string.split(".")
+    if len(parts) != 3:
+        print(f"❌ ERROR: Invalid version format '{version_string}'")
+        print("   Expected format: major.minor.patch (e.g., 1.2.3)")
+        sys.exit(1)
+
     try:
-        parts = version_string.split(".")
-        if len(parts) != 3:
-            msg = "Version must have exactly 3 parts"
-            raise ValueError(msg)
         return tuple(map(int, parts))
     except ValueError:
         print(f"❌ ERROR: Invalid version format '{version_string}'")
-        print("   Expected format: major.minor.patch (e.g., 1.2.3)")
+        print("   Version parts must be integers (e.g., 1.2.3, not 1.2.a)")
         sys.exit(1)
 
 
