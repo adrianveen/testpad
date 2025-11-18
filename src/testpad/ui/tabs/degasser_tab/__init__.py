@@ -5,30 +5,36 @@ tab registry. Importing the package re-exports the QWidget subclass so the
 lazy-loader can resolve it without knowing the internal layout.
 """
 
+from __future__ import annotations
+
 import traceback
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from testpad.config import plotting
 from testpad.config.defaults import DEFAULT_FUS_LOGO_PATH
 
 from .model import DegasserModel
-from .presenter import DegasserPresenter
-from .view import DegasserTab
+
+# Defer Qt imports to avoid issues during testing
+if TYPE_CHECKING:
+    from .presenter import DegasserPresenter
+    from .view import DegasserTab
 
 
 def create_degasser_tab(parent=None) -> DegasserTab:
     """Create factory function initializing Degasser Tab."""
-    print("[degasser_tab] Creating degasser tab instance...")
+    # Import here to avoid Qt dependencies during module import (for testing)
+    from .presenter import DegasserPresenter
+    from .view import DegasserTab
 
     # Debug: Check if resources are accessible
     try:
         logo_exists = Path(DEFAULT_FUS_LOGO_PATH).exists()
         # TODO: Convert to logging
-        print(f"[degasser_tab] Logo file check: {DEFAULT_FUS_LOGO_PATH}")
-        print(f"[degasser_tab]   Exists: {logo_exists}")
         if not logo_exists:
             print("[degasser_tab]   ⚠️  Logo file not found at expected path")
-    except Exception as e:
+    except OSError as e:
         print(f"[degasser_tab]   ⚠️  Could not check logo: {e}")
 
     try:
@@ -39,12 +45,14 @@ def create_degasser_tab(parent=None) -> DegasserTab:
         view.presenter = presenter
         presenter.initialize()
 
-        return view
     except Exception as e:
         print(f"[degasser_tab] ❌ ERROR creating tab: {e}")
 
         traceback.print_exc()
         raise
+
+    else:
+        return view
 
 
 __all__ = ["create_degasser_tab", "plotting"]

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import csv
 from dataclasses import asdict, dataclass
-from datetime import date
 from pathlib import Path
-from typing import Any, final
+from typing import TYPE_CHECKING, Any, final
 
 from .config import (
     DEFAULT_TEST_DATE,
@@ -12,6 +11,9 @@ from .config import (
     MAX_MINUTE,
     MIN_MINUTE,
 )
+
+if TYPE_CHECKING:
+    from datetime import date
 
 
 # ------------------ Data Structures ------------------
