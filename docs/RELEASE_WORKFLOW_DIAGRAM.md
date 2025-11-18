@@ -53,7 +53,7 @@ dev ──> Create feature/new-feature ──> Make changes ──> Push branch
 │                    2. RELEASE PREPARATION                       │
 └─────────────────────────────────────────────────────────────────┘
 
-dev ──> Create release/v1.11.1 ──> version_bump.py ──> Create tag v1.11.1
+dev ──> Create release/v1.11.1 ──> bump_version.py ──> Create tag v1.11.1
 
 
 ┌─────────────────────────────────────────────────────────────────┐

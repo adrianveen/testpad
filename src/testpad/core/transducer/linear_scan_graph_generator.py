@@ -8,19 +8,15 @@ from testpad.core.transducer.calibration_resources import (
 )
 
 """
-A script to create linear graphs for analysis during transducer calibration. 
+A script to create linear graphs for analysis during transducer calibration.
 """
 
 
 class LinearScan:
-    def __init__(self, variables_dict: list, textbox: QTextBrowser):
+    def __init__(self, variables_dict: list, textbox: QTextBrowser) -> None:
         plt.close("all")  # closes previous graphs
 
         self.graphs_list = [None] * 3
-
-        textbox.append(
-            "\n*******************GENERATING GRAPHS***********************\n"
-        )  # divider
 
         # assigns dictionary values to variables (probably wildly inefficient, might need reworking)
         # files, save_folder, x_line, y_line, z_line, save = map(variables_dict.get, ('Data Files', 'Save Folder', 'Print x line graph?', 'Print y line graph?', 'Print z line graph?', 'Save file?'))
@@ -51,8 +47,8 @@ class LinearScan:
         # # Toggle the save (if True, graphs are saved, if False, graphs aren't saved)
         # save = False
 
-        """ 
-        FILE STUFF 
+        """
+        FILE STUFF
         """
         # print(variables_dict)
         # files_list = [f for f in os.listdir(folder) if f.endswith('.hdf5')] # include only hdf5 files
@@ -63,7 +59,7 @@ class LinearScan:
         # print(files_list)
 
         """
-        AUTOMATIC FILE DETECTION FOR LOOP 
+        AUTOMATIC FILE DETECTION FOR LOOP
         """
         for i in range(len(files_list)):
             f = files_list[i]
@@ -86,6 +82,9 @@ class LinearScan:
         # save_folder = r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\report_PYTHON"
 
         # Do the files exist? If not, exit
+
+        # Do the files exist? If not, exit
+        trans_freq_filename = None
         try:
             if x_line:
                 textbox.append("x linear: " + x_line_scan)
@@ -98,15 +97,28 @@ class LinearScan:
                 trans_freq_filename = z_line_scan
         except NameError:
             textbox.append(
-                "\nOops! One or more of the scan files does not exist. \
-                    Did you input the right folder? Are there scans missing?\
-                         Have you toggled the graphs correctly?\n"
+                "\nOops! One or more of the scan files does not exist. "
+                "Did you input the right folder? Are there scans missing? "
+                "Have you toggled the graphs correctly?\n"
             )
+            return
+
+        if not trans_freq_filename:
+            textbox.append(
+                "\nNo scan file was selected. "
+                "Please choose a folder and toggle at least one linear scan.\n"
+            )
+            return
+
             # print("Missing file:", e)
             # sys.exit(1)
 
+        textbox.append(
+            "\n*******************GENERATING GRAPHS***********************\n"
+        )  # divider
+
         """
-        TRANSDUCER AND FREQUENCY DETAILS 
+        TRANSDUCER AND FREQUENCY DETAILS
         """
 
         details = (trans_freq_filename.split("/")[-1]).split("_")
