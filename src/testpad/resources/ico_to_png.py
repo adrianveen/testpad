@@ -1,4 +1,5 @@
 from PIL import Image
+
 """
 This script converts an .ico file to a .png file using the Python Imaging Library (PIL).
 The script performs the following steps:
@@ -16,12 +17,12 @@ Usage:
 """
 
 # Path to the .ico file
-ico_path = r'.\fus_icon_transparent.ico'
+ico_path = r".\fus_icon_transparent.ico"
 
 # Path to save the .png file
-png_path = r'.\fus_icon_transparent.png'
+png_path = r".\fus_icon_transparent.png"
 
 # Open the .ico file
 with Image.open(ico_path) as img:
     # Save as .png file with high resolution
-    img.save(png_path, format='PNG')
+    img.save(png_path, format="PNG")

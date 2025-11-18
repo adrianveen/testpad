@@ -6,15 +6,13 @@ between the Presenter and View layers.
 
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional
 
 from testpad.ui.tabs.degasser_tab.model import TestResultRow
 
 
 @dataclass(frozen=True)
 class DegasserViewState:
-    """
-    Immutable snapshot of all data to display in the degasser view.
+    """Immutable snapshot of all data to display in the degasser view.
 
     This class represents the complete UI state. The Presenter creates instances
     of this class from the Model, and the View renders them.
@@ -34,6 +32,6 @@ class DegasserViewState:
     test_rows: list[TestResultRow] = field(default_factory=list)
 
     # Time Series Table Data (we'll expand this in Phase 3)
-    time_series_table_rows: list[tuple[int, Optional[float]]] = field(
-        default_factory=list
+    time_series_table_rows: list[tuple[int, float | None]] = field(
+        default_factory=list,
     )

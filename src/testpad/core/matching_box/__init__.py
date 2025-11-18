@@ -1,1 +1,1 @@
-
+"""Matching box core module."""

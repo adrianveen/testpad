@@ -4,9 +4,11 @@ This module provides pure functions for creating matplotlib figures without
 any Qt dependencies, following separation of concerns principles.
 """
 
+import contextlib
 import os
 import tempfile
-from typing import Mapping, Optional, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from pathlib import Path
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -22,24 +24,27 @@ from testpad.config.plotting import (
     GRID_LINE_WIDTH,
     PRIMARY_COLOR,
 )
+from testpad.ui.tabs.degasser_tab.config import TIME_SERIES_HEADERS
 
 
 def make_time_series_figure(
-    data: Mapping[int, float] | Sequence[Tuple[int, float]],
-    temperature_c: Optional[float] = None,
+    data: Mapping[int, float] | Sequence[tuple[int, float]],
+    temperature_c: float | None = None,
     size_inches: tuple[float, float] = (5.0, 3.5),
     dpi: int = 300,
 ) -> Figure:
     """Create a matplotlib figure for time series data.
 
     Args:
-        data: Either a dict {minute: oxygen_level} or list of (minute, oxygen_level) tuples
+        data: Either a dict {minute: oxygen_level} or list of
+            (minute, oxygen_level) tuples
         temperature_c: Optional temperature in Celsius for title
         size_inches: Figure size in inches (width, height)
         dpi: Dots per inch for the figure
 
     Returns:
         matplotlib Figure object ready for saving or display
+
     """
     # Create figure
     fig = Figure(figsize=size_inches, tight_layout=True)
@@ -63,8 +68,8 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
 
     Returns:
         Path to the saved PNG file
-    """
 
+    """
     # Create temporary file
     temp_fd, temp_path = tempfile.mkstemp(suffix=".png", dir=output_dir)
     os.close(temp_fd)  # Close the file descriptor
@@ -74,15 +79,13 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
         return temp_path
     except Exception:
         # Clean up on error
-        try:
-            os.unlink(temp_path)
-        except OSError:
-            pass
+        with contextlib.suppress(OSError):
+            Path(temp_path).unlink()
         raise
 
 
 def normalize_time_series_data(
-    data: Mapping[int, float] | Sequence[Tuple[int, float]],
+    data: Mapping[int, float] | Sequence[tuple[int, float]],
 ) -> list[tuple[int, float]]:
     """Normalize data to sorted list of (minute, oxygen) tuples."""
     if hasattr(data, "items"):
@@ -92,8 +95,8 @@ def normalize_time_series_data(
 
 def plot_time_series_on_axis(
     ax: Axes,
-    data: Mapping[int, float] | Sequence[Tuple[int, float]],
-    temperature_c: Optional[float] = None,
+    data: Mapping[int, float] | Sequence[tuple[int, float]],
+    temperature_c: float | None = None,
 ) -> None:
     """Plot time series data on an existing matplotlib axis.
 
@@ -103,15 +106,17 @@ def plot_time_series_on_axis(
 
     Args:
         ax: Matplotlib Axes object to plot on
-        data: Either a dict {minute: oxygen_level} or list of (minute, oxygen_level) tuples
+        data: Either a dict {minute: oxygen_level} or list of
+            (minute, oxygen_level) tuples
         temperature_c: Optional temperature in Celsius for title
+
     """
     # Normalize data to list of tuples
     pairs = normalize_time_series_data(data)
 
     # Plot data if available
     if pairs:
-        time_min, ox_level = zip(*pairs)
+        time_min, ox_level = zip(*pairs, strict=False)
         ax.plot(
             time_min,
             ox_level,
@@ -133,8 +138,8 @@ def plot_time_series_on_axis(
         ax.set_title("Dissolved Oxygen vs Time")
 
     # Set labels
-    ax.set_xlabel("Time (minutes)")
-    ax.set_ylabel("Dissolved O2 (mg/L)")
+    ax.set_xlabel(TIME_SERIES_HEADERS[0])
+    ax.set_ylabel(TIME_SERIES_HEADERS[1])
 
     # Add grid
     ax.grid(

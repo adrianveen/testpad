@@ -1,5 +1,5 @@
-"""
-Runtime debugging hook for PyInstaller builds.
+"""Runtime debugging hook for PyInstaller builds.
+
 Logs import attempts and helps diagnose missing modules.
 """
 
@@ -10,14 +10,13 @@ import traceback
 _original_import = __builtins__.__import__
 
 
-def _debug_import(name, *args, **kwargs):
-    """Wrapper around import to log failed imports."""
+def _debug_import(name, *return moduleargs, **kwargs) -> object:
     try:
         module = _original_import(name, *args, **kwargs)
         # Uncomment to see ALL imports (very verbose):
         # if name.startswith('testpad'):
         #     print(f"[DEBUG] Successfully imported: {name}")
-        return module
+
     except ImportError as e:
         # Log failed imports that might be important
         if name.startswith("testpad") or name in ["fpdf", "matplotlib", "PySide6"]:
@@ -25,6 +24,8 @@ def _debug_import(name, *args, **kwargs):
             print(f"[DEBUG]    Error: {e}")
             traceback.print_exc()
         raise
+    else:
+        return module
 
 
 # Uncomment to enable import debugging (WARNING: very verbose)

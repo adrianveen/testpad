@@ -1,22 +1,23 @@
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from PySide6.QtWidgets import QTextBrowser
 
 from testpad.core.transducer.calibration_resources import (
     create_sweep_file,
     fetch_data,
     field_graph,
-    line_graph,
     fwhmx,
+    line_graph,
 )
 
 """
-A script to write voltage sweep txts and to generate axial and lateral field/line plots as SVGs.
+A script to write voltage sweep txts and to generate axial and lateral
+field/line plots as SVGs.
 
 - Cheap construction; heavy work done in run()
 - Strong typing via a small config dataclass
@@ -28,11 +29,12 @@ A script to write voltage sweep txts and to generate axial and lateral field/lin
 Legacy compatibility is preserved via a thin wrapper class 'combined_calibration'.
 """
 
+
 @dataclass
 class CombinedCalibrationConfig:
     files: Sequence[Path]
-    save_folder: Optional[Path]
-    eb50_file: Optional[Path]
+    save_folder: Path | None
+    eb50_file: Path | None
     sweep_data: bool
     axial_field: bool
     axial_line: bool
@@ -48,12 +50,14 @@ class CombinedCalibrationConfig:
     interp_step: float
 
 
-def _natural_key(p: Path) -> List[object]:
+def _natural_key(p: Path) -> list[object]:
     name = p.name if isinstance(p, Path) else str(p)
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", name)]
 
 
-def _parse_transducer_and_freq(filename: Path) -> Tuple[Optional[str], Optional[str], Optional[float]]:
+def _parse_transducer_and_freq(
+    filename: Path,
+) -> tuple[str | None, str | None, float | None]:
     """Return (transducer_label, freq_label_str, freq_mhz_float).
 
     - transducer_label like '320-T1500H750'
@@ -73,11 +77,11 @@ def _parse_transducer_and_freq(filename: Path) -> Tuple[Optional[str], Optional[
     freq_label = None
     freq_mhz = None
     if m_k:
-        val = float(m_k.group('k'))
+        val = float(m_k.group("k"))
         freq_label = f"{val:g}kHz"
         freq_mhz = val / 1000.0
     if m_m:
-        valm = float(m_m.group('m'))
+        valm = float(m_m.group("m"))
         # Prefer explicit MHz if present
         freq_label = f"{valm:g}MHz"
         freq_mhz = valm
@@ -85,17 +89,20 @@ def _parse_transducer_and_freq(filename: Path) -> Tuple[Optional[str], Optional[
     return transducer, freq_label, freq_mhz
 
 
-class CombinedCalibration:
+class _CombinedCalibrationImpl:
     """Generates sweep/field/line graphs from calibration files.
 
-    Construction is cheap; call run() to perform the work. getGraphs() lazily calls run() if needed,
-    preserving legacy call sites that instantiate then immediately request graphs.
+    Construction is cheap; call run() to perform the work.
+    getGraphs() lazily calls run() if needed, preserving legacy call sites
+    that instantiate then immediately request graphs.
     """
 
-    def __init__(self, config: CombinedCalibrationConfig, textbox: Optional[QTextBrowser] = None):
+    def __init__(
+        self, config: CombinedCalibrationConfig, textbox: QTextBrowser | None = None
+    ) -> None:
         self.config = config
         self.textbox = textbox
-        self.graph_list: List[Optional[object]] = [None] * 9
+        self.graph_list: list[object | None] = [None] * 9
         self._ran = False
 
     # Logging helper for easy future swap to a logger
@@ -112,19 +119,25 @@ class CombinedCalibration:
         plt.close("all")  # closes previous graphs
         self._log("\n*******************GENERATING GRAPHS***********************\n")
 
+        # Ensure textbox is available for required function calls
+        if self.textbox is None:
+            msg = "Textbox required for graph generation"
+            raise ValueError(msg)
+        textbox = self.textbox  # Create non-optional reference
+
         cfg = self.config
 
         # Normalize and sort files
-        files_list: List[Path] = [Path(f) for f in cfg.files]
+        files_list: list[Path] = [Path(f) for f in cfg.files]
         files_list = sorted(files_list, key=_natural_key)
 
         offsets = [0.0, 0.0, 0.0]
-        sweep_list: List[Path] = []
-        axial_filename: Optional[Path] = None
-        lateral_filename: Optional[Path] = None
-        x_line_scan: Optional[Path] = None
-        y_line_scan: Optional[Path] = None
-        z_line_scan: Optional[Path] = None
+        sweep_list: list[Path] = []
+        axial_filename: Path | None = None
+        lateral_filename: Path | None = None
+        x_line_scan: Path | None = None
+        y_line_scan: Path | None = None
+        z_line_scan: Path | None = None
 
         # AUTOMATIC FILE DETECTION
         for f in files_list:
@@ -144,40 +157,56 @@ class CombinedCalibration:
 
         # Validate required files based on toggles
         try:
-            trans_freq_filename: Optional[Path] = None
+            trans_freq_filename: Path | None = None
             if cfg.sweep_data:
                 self._log(f"Sweeps: {[p.name for p in sweep_list]}")
                 if sweep_list:
                     trans_freq_filename = sweep_list[-1]
                 else:
-                    raise NameError("No sweep files found among selections.")
+                    msg = "No sweep files found among selections."
+                    raise NameError(msg)
             if cfg.axial_field:
                 if axial_filename is None:
-                    raise NameError("Missing axial (yz) field scan file.")
+                    msg = "Missing axial (yz) field scan file."
+                    raise NameError(msg)
                 self._log(f"Axial: {axial_filename}")
                 trans_freq_filename = axial_filename
             if cfg.axial_line:
                 if y_line_scan is None:
-                    raise NameError("Missing y-axis linear scan file.")
+                    msg = "Missing y-axis linear scan file."
+                    raise NameError(msg)
                 self._log(f"y linear: {y_line_scan}")
                 trans_freq_filename = y_line_scan
             if cfg.lateral_field:
                 if lateral_filename is None:
-                    raise NameError("Missing lateral (xz) field scan file.")
+                    msg = "Missing lateral (xz) field scan file."
+                    raise NameError(msg)
                 self._log(f"Lateral: {lateral_filename}")
                 trans_freq_filename = lateral_filename
             if cfg.lateral_line:
                 if x_line_scan is None or z_line_scan is None:
-                    raise NameError("Missing x or z linear scan files.")
+                    msg = "Missing x or z linear scan files."
+                    raise NameError(msg)
                 self._log(f"x linear: {x_line_scan}")
                 self._log(f"z linear: {z_line_scan}")
                 trans_freq_filename = x_line_scan
-            if not any([cfg.sweep_data, cfg.axial_field, cfg.axial_line, cfg.lateral_field, cfg.lateral_line]):
-                raise NameError("No outputs requested. Toggle at least one graph.")
+            if not any(
+                [
+                    cfg.sweep_data,
+                    cfg.axial_field,
+                    cfg.axial_line,
+                    cfg.lateral_field,
+                    cfg.lateral_line,
+                ]
+            ):
+                msg = "No outputs requested. Toggle at least one graph."
+                raise NameError(msg)
         except NameError as e:
             self._log(
-                f"\nNameError: {e}\nOops! One or more of the scan files does not exist. \
-                  \nDid you input the right folder?\nAre there scans missing?\nDid you select the correct checkboxes?\n"
+                f"\nNameError: {e}\n"
+                "Oops! One or more of the scan files does not exist.\n"
+                "Did you input the right folder?\nAre there scans missing?\n"
+                "Did you select the correct checkboxes?\n"
             )
             self._ran = True
             return
@@ -189,10 +218,9 @@ class CombinedCalibration:
             while True:
                 try:
                     full_filename1 = save_dir / f"files_used_{counter}.txt"
-                    with open(full_filename1, "x") as f:
+                    with full_filename1.open("x") as f:
                         self._log(f"\nSaving files used to {full_filename1}...")
-                        for file in files_list:
-                            f.write(str(file) + "\n")
+                        f.writelines(str(file) + "\n" for file in files_list)
                     break
                 except FileExistsError:
                     counter += 1
@@ -200,9 +228,10 @@ class CombinedCalibration:
         # TRANSDUCER AND FREQUENCY DETAILS
         transducer = None
         freq_label = None
-        freq_mhz = None
         if trans_freq_filename is not None:
-            transducer, freq_label, freq_mhz = _parse_transducer_and_freq(trans_freq_filename)
+            transducer, freq_label, _freq_mhz = _parse_transducer_and_freq(
+                trans_freq_filename
+            )
         if transducer:
             self._log(f"\nTransducer: {transducer}")
         if freq_label:
@@ -217,13 +246,15 @@ class CombinedCalibration:
                 freq_label if freq_label else "",
                 cfg.save,
                 str(cfg.eb50_file) if cfg.eb50_file else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[0] = sweep_graph
 
         # FIELD GRAPHS
         if cfg.axial_field and axial_filename is not None:
-            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(str(axial_filename), "axial")
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(
+                str(axial_filename), "axial"
+            )
             # Pressure field
             ax_pressure_field_graph = field_graph(
                 y_data,
@@ -238,7 +269,7 @@ class CombinedCalibration:
                 cfg.interp_step,
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[1] = ax_pressure_field_graph
             # Intensity field
@@ -260,7 +291,9 @@ class CombinedCalibration:
             self.graph_list[2] = ax_intensity_field_graph
 
         if cfg.lateral_field and lateral_filename is not None:
-            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(str(lateral_filename), "lateral")
+            x_data, y_data, z_data, pressure, intensity, _ = fetch_data(
+                str(lateral_filename), "lateral"
+            )
             # Pressure field
             lat_pressure_field_graph = field_graph(
                 x_data,
@@ -299,7 +332,9 @@ class CombinedCalibration:
         # LINEAR GRAPHS
         # Y LINE SCAN LINE GRAPH
         if cfg.axial_line and y_line_scan is not None:
-            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(str(y_line_scan), "axial")
+            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(
+                str(y_line_scan), "axial"
+            )
             # Pressure line
             y_pressure_line_graph = line_graph(
                 y_data,
@@ -352,7 +387,9 @@ class CombinedCalibration:
             )
 
             # PRINT AXIAL FWHMX
-            if not isinstance(y_pressure_fwhmx, str) and not isinstance(y_intensity_fwhmx, str):
+            if not isinstance(y_pressure_fwhmx, str) and not isinstance(
+                y_intensity_fwhmx, str
+            ):
                 self._log("Axial FWHMX:")
                 self._log(f"Pressure Axial Diameter: {y_pressure_fwhmx:0.1f} mm")
                 self._log(f"Intensity Axial Diameter: {y_intensity_fwhmx:0.1f} mm")
@@ -361,7 +398,9 @@ class CombinedCalibration:
 
         if cfg.lateral_line and x_line_scan is not None and z_line_scan is not None:
             # X LINE SCAN
-            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(str(x_line_scan), "lateral")
+            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(
+                str(x_line_scan), "lateral"
+            )
             # Pressure line plot
             x_pressure_line_graph = line_graph(
                 x_data,
@@ -414,7 +453,9 @@ class CombinedCalibration:
             )
 
             # Z LINE SCAN
-            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(str(z_line_scan), "lateral")
+            x_data, y_data, z_data, pressure, intensity, pointer_location = fetch_data(
+                str(z_line_scan), "lateral"
+            )
             z_pressure_fwhmx, z_pressure_offset = fwhmx(
                 z_data,
                 np.transpose(pressure),
@@ -449,74 +490,101 @@ class CombinedCalibration:
                 averaged_pressure_fwhmx = (x_pressure_fwhmx + z_pressure_fwhmx) / 2.0
                 averaged_intensity_fwhmx = (x_intensity_fwhmx + z_intensity_fwhmx) / 2.0
                 self._log("\nLateral FWHMX (averaged):")
-                self._log(f"Pressure Lateral Diameter: {averaged_pressure_fwhmx:0.1f} mm")
-                self._log(f"Intensity Lateral Diameter: {averaged_intensity_fwhmx:0.1f} mm")
+                self._log(
+                    f"Pressure Lateral Diameter: {averaged_pressure_fwhmx:0.1f} mm"
+                )
+                self._log(
+                    f"Intensity Lateral Diameter: {averaged_intensity_fwhmx:0.1f} mm"
+                )
             else:
-                self._log("Couldn't output FWHMX for x-axis and z-axis. Your data may be faulty.")
+                self._log(
+                    "Couldn't output FWHMX for x-axis and z-axis. "
+                    "Your data may be faulty."
+                )
 
             offsets_str = [f"{i:0.2f}" for i in offsets]
             self._log(f"Offsets: [{','.join(offsets_str)}]")
 
         self._ran = True
 
-    def getGraphs(self):
+    def get_graphs(self) -> list[object | None]:
         # Preserve legacy behavior: compute on first request
+        """Return the list of graphs computed by the run() method.
+
+        Preserves the legacy behavior of computing the graphs on the first request.
+        Subsequent calls will return the cached result.
+
+        Returns:
+            list[FigureCanvas]: A list of FigureCanvas objects representing
+                the computed graphs.
+
+        """
         if not self._ran:
             self.run()
         return self.graph_list
 
 
 # Backwards-compatible wrapper for existing call sites
-class combined_calibration:
-    """Legacy-compatible wrapper that accepts the original list-of-args signature.
+class CombinedCalibration:
+    """Public API that accepts CombinedCalibrationConfig or legacy list signature.
 
-    Existing code does: combined_calibration(var_dict, text_browser).getGraphs()
-    This wrapper converts to CombinedCalibrationConfig and delegates.
+    Supports both modern and legacy usage:
+    - Modern: CombinedCalibration(config_obj, textbox).get_graphs()
+    - Legacy: CombinedCalibration(var_dict_list, textbox).get_graphs()
     """
 
-    def __init__(self, variables_dict: list, textbox: QTextBrowser):
-        # Parse legacy variables list into config with typing
-        files, save_folder, eb50_file = [i for i in variables_dict[:3]]
-        sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [
-            bool(i) for i in variables_dict[3:9]
-        ]
-        (
-            ax_left_field_length,
-            ax_right_field_length,
-            ax_field_height,
-            ax_left_line_length,
-            ax_right_line_length,
-            lat_field_length,
-            interp_step,
-        ) = [float(i) if i != "" else 0.0 for i in variables_dict[9:]]
+    def __init__(
+        self,
+        variables_dict: CombinedCalibrationConfig | list,
+        textbox: QTextBrowser | None = None,
+    ) -> None:
+        """Initialize the CombinedCalibration object."""
+        # Check if already a config object (modern API)
+        if isinstance(variables_dict, CombinedCalibrationConfig):
+            cfg = variables_dict
+        else:
+            # Parse legacy variables list into config with typing
+            files, save_folder, eb50_file = list(variables_dict[:3])
+            sweep_data, axial_field, axial_line, lateral_field, lateral_line, save = [
+                bool(i) for i in variables_dict[3:9]
+            ]
+            (
+                ax_left_field_length,
+                ax_right_field_length,
+                ax_field_height,
+                ax_left_line_length,
+                ax_right_line_length,
+                lat_field_length,
+                interp_step,
+            ) = [float(i) if i != "" else 0.0 for i in variables_dict[9:]]
 
-        cfg = CombinedCalibrationConfig(
-            files=[Path(p) for p in files],
-            save_folder=Path(save_folder) if save_folder else None,
-            eb50_file=Path(eb50_file) if eb50_file else None,
-            sweep_data=sweep_data,
-            axial_field=axial_field,
-            axial_line=axial_line,
-            lateral_field=lateral_field,
-            lateral_line=lateral_line,
-            save=save,
-            ax_left_field_length=ax_left_field_length,
-            ax_right_field_length=ax_right_field_length,
-            ax_field_height=ax_field_height,
-            ax_left_line_length=ax_left_line_length,
-            ax_right_line_length=ax_right_line_length,
-            lat_field_length=lat_field_length,
-            interp_step=interp_step,
-        )
+            cfg = CombinedCalibrationConfig(
+                files=[Path(p) for p in files],
+                save_folder=Path(save_folder) if save_folder else None,
+                eb50_file=Path(eb50_file) if eb50_file else None,
+                sweep_data=sweep_data,
+                axial_field=axial_field,
+                axial_line=axial_line,
+                lateral_field=lateral_field,
+                lateral_line=lateral_line,
+                save=save,
+                ax_left_field_length=ax_left_field_length,
+                ax_right_field_length=ax_right_field_length,
+                ax_field_height=ax_field_height,
+                ax_left_line_length=ax_left_line_length,
+                ax_right_line_length=ax_right_line_length,
+                lat_field_length=lat_field_length,
+                interp_step=interp_step,
+            )
 
-        self._impl = CombinedCalibration(cfg, textbox)
+        self._impl = _CombinedCalibrationImpl(cfg, textbox)
 
-    def getGraphs(self):
-        return self._impl.getGraphs()
-
-
-# (Legacy commented QML/init sections intentionally retained in original file were removed for clarity
-# in this refactor. If needed, those sections can be restored without affecting current functionality.)
+    def get_graphs(self) -> list[object | None]:
+        """Return the list of graphs computed by the run() method."""
+        return self._impl.get_graphs()
 
 
-
+# (Legacy commented QML/init sections intentionally
+# retained in original file were removed for clarity
+# in this refactor. If needed, those sections can be
+# restored without affecting current functionality.)

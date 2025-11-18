@@ -3,11 +3,11 @@
 PyInstaller spec file for development (one-directory) bundle with debugging enabled.
 
 Build command:
-    pyinstaller build_config/testpad_main-dev.spec --clean
+    pyinstaller build_config/testpad-dev.spec --clean
 
 Output:
-    dist/testpad_main_dev/                      (directory containing executable and dependencies)
-    dist/testpad_main_dev/testpad_main_dev.exe  (main executable with console)
+    dist/testpad-dev/                      (directory containing executable and dependencies)
+    dist/testpad-dev/testpad-dev.exe  (main executable with console)
 
 This build is suitable for:
 - Local development and testing
@@ -76,7 +76,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,  # Dependencies go in separate directory
-    name='testpad_main_dev',  # Different name to distinguish from release builds
+    name='testpad-dev',  # Different name to distinguish from release builds
     debug=True,  # Enable debug mode
     bootloader_ignore_signals=False,
     strip=False,
@@ -98,12 +98,12 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='testpad_main_dev',  # Output directory: dist/testpad_main_dev/
+    name='testpad-dev',  # Output directory: dist/testpad-dev/
 )
 
 print(f"\n[OK] Development build configuration complete")
-print(f"   Output directory: dist/testpad_main_dev/")
-print(f"   Main executable:  dist/testpad_main_dev/testpad_main_dev.exe")
+print(f"   Output directory: dist/testpad-dev/")
+print(f"   Main executable:  dist/testpad-dev/testpad-dev.exe")
 print(f"   Version: {VERSION}")
 print(f"   Console: ENABLED (shows debug output)")
 print(f"   Optimization: DISABLED (easier debugging)\n")

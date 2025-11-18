@@ -5,13 +5,16 @@ version management, and build validation.
 """
 
 import datetime
-import glob
 import os
 import sys
 from pathlib import Path
 
 # PyInstaller utilities for auto-collecting submodules
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PySide6.QtCore import QLibraryInfo
+from PySide6.QtCore import __file__ as pyside6_qtcore_file
+
+from testpad.version import __version__
 
 
 def get_base_dir() -> str:
@@ -39,8 +42,8 @@ def get_version() -> str:
     # Second priority: VERSION file (source of truth)
     base_dir = get_base_dir()
     version_file = Path(base_dir) / "VERSION"
-    if Path.exists(version_file):
-        with Path.open(version_file) as f:
+    if version_file.exists():
+        with version_file.open() as f:
             version = f.read().strip()
         print(f"[spec_common] Using version from VERSION file: {version}")
         return version
@@ -48,15 +51,19 @@ def get_version() -> str:
     # Fallback: version.py module (local development)
     try:
         sys.path.insert(0, str(Path(base_dir) / "src"))
-        from testpad.version import __version__
-        print(f"[spec_common] Using version from version.py (fallback): {__version__}")
-        return __version__
+
+        print(
+            f"[spec_common] Using version from version.py (fallback): {__version__}"
+        )
+
     except ImportError:
         msg = (
             "Could not determine version. Please ensure VERSION file exists "
             "or BUILD_VERSION environment variable is set."
         )
-        raise RuntimeError(msg)
+        raise RuntimeError(msg) from None
+    else:
+        return __version__
 
 
 def validate_build_files(base_dir: str) -> None:
@@ -69,24 +76,21 @@ def validate_build_files(base_dir: str) -> None:
         FileNotFoundError: If any required file is missing
 
     """
+    base_path = Path(base_dir)
     required_files = [
-        os.path.join(base_dir, "src", "testpad", "testpad_main.py"),
-        os.path.join(
-            base_dir,
-            "src", "testpad", "resources",
-            "fus_icon_transparent.ico"
-        ),
-        os.path.join(base_dir, "build_config", "qt.conf"),
-        os.path.join(base_dir, "build_config", "runtime_hook_qt.py"),
-        os.path.join(base_dir, "build_config", "runtime_hook_mpl.py"),
+        base_path / "src" / "testpad" / "testpad_main.py",
+        base_path / "src" / "testpad" / "resources" / "fus_icon_transparent.ico",
+        base_path / "build_config" / "qt.conf",
+        base_path / "build_config" / "runtime_hook_qt.py",
+        base_path / "build_config" / "runtime_hook_mpl.py",
     ]
 
-    missing_files = [f for f in required_files if not os.path.exists(f)]
+    missing_files = [str(f) for f in required_files if not f.exists()]
 
     if missing_files:
         raise FileNotFoundError(
-            "Required build files missing:\n" +
-            "\n".join(f"  - {f}" for f in missing_files),
+            "Required build files missing:\n"
+            + "\n".join(f"  - {f}" for f in missing_files),
         )
 
     print("[spec_common] All required build files validated [OK]")
@@ -112,6 +116,7 @@ def get_build_metadata() -> dict:
 # Qt Plugin Discovery
 # ============================================================================
 
+
 def find_qt_plugins_root() -> str:
     """Find the Qt plugins root directory.
 
@@ -122,30 +127,28 @@ def find_qt_plugins_root() -> str:
 
     """
     try:
-        from PySide6.QtCore import QLibraryInfo
         p = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
-        if p and os.path.exists(p):
+        if p and Path(p).exists():
             print(f"[spec_common] Found Qt plugins via QLibraryInfo: {p}")
             return p
-    except Exception as e:
+    except (ImportError, AttributeError) as e:
         print(f"[spec_common] QLibraryInfo failed: {e}")
 
-    from PySide6.QtCore import __file__ as PYSIDE6_QTCORE_FILE
-
+    pyside6_path = Path(pyside6_qtcore_file)
     candidates = [
-        os.path.join(sys.prefix, "Library", "plugins"),  # Conda on Windows
-        os.path.join(sys.prefix, "plugins"),
-        os.path.join(os.path.dirname(PYSIDE6_QTCORE_FILE), "plugins"),
-        os.path.join(os.path.dirname(os.path.dirname(PYSIDE6_QTCORE_FILE)), "plugins"),
+        Path(sys.prefix) / "Library" / "plugins",  # Conda on Windows
+        Path(sys.prefix) / "plugins",
+        pyside6_path.parent / "plugins",
+        pyside6_path.parent.parent / "plugins",
     ]
 
     for c in candidates:
-        if os.path.exists(os.path.join(c, "platforms")):
+        if (c / "platforms").exists():
             print(f"[spec_common] Found Qt plugins root: {c}")
-            return c
+            return str(c)
 
     print(f"[spec_common] Qt plugins not found, using default: {candidates[0]}")
-    return candidates[0]
+    return str(candidates[0])
 
 
 def find_platform_plugin(root: str, name: str = "qwindows") -> str | None:
@@ -159,25 +162,24 @@ def find_platform_plugin(root: str, name: str = "qwindows") -> str | None:
         Full path to plugin DLL, or None if not found
 
     """
-    from PySide6.QtCore import __file__ as PYSIDE6_QTCORE_FILE
-
+    pyside6_path = Path(pyside6_qtcore_file)
     roots = [
-        os.path.join(root, "platforms"),
-        os.path.join(os.path.dirname(PYSIDE6_QTCORE_FILE), "Qt", "plugins", "platforms"),
-        os.path.join(os.path.dirname(PYSIDE6_QTCORE_FILE), "plugins", "platforms"),
-        os.path.join(sys.prefix, "Library", "plugins", "platforms"),
-        os.path.join(sys.prefix, "plugins", "platforms"),
+        Path(root) / "platforms",
+        pyside6_path.parent / "Qt" / "plugins" / "platforms",
+        pyside6_path.parent / "plugins" / "platforms",
+        Path(sys.prefix) / "Library" / "plugins" / "platforms",
+        Path(sys.prefix) / "plugins" / "platforms",
     ]
 
     for r in roots:
         # Try exact match
-        cand = os.path.join(r, f"{name}.dll")
-        if os.path.exists(cand):
-            return cand
+        cand = r / f"{name}.dll"
+        if cand.exists():
+            return str(cand)
         # Try wildcard match
-        gl = glob.glob(os.path.join(r, f"{name}*.dll"))
-        if gl:
-            return gl[0]
+        matches = list(r.glob(f"{name}*.dll"))
+        if matches:
+            return str(matches[0])
 
     return None
 
@@ -193,25 +195,24 @@ def find_image_plugin(root: str, name: str) -> str | None:
         Full path to plugin DLL, or None if not found
 
     """
-    from PySide6.QtCore import __file__ as PYSIDE6_QTCORE_FILE
-
+    pyside6_path = Path(pyside6_qtcore_file)
     roots = [
-        os.path.join(root, "imageformats"),
-        os.path.join(os.path.dirname(PYSIDE6_QTCORE_FILE), "Qt", "plugins", "imageformats"),
-        os.path.join(os.path.dirname(PYSIDE6_QTCORE_FILE), "plugins", "imageformats"),
-        os.path.join(sys.prefix, "Library", "plugins", "imageformats"),
-        os.path.join(sys.prefix, "plugins", "imageformats"),
+        Path(root) / "imageformats",
+        pyside6_path.parent / "Qt" / "plugins" / "imageformats",
+        pyside6_path.parent / "plugins" / "imageformats",
+        Path(sys.prefix) / "Library" / "plugins" / "imageformats",
+        Path(sys.prefix) / "plugins" / "imageformats",
     ]
 
     for r in roots:
         # Try exact match
-        cand = os.path.join(r, f"{name}.dll")
-        if os.path.exists(cand):
-            return cand
+        cand = r / f"{name}.dll"
+        if cand.exists():
+            return str(cand)
         # Try wildcard match
-        gl = glob.glob(os.path.join(r, f"{name}*.dll"))
-        if gl:
-            return gl[0]
+        matches = list(r.glob(f"{name}*.dll"))
+        if matches:
+            return str(matches[0])
 
     return None
 
@@ -249,6 +250,7 @@ def get_qt_binaries() -> list[tuple[str, str]]:
 # Common Data Files
 # ============================================================================
 
+
 def get_common_datas(base_dir: str) -> list[tuple[str, str]]:
     """Get common data files that should be included in all builds.
 
@@ -267,26 +269,57 @@ def get_common_datas(base_dir: str) -> list[tuple[str, str]]:
     datas = []
 
     # Collect all data files from testpad package (includes resources/)
-    # This preserves the package structure: testpad/resources/*, testpad/core/*/*, etc.
+    # This preserves package structure: testpad/resources/*, testpad/core/*/*, etc.
     try:
         testpad_data = collect_data_files("testpad")
-        print(f"[spec_common] Collected {len(testpad_data)}"
-              "data files from testpad package")
+        print(
+            f"[spec_common] Collected {len(testpad_data)}"
+            "data files from testpad package"
+        )
         datas.extend(testpad_data)
-    except Exception as e:
-        print(f"[spec_common] Warning: Could not auto-collect testpad data files: {e}")
+    except (ImportError, ModuleNotFoundError) as e:
+        print(
+            f"[spec_common] Warning: Could not auto-collect testpad data files: {e}"
+        )
         # Fallback to manual specification
-        datas.extend([
-            (os.path.join(base_dir, "src", "testpad", "core", "matching_box", "cap_across_load.jpg"), "testpad/core/matching_box"),
-            (os.path.join(base_dir, "src", "testpad", "core", "matching_box", "cap_across_source.jpg"), "testpad/core/matching_box"),
-            (os.path.join(base_dir, "src", "testpad", "resources"), "testpad/resources"),
-        ])
+        base_path = Path(base_dir)
+        datas.extend(
+            [
+                (
+                    str(
+                        base_path
+                        / "src"
+                        / "testpad"
+                        / "core"
+                        / "matching_box"
+                        / "cap_across_load.jpg"
+                    ),
+                    "testpad/core/matching_box",
+                ),
+                (
+                    str(
+                        base_path
+                        / "src"
+                        / "testpad"
+                        / "core"
+                        / "matching_box"
+                        / "cap_across_source.jpg"
+                    ),
+                    "testpad/core/matching_box",
+                ),
+                (
+                    str(base_path / "src" / "testpad" / "resources"),
+                    "testpad/resources",
+                ),
+            ]
+        )
 
     # Qt configuration (goes to root)
-    datas.append((os.path.join(base_dir, "build_config", "qt.conf"), "."))
+    base_path = Path(base_dir)
+    datas.append((str(base_path / "build_config" / "qt.conf"), "."))
 
     # VERSION file (for runtime version detection)
-    datas.append((os.path.join(base_dir, "VERSION"), "."))
+    datas.append((str(base_path / "VERSION"), "."))
 
     # Add Qt binaries
     datas.extend(get_qt_binaries())
@@ -297,6 +330,7 @@ def get_common_datas(base_dir: str) -> list[tuple[str, str]]:
 # ============================================================================
 # Common Hidden Imports
 # ============================================================================
+
 
 def get_common_hiddenimports() -> list[str]:
     """Get list of modules that need to be explicitly imported.
@@ -316,7 +350,8 @@ def get_common_hiddenimports() -> list[str]:
     print("[spec_common] Auto-collecting submodules for tabs and config...")
 
     # Automatically collect all submodules from these packages
-    # This ensures all tabs (including package-based ones like degasser_tab) are included
+    # This ensures all tabs (including package-based ones like
+    # degasser_tab) are included
     imports = []
 
     # Collect all UI tabs and their submodules
@@ -326,7 +361,9 @@ def get_common_hiddenimports() -> list[str]:
 
     # Collect all config modules
     config_modules = collect_submodules("testpad.config")
-    print(f"[spec_common] Collected {len(config_modules)} modules from testpad.config")
+    print(
+        f"[spec_common] Collected {len(config_modules)} modules from testpad.config"
+    )
     imports.extend(config_modules)
 
     # Collect core testpad modules (for comprehensive coverage)
@@ -338,21 +375,20 @@ def get_common_hiddenimports() -> list[str]:
     # Explicitly include C-extension libraries to ensure proper initialization
     extra_imports = [
         # Scientific computing stack (C extensions)
-        "numpy",          # Numerical computing (fixes docstring initialization errors)
-        "numpy.core",     # Numpy core modules
-        "pandas",         # Data analysis (used in hydrophone, sweep, nanobubbles, temp_analysis)
-        "scipy",          # Scientific computing (used in vpp_stats)
-        "scipy.stats",    # Statistics submodule
-        "h5py",           # HDF5 file format (used in sweep_graphs, add_ncycle utilities)
-
+        "numpy",  # Numerical computing (fixes docstring initialization errors)
+        "numpy.core",  # Numpy core modules
+        # Data analysis (hydrophone, sweep, nanobubbles, temp_analysis)
+        "pandas",
+        "scipy",  # Scientific computing (used in vpp_stats)
+        "scipy.stats",  # Statistics submodule
+        "h5py",  # HDF5 file format (used in sweep_graphs, add_ncycle utilities)
         # Matplotlib and backends
-        "matplotlib",     # Plotting library (used across all graph tabs)
+        "matplotlib",  # Plotting library (used across all graph tabs)
         "matplotlib.backends.backend_qtagg",  # Qt backend
-
         # Other dependencies
-        "yaml",           # YAML parsing (used in vol2press_calcs)
-        "fpdf",           # PDF generation
-        "fpdf.fpdf",      # fpdf2 main module
+        "yaml",  # YAML parsing (used in vol2press_calcs)
+        "fpdf",  # PDF generation
+        "fpdf.fpdf",  # fpdf2 main module
     ]
     print(f"[spec_common] Adding {len(extra_imports)} explicit third-party imports")
     imports.extend(extra_imports)
@@ -363,6 +399,7 @@ def get_common_hiddenimports() -> list[str]:
 # ============================================================================
 # Runtime Hooks
 # ============================================================================
+
 
 def get_runtime_hooks(base_dir: str) -> list[str]:
     """Get paths to runtime hook scripts.
@@ -378,22 +415,25 @@ def get_runtime_hooks(base_dir: str) -> list[str]:
 
     """
     hooks = []
+    base_path = Path(base_dir)
 
     # Auto-detect dev build from spec file name (must end with 'dev.spec')
-    is_dev_build = any(arg.endswith('dev.spec') for arg in sys.argv)
+    is_dev_build = any(arg.endswith("dev.spec") for arg in sys.argv)
 
     # Only include debug hook for development builds
     if is_dev_build:
-        hooks.append(os.path.join(base_dir, "build_config", "runtime_hook_debug.py"))
+        hooks.append(str(base_path / "build_config" / "runtime_hook_debug.py"))
         print("[spec_common] Including debug runtime hook (dev build detected)")
     else:
         print("[spec_common] Excluding debug runtime hook (release/portable build)")
 
     # Always include Qt and matplotlib hooks
-    hooks.extend([
-        os.path.join(base_dir, "build_config", "runtime_hook_qt.py"),
-        os.path.join(base_dir, "build_config", "runtime_hook_mpl.py"),
-    ])
+    hooks.extend(
+        [
+            str(base_path / "build_config" / "runtime_hook_qt.py"),
+            str(base_path / "build_config" / "runtime_hook_mpl.py"),
+        ]
+    )
 
     return hooks
 
@@ -401,6 +441,7 @@ def get_runtime_hooks(base_dir: str) -> list[str]:
 # ============================================================================
 # Icon Path
 # ============================================================================
+
 
 def get_icon_path(base_dir: str) -> str:
     """Get path to application icon.
@@ -412,12 +453,15 @@ def get_icon_path(base_dir: str) -> str:
         Path to icon file
 
     """
-    return os.path.join(base_dir, "src", "testpad", "resources", "fus_icon_transparent.ico")
+    return str(
+        Path(base_dir) / "src" / "testpad" / "resources" / "fus_icon_transparent.ico"
+    )
 
 
 # ============================================================================
 # Print Build Info
 # ============================================================================
+
 
 def print_build_info(build_type: str, version: str) -> None:
     """Print build information banner.

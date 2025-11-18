@@ -1,9 +1,16 @@
-from typing import TYPE_CHECKING, Optional, cast
+"""Degasser Tab View.
+
+This module provides the user interface for the Degasser Tab.
+"""
+
+import sys
+from typing import TYPE_CHECKING, cast, override
 
 import PySide6.QtCore
 from PySide6.QtCore import QDate, QSignalBlocker, Qt, QTimer
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
+    QApplication,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -13,6 +20,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QStyledItemDelegate,
     QTableWidget,
@@ -26,6 +34,7 @@ if TYPE_CHECKING:
     from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex
     from PySide6.QtGui import QKeyEvent
     from PySide6.QtWidgets import QStyleOptionViewItem
+
 
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
 from testpad.ui.tabs.base_tab import BaseTab
@@ -45,6 +54,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TIME_SERIES_ROWS,
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
+    TIME_SERIES_HEADERS,
 )
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
@@ -75,6 +85,7 @@ class ColumnMajorTableWidget(QTableWidget):
 
         Returns:
             Tuple of (new_row, new_col) representing the next cell position
+
         """
         rows, cols = self.rowCount(), self.columnCount()
 
@@ -83,25 +94,23 @@ class ColumnMajorTableWidget(QTableWidget):
             if row < rows - 1:
                 # Not at bottom of column yet, move down one row
                 return row + 1, col
-            elif col < cols - 1:
+            if col < cols - 1:
                 # At bottom of column, jump to top of next column
                 return 0, col + 1
-            else:
-                # At bottom-right corner, wrap around to top-left
-                return 0, 0
-        else:
-            # Backward navigation: up column, then left to previous column
-            if row > 0:
-                # Not at top of column yet, move up one row
-                return row - 1, col
-            elif col > 0:
-                # At top of column, jump to bottom of previous column
-                return rows - 1, col - 1
-            else:
-                # At top-left corner, wrap around to bottom-right
-                return rows - 1, cols - 1
+            # At bottom-right corner, wrap around to top-left
+            return 0, 0
+        # Backward navigation: up column, then left to previous column
+        if row > 0:
+            # Not at top of column yet, move up one row
+            return row - 1, col
+        if col > 0:
+            # At top of column, jump to bottom of previous column
+            return rows - 1, col - 1
+        # At top-left corner, wrap around to bottom-right
+        return rows - 1, cols - 1
 
-    def keyPressEvent(self, event):
+    @override
+    def keyPressEvent(self, event) -> None:
         """Override Qt's default key handling to implement column-major navigation.
 
         By default, QTableWidget uses row-major Tab navigation (left→right).
@@ -114,14 +123,18 @@ class ColumnMajorTableWidget(QTableWidget):
             # Tab and Enter both move forward in column-major order
             event.accept()  # Prevent Qt's default row-major navigation
             new_row, new_col = self._get_next_cell(
-                self.currentRow(), self.currentColumn(), forward=True
+                self.currentRow(),
+                self.currentColumn(),
+                forward=True,
             )
             self.setCurrentCell(new_row, new_col)
         elif key == Qt.Key.Key_Backtab:
             # Shift+Tab moves backward in column-major order
             event.accept()  # Prevent Qt's default behavior
             new_row, new_col = self._get_next_cell(
-                self.currentRow(), self.currentColumn(), forward=False
+                self.currentRow(),
+                self.currentColumn(),
+                forward=False,
             )
             self.setCurrentCell(new_row, new_col)
         else:
@@ -133,11 +146,14 @@ class ColumnMajorNavigationMixin:
     """Mixin for item delegates to support column-major navigation during cell editing.
 
     This mixin installs an event filter on editor widgets to intercept Tab/Enter
-    keys and forward them to the table's navigation logic. Any delegate class that inherits
-    from this mixin will automatically support column-major navigation during editing.
+    keys and forward them to the table's navigation logic. Any delegate class that
+    inherits from this mixin will automatically support column-major navigation during
+    editing.
 
     Usage: class MyDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate): ...
-    Note: Mixin must come BEFORE QStyledItemDelegate in the inheritance list for proper MRO.
+    Note: Mixin must come BEFORE QStyledItemDelegate in the inheritance list
+    for proper MRO.
+
     """
 
     def eventFilter(self, watched: "QObject", event: "QEvent") -> bool:
@@ -153,10 +169,11 @@ class ColumnMajorNavigationMixin:
         Returns:
             True if event was handled (prevents further processing)
             False to allow normal event propagation
+
         """
         if event.type() == PySide6.QtCore.QEvent.Type.KeyPress:
             # Cast to QKeyEvent to access key()
-            key_event: "QKeyEvent" = event  # type: ignore[assignment]
+            key_event: QKeyEvent = event  # type: ignore[assignment]
             if key_event.key() in (
                 Qt.Key.Key_Tab,
                 Qt.Key.Key_Backtab,
@@ -174,11 +191,12 @@ class ColumnMajorNavigationMixin:
 
     def createEditor(
         self,
-        parent: QWidget,
+        parent: QWidget | None,
         option: "QStyleOptionViewItem",
         index: "QModelIndex | QPersistentModelIndex",
     ) -> QWidget:
         """Create editor widget and install this delegate as an event filter.
+
         Qt calls this method when a cell begins editing.
 
         Args:
@@ -188,6 +206,7 @@ class ColumnMajorNavigationMixin:
 
         Returns:
             The editor widget with event filter installed
+
         """
         editor = super().createEditor(parent, option, index)  # type: ignore[misc]
         if editor:
@@ -202,17 +221,27 @@ class DegasserTab(BaseTab):
 
     def __init__(
         self,
-        parent=None,
-        model: Optional["DegasserModel"] = None,
-        presenter: Optional["DegasserPresenter"] = None,
+        parent: QWidget | None = None,
+        model: DegasserModel | None = None,
+        presenter: DegasserPresenter | None = None,
     ) -> None:
+        """Initialize the Degasser tab.
+
+        Args:
+            parent: The parent widget for this tab.
+            model: The model object for the tab.
+            presenter: The presenter object for the tab.
+
+        """
         super().__init__(parent)
 
         self._model = model
-        self._presenter = presenter
+        self.presenter = presenter
         self._time_series_chart = TimeSeriesChartWidget()
-        self._time_series_section: Optional[QWidget] = None
+        self._time_series_section: QWidget | None = None
+        self._construct_ui()
 
+    def _construct_ui(self) -> None:
         layout = QGridLayout(self)
         layout.addWidget(self._build_metadata_section(), 0, 0, 1, 2)
         layout.addWidget(self._build_test_table(), 1, 0, 1, 2)
@@ -237,8 +266,9 @@ class DegasserTab(BaseTab):
 
         Note: This method handles signal blocking internally to prevent
             feedback loops during updates.
+
         """
-        self._block_signals(True)
+        self._block_signals(block=True)
         try:
             # Update Metadata
             self._name_edit.setText(state.tester_name)
@@ -247,7 +277,9 @@ class DegasserTab(BaseTab):
             if state.test_date is not None:
                 # Convert Python date to QDate for type safety
                 qdate = QDate(
-                    state.test_date.year, state.test_date.month, state.test_date.day
+                    state.test_date.year,
+                    state.test_date.month,
+                    state.test_date.day,
                 )
                 self._date_edit.setDate(qdate)
 
@@ -269,7 +301,7 @@ class DegasserTab(BaseTab):
             self._update_time_series_table(state.time_series_table_rows)
 
         finally:
-            self._block_signals(False)
+            self._block_signals(block=False)
 
     def connect_signals(self, presenter: "DegasserPresenter") -> None:
         """Connect all view signals to presenter event handlers.
@@ -279,6 +311,7 @@ class DegasserTab(BaseTab):
 
         Args:
             presenter: The presenter instance with event handler methods
+
         """
         # Metadata fields
         self._name_edit.textChanged.connect(presenter.on_name_changed)
@@ -303,7 +336,7 @@ class DegasserTab(BaseTab):
                 continue
             combo = self._test_table.cellWidget(row, 1)
             if combo:
-                combo = cast(QComboBox, combo)
+                combo = cast("QComboBox", combo)
                 combo.textActivated.connect(
                     lambda text, r=row: presenter.on_pass_fail_changed(r, text)
                 )
@@ -318,6 +351,7 @@ class DegasserTab(BaseTab):
 
         Returns:
           Cell text value, or empty string if cell doesn't exist
+
         """
         item = self._test_table.item(row, column)
         if item is None:
@@ -342,6 +376,7 @@ class DegasserTab(BaseTab):
 
         Raises:
           ValueError: If cell text is not a valid number
+
         """
         item = self._time_series_widget.item(row, column)
         if item is None:
@@ -355,6 +390,46 @@ class DegasserTab(BaseTab):
             return float(text)
         except ValueError:
             return None
+
+    def question_dialog(self, title: str, text: str) -> bool:
+        """Show a question dialog and return the result."""
+        reply = QMessageBox.question(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
+    def info_dialog(self, title: str, text: str) -> bool:
+        """Show an info dialog."""
+        reply = QMessageBox.information(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
+
+    def warning_dialog(self, title: str, text: str) -> bool:
+        """Show a warning dialog."""
+        reply = QMessageBox.warning(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
+
+    def critical_dialog(self, title: str, text: str) -> bool:
+        """Show a critical dialog."""
+        reply = QMessageBox.critical(
+            self,
+            title,
+            text,
+            QMessageBox.StandardButton.Ok,
+        )
+        return reply == QMessageBox.StandardButton.Ok
 
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
@@ -403,6 +478,7 @@ class DegasserTab(BaseTab):
         return widget
 
     def _build_test_table(self) -> QWidget:
+        # TODO: Split up into smaller methods for readability and replace magic numbers
         """Build the test table section."""
         widget = QWidget()
         layout = QVBoxLayout()
@@ -514,9 +590,7 @@ class DegasserTab(BaseTab):
         self._time_series_widget.setItemDelegateForColumn(
             1, ValidatedFloatDelegate(self._time_series_widget)
         )
-        self._time_series_widget.setHorizontalHeaderLabels(
-            ["Time (minutes)", "Dissolved O2 (mg/L)"]
-        )
+        self._time_series_widget.setHorizontalHeaderLabels(TIME_SERIES_HEADERS)
         self._time_series_widget.verticalHeader().setVisible(True)  # Push to left
 
         for row in range(NUM_TIME_SERIES_ROWS):
@@ -642,6 +716,7 @@ class DegasserTab(BaseTab):
 
         Args:
             test_rows: List of TestResultRow objects to display
+
         """
         for row_idx, row_data in enumerate(test_rows):
             # Column 0 (Description) is read-only, set once in __init__
@@ -649,7 +724,7 @@ class DegasserTab(BaseTab):
             # Column 1: Pass/Fail dropdown
             combo = self._test_table.cellWidget(row_idx, 1)
             if combo:
-                combo = cast(QComboBox, combo)
+                combo = cast("QComboBox", combo)
                 with QSignalBlocker(combo):
                     combo.setCurrentText(row_data.pass_fail)
 
@@ -659,14 +734,15 @@ class DegasserTab(BaseTab):
             self._set_table_cell_float(row_idx, 4, row_data.measured)
 
     def _update_time_series_table(
-        self, table_rows: list[tuple[int, Optional[float]]]
+        self, table_rows: list[tuple[int, float | None]]
     ) -> None:
         """Update the time series table from the state data.
 
         Args:
             table_rows: List of (minute, oxygen_level) tuples to display
+
         """
-        for row_idx, (minute, oxygen_level) in enumerate(table_rows):
+        for row_idx, (_minute, oxygen_level) in enumerate(table_rows):
             # Column 0 (minute) is read-only; set once in __init__
 
             # Column 1: Dissolved O2 measured data
@@ -680,13 +756,14 @@ class DegasserTab(BaseTab):
             else:
                 oxy_item.setText("")
 
-    def _set_table_cell_float(self, row: int, col: int, value: Optional[float]) -> None:
-        """Helper to set table cell to a float value.
+    def _set_table_cell_float(self, row: int, col: int, value: float | None) -> None:
+        """Set table cell to a float value.
 
         Args:
             row: Row index
             col: Column index
             value: Float value to display, or None for empty cell
+
         """
         item = self._test_table.item(row, col)
         if item is None:
@@ -709,6 +786,7 @@ class DegasserTab(BaseTab):
 
         Args:
             block: True to block signals, False to unblock
+
         """
         # Metadata fields
         self._name_edit.blockSignals(block)
@@ -745,14 +823,12 @@ class DegasserTab(BaseTab):
         frame_width = table.frameWidth()
 
         # Calculate total height: header + all rows + frame borders + padding
-        total_height = (
+        return (
             h_header.height()  # Horizontal header (column names)
             + v_header.length()  # Sum of all row heights
             + (frame_width * 2)  # Top and bottom frame borders
             + 1  # Padding
         )
-
-        return total_height
 
     def log_message(self, message: str) -> None:
         """Log a message to the console output."""
@@ -763,7 +839,9 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
     """Delegate that appends units for measured values in the test table."""
 
     def __init__(
-        self, units_by_row: dict[int, str], parent: Optional[QWidget] = None
+        self,
+        units_by_row: dict[int, str],
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._units_by_row = units_by_row
@@ -788,7 +866,7 @@ class ValidatedFloatDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
 
     def createEditor(
         self,
-        parent: QWidget,
+        parent: QWidget | None,
         option: "QStyleOptionViewItem",
         index: "QModelIndex | QPersistentModelIndex",
     ) -> QWidget:
@@ -803,3 +881,15 @@ class ValidatedFloatDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
         # (Since we create a custom editor, we bypass mixin's createEditor)
         editor.installEventFilter(self)
         return editor
+
+
+def _main() -> None:
+    """Call Main function."""
+    app = QApplication(sys.argv)
+    window = DegasserTab()
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    _main()
