@@ -61,8 +61,6 @@ ignore = [
   "COM812",  # Checks for trailing commas in lists, tuples, and dicts.
   "INP001",  # Checks for packages that are missing an __init__.py file.
   "D100",  # Checks for undocumented public module definitions.
-  "D101",  # Checks for undocumented public class definitions.
-  "D102",  # Checks for undocumented public method definitions.
   "D104",  # Checks for undocumented public package definitions.
   "D107",  # Checks for public __init__ method definitions that are missing docstrings
   "FIX002",  # Checks for "TODO" comments.
@@ -83,7 +81,7 @@ quote-style = "double"
 # Indent with spaces (recommended by PEP 8)
 indent-style = "space"
 # Use `\n` line endings for all files
-line-ending = "lf"
+line-ending = "cr-lf"
 # Format code snippets in docstrings
 docstring-code-format = true
 # Respect magic trailing commas

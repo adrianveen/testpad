@@ -286,7 +286,7 @@ class _CombinedCalibrationImpl:
                 cfg.interp_step,
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[2] = ax_intensity_field_graph
 
@@ -308,7 +308,7 @@ class _CombinedCalibrationImpl:
                 cfg.interp_step,
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[3] = lat_pressure_field_graph
             # Intensity field
@@ -325,7 +325,7 @@ class _CombinedCalibrationImpl:
                 cfg.interp_step,
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[4] = lat_intensity_field_graph
 
@@ -346,7 +346,7 @@ class _CombinedCalibrationImpl:
                 "Pressure",
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[5] = y_pressure_line_graph
             y_pressure_fwhmx, y_pressure_offset = fwhmx(
@@ -357,7 +357,7 @@ class _CombinedCalibrationImpl:
                 "Y",
                 "Axial ",
                 "Pressure",
-                self.textbox,
+                textbox,
             )
             if pointer_location is not None and not isinstance(y_pressure_offset, str):
                 offsets[1] = -1.0 * (pointer_location[1] - y_pressure_offset)
@@ -372,7 +372,7 @@ class _CombinedCalibrationImpl:
                 "Intensity",
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[6] = y_intensity_line_graph
             y_intensity_fwhmx, _ = fwhmx(
@@ -383,7 +383,7 @@ class _CombinedCalibrationImpl:
                 "Y",
                 "Axial ",
                 "Intensity",
-                self.textbox,
+                textbox,
             )
 
             # PRINT AXIAL FWHMX
@@ -412,7 +412,7 @@ class _CombinedCalibrationImpl:
                 "Pressure",
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[7] = x_pressure_line_graph
             x_pressure_fwhmx, x_pressure_offset = fwhmx(
@@ -423,7 +423,7 @@ class _CombinedCalibrationImpl:
                 "X",
                 "Lateral ",
                 "Pressure",
-                self.textbox,
+                textbox,
             )
             if pointer_location is not None and not isinstance(x_pressure_offset, str):
                 offsets[0] = pointer_location[0] - x_pressure_offset
@@ -438,7 +438,7 @@ class _CombinedCalibrationImpl:
                 "Intensity",
                 cfg.save,
                 str(cfg.save_folder) if cfg.save_folder else "",
-                self.textbox,
+                textbox,
             )
             self.graph_list[8] = x_intensity_line_graph
             x_intensity_fwhmx, _ = fwhmx(
@@ -449,7 +449,7 @@ class _CombinedCalibrationImpl:
                 "X",
                 "Lateral ",
                 "Intensity",
-                self.textbox,
+                textbox,
             )
 
             # Z LINE SCAN
@@ -464,7 +464,7 @@ class _CombinedCalibrationImpl:
                 "Z",
                 "Lateral ",
                 "Pressure",
-                self.textbox,
+                textbox,
             )
             if pointer_location is not None and not isinstance(z_pressure_offset, str):
                 offsets[2] = pointer_location[2] - z_pressure_offset
@@ -477,7 +477,7 @@ class _CombinedCalibrationImpl:
                 "Z",
                 "Lateral ",
                 "Intensity",
-                self.textbox,
+                textbox,
             )
 
             # LATERAL FWHMX (AVERAGE OF X AND Z)

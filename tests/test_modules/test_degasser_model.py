@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 # VALIDASTION TESTS - Testing the "rules" of the data
 # ====================================================================================
 class TestMinuteValidation:
+    """Test the validation rules for minutes."""
+
     def test_valid_minutes(self) -> None:
         """Valid minutes (0-10) should be accepted without error."""
         model = DegasserModel()
@@ -68,6 +70,8 @@ class TestMinuteValidation:
 
 
 class TestOxygenValidation:
+    """Test the validation rules for oxygen readings."""
+
     def test_positive_oxygen_accepted(self) -> None:
         """Positive oxygen readings should be accepted without error."""
         model = DegasserModel()
@@ -96,7 +100,7 @@ class TestOxygenValidation:
     def test_non_integer_minute_rejected(self) -> None:
         """Non-integer minutes should raise ValueError."""
         model = DegasserModel()
-        with pytest.raises(ValueError, match="must be an integer"):
+        with pytest.raises(TypeError, match="must be an integer"):
             model.set_measurement(0.5, 5.0)  # type: ignore[arg-type]
 
 

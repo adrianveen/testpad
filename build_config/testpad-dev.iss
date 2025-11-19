@@ -3,7 +3,7 @@
 ; Usage: compile with ISCC. Optionally override version: ISCC /DMyAppVersion=1.10.5 build_config\testpad-dev.iss
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.10.0"
+  #define MyAppVersion "1.12.1"
 #endif
 
 #define MyCompany       "FUS Instruments"

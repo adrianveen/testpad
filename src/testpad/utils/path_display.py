@@ -21,7 +21,8 @@ def truncate_to_testpad(path: str | Path) -> str:
 
     Examples:
         >>> truncate_to_testpad(
-        ...     "C:\\Users\\UserName\\Documents\\repos\\summer_2024\\testpad\\src\\testpad\\ui\\tabs\\degasser_tab\\view.py"
+        ...     "C:\\Users\\UserName\\Documents\\repos\\summer_2024\\testpad\\src\\
+        ...         testpad\\ui\\tabs\\degasser_tab\\view.py"
         ... )
         'C:\\...\\testpad\\ui\\tabs\\degasser_tab\\view.py'
 

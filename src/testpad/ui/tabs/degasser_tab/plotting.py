@@ -76,19 +76,21 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
 
     try:
         figure.savefig(temp_path, dpi=figure.get_dpi(), bbox_inches="tight")
-        return temp_path
+
     except Exception:
         # Clean up on error
         with contextlib.suppress(OSError):
             Path(temp_path).unlink()
         raise
+    else:
+        return temp_path
 
 
 def normalize_time_series_data(
     data: Mapping[int, float] | Sequence[tuple[int, float]],
 ) -> list[tuple[int, float]]:
     """Normalize data to sorted list of (minute, oxygen) tuples."""
-    if hasattr(data, "items"):
+    if isinstance(data, Mapping):
         return sorted((int(k), float(v)) for k, v in data.items())
     return sorted((int(k), float(v)) for k, v in data)
 

@@ -9,6 +9,7 @@ from PySide6.QtGui import (
     QFontMetrics,
     QGuiApplication,
     QPainter,
+    QPaintEvent,
     QPen,
     QPixmap,
 )
@@ -26,7 +27,7 @@ from testpad.utils.resources import resolve_resource_path
 
 try:
     from PySide6.QtSvg import QSvgRenderer
-except Exception:  # pragma: no cover - optional dependency at runtime
+except ImportError:  # pragma: no cover - optional dependency at runtime
     QSvgRenderer = None
 
 
@@ -44,9 +45,7 @@ def _render_svg_to_pixmap(svg_path: str, size: QSize) -> QPixmap | None:
     # Preserve aspect ratio within given size
     view_box = renderer.viewBoxF()
     if not view_box.isEmpty():
-        scale = min(
-            size.width() / view_box.width(), size.height() / view_box.height()
-        )
+        scale = min(size.width() / view_box.width(), size.height() / view_box.height())
         w = view_box.width() * scale
         h = view_box.height() * scale
         x = (size.width() - w) / 2
@@ -226,16 +225,16 @@ class SplashScreen(QWidget):
             self.logo_label.setText(base_name)
 
         # Wider splash, slightly taller than the logo aspect ratio
-        target_width = (pm.size().width() if isinstance(pm, QPixmap) else 760) + (
-            m * 2
-        )
+        target_width = (pm.size().width() if isinstance(pm, QPixmap) else 760) + (m * 2)
         self.resize(target_width, 360)
 
-    def paintEvent(self, ev):
+    def paintEvent(self, ev: QPaintEvent) -> None:
+        """Paint the splash screen."""
         # Transparent window, so we only need to let the frame paint itself.
-        return super().paintEvent(ev)
+        super().paintEvent(ev)
 
     def update_progress(self, percent: int, message: str | None = None) -> None:
+        """Update the progress bar and message label."""
         self.progress.setValue(max(0, min(100, percent)))
         if message is not None:
             # Elide long messages to fit within the fixed width without wrapping
@@ -253,6 +252,7 @@ class SplashScreen(QWidget):
             app.processEvents()
 
     def show_centered(self) -> None:
+        """Show the splash screen centered on the primary screen."""
         screen = QGuiApplication.primaryScreen()
         if screen:
             geo = screen.availableGeometry()
@@ -281,24 +281,49 @@ class RoundedProgressBar(QWidget):
         self._track_border = QColor("#dddddd")
         self._fill = QColor("#69b19b")  # keep original bar color
         # Transparent background so frame shows around it
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, on=True)
         self.setAutoFillBackground(False)
 
     def setRange(self, minimum: int, maximum: int) -> None:
+        """Set the minimum and maximum values for the progress bar.
+
+        Args:
+            minimum (int): The minimum value for the progress bar.
+            maximum (int): The maximum value for the progress bar.
+
+        """
         self._minimum = minimum
         self._maximum = maximum if maximum > minimum else minimum + 1
         self._value = max(self._minimum, min(self._value, self._maximum))
         self.update()
 
     def setValue(self, value: int) -> None:
+        """Set the current value of the progress bar.
+
+        Args:
+            value (int): The current value for the progress bar.
+
+        """
         self._value = max(self._minimum, min(value, self._maximum))
         self.update()
 
     def setTextVisible(self, visible: bool) -> None:
+        """Set whether the progress bar text is visible.
+
+        Args:
+            visible (bool): True to show the text, False to hide it.
+
+        """
         self._text_visible = bool(visible)
         self.update()
 
     def setFormat(self, fmt: str) -> None:
+        """Set the format string for the progress bar text.
+
+        Args:
+            fmt (str): The format string for the progress bar text.
+
+        """
         self._format = fmt or "%p%"
         self.update()
 
@@ -312,9 +337,15 @@ class RoundedProgressBar(QWidget):
             txt = txt.replace("%p%", f"{self._percent()}%")
         return txt
 
-    def paintEvent(self, ev) -> None:
+    def paintEvent(self, _ev: QPaintEvent) -> None:
+        """Paint the progress bar.
+
+        Args:
+            _ev (QPaintEvent): The event object.
+
+        """
         p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing, on=True)
 
         w = self.width()
         h = self.height()

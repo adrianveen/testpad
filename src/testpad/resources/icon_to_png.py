@@ -8,7 +8,8 @@ The script performs the following steps:
 3. Opens the .ico file.
 4. Saves the image as a .png file with high resolution.
 Note:
-- The file paths for the .ico and .png files are hard-coded and will need to be updated as per your requirements.
+- The file paths for the .ico and .png files are hard-coded and will need to be updated
+    as per your requirements.
 Dependencies:
 - PIL (Python Imaging Library), which can be installed via the Pillow package.
 Usage:

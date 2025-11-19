@@ -269,9 +269,7 @@ class GenerateReport:
                     if spec_key
                     else (None, None)
                 )
-                units = (
-                    DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else ""
-                )
+                units = DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else ""
 
                 # Column 3: Spec_Min
                 if spec[0] is not None:

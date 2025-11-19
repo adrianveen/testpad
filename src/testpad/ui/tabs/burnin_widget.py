@@ -105,9 +105,7 @@ class BurninTab(QWidget):
             display_layout.addWidget(nav_tool_list[i])
             display_layout.addWidget(canvas)
 
-            self.graph_display.addTab(
-                display_widget, f"{canvas.figure.get_suptitle()}"
-            )
+            self.graph_display.addTab(display_widget, f"{canvas.figure.get_suptitle()}")
 
     def show_warning(self, message: str) -> None:
         """Show a warning message in the text disqplay."""

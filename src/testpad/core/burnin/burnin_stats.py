@@ -92,12 +92,8 @@ class BurninStats:
         # kurtosis_error = np.round(kurtosis(errors, nan_policy="omit"), 2)
 
         # other info on data
-        pct_above_thresh = (
-            round(np.sum(abs_errors > threshold) / valid_count, 2) * 100
-        )
-        pct_below_thresh = (
-            round(np.sum(abs_errors < threshold) / valid_count, 2) * 100
-        )
+        pct_above_thresh = round(np.sum(abs_errors > threshold) / valid_count, 2) * 100
+        pct_below_thresh = round(np.sum(abs_errors < threshold) / valid_count, 2) * 100
         peaks, _ = find_peaks(errors, height=threshold)
         drops, _ = find_peaks(-errors, height=threshold)
         num_peaks = len(peaks)
@@ -161,9 +157,7 @@ class BurninStats:
     def display_table(self, data: list) -> None:
         """Display the statistics in a table format."""
         # create basic HTML table structure
-        table_html = (
-            "<table border='1'> cellpadding='4' cellspacing='0' width='100%'>"
-        )
+        table_html = "<table border='1'> cellpadding='4' cellspacing='0' width='100%'>"
         # create table header
         table_html += "<tr><th> Statistic </th><th> Value </th></tr>"
 

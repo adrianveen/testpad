@@ -52,9 +52,7 @@ def get_version() -> str:
     try:
         sys.path.insert(0, str(Path(base_dir) / "src"))
 
-        print(
-            f"[spec_common] Using version from version.py (fallback): {__version__}"
-        )
+        print(f"[spec_common] Using version from version.py (fallback): {__version__}")
 
     except ImportError:
         msg = (
@@ -278,9 +276,7 @@ def get_common_datas(base_dir: str) -> list[tuple[str, str]]:
         )
         datas.extend(testpad_data)
     except (ImportError, ModuleNotFoundError) as e:
-        print(
-            f"[spec_common] Warning: Could not auto-collect testpad data files: {e}"
-        )
+        print(f"[spec_common] Warning: Could not auto-collect testpad data files: {e}")
         # Fallback to manual specification
         base_path = Path(base_dir)
         datas.extend(
@@ -361,9 +357,7 @@ def get_common_hiddenimports() -> list[str]:
 
     # Collect all config modules
     config_modules = collect_submodules("testpad.config")
-    print(
-        f"[spec_common] Collected {len(config_modules)} modules from testpad.config"
-    )
+    print(f"[spec_common] Collected {len(config_modules)} modules from testpad.config")
     imports.extend(config_modules)
 
     # Collect core testpad modules (for comprehensive coverage)

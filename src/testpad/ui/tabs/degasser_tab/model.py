@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 # ------------------ Data Structures ------------------
 @dataclass
 class TestResultRow:
+    """Test result row Data Class."""
+
     description: str
     pass_fail: str = ""  # "Pass" / "Fail" / "" (UI enforces)
     spec_min: float | None = None
@@ -28,6 +30,8 @@ class TestResultRow:
 
 @dataclass
 class TimeSeriesState:
+    """Time series state Data Class."""
+
     loaded: bool
     points_filled: int
     minutes_with_data: list[int]
@@ -36,6 +40,8 @@ class TimeSeriesState:
 
 @dataclass
 class Metadata:
+    """Metadata Data Class."""
+
     tester_name: str = ""
     test_date: date | None = None  # Will be a datetime.date or QDate
     ds50_serial: str = ""
@@ -96,10 +102,10 @@ class DegasserModel:
     # -------- Validation Helpers --------
     @staticmethod
     def _validate_minute(minute: int) -> None:
-        """Ensure the minute identifier is an integer within the allowed 0..10 window."""
+        """Ensure minute identifier is an integer within the allowed 0..10 window."""
         if not isinstance(minute, int):
             msg = "Minute must be an integer."
-            raise ValueError(msg)
+            raise TypeError(msg)
         if minute < MIN_MINUTE or minute > MAX_MINUTE:
             msg = f"Minute must be in range {MIN_MINUTE}..{MAX_MINUTE}."
             raise ValueError(msg)
@@ -141,10 +147,10 @@ class DegasserModel:
         return Metadata(**asdict(self._metadata))
 
     # -------- Time Series API --------
-    def set_measurement(self, minute: int, oxygen_mg_per_L: float) -> TimeSeriesState:
+    def set_measurement(self, minute: int, oxygen_mg_per_l: float) -> TimeSeriesState:
         """Insert or update the oxygen reading for a specific minute slot."""
         self._validate_minute(minute)
-        self._oxygen_data[minute] = self._validate_oxygen(oxygen_mg_per_L)
+        self._oxygen_data[minute] = self._validate_oxygen(oxygen_mg_per_l)
         return self.get_state()
 
     def clear_measurement(self, minute: int) -> TimeSeriesState:
@@ -258,7 +264,8 @@ class DegasserModel:
                     if h in candidates:
                         return h
                 if required:
-                    msg = f"Missing required column; expected one of: {sorted(candidates)}"
+                    expected = sorted(candidates)
+                    msg = f"Missing required column; expected one of: {expected}"
                     raise ValueError(msg)
                 return None
 
@@ -283,9 +290,9 @@ class DegasserModel:
                     if raw_temp:
                         try:
                             self._temperature_c = float(raw_temp)
-                        except ValueError:
+                        except ValueError as e:
                             msg = f"Invalid temperature at line {line_no}: {raw_temp}"
-                            raise ValueError(msg)
+                            raise ValueError(msg) from e
 
         return self.get_state()
 

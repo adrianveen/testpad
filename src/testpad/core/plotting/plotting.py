@@ -91,9 +91,7 @@ def plot_x_multiple_y(
         raise ValueError(msg)
 
     if data_labels is not None and len(data_labels) != len(y):
-        msg = (
-            f"data_labels length ({len(data_labels)}) must match y length ({len(y)})"
-        )
+        msg = f"data_labels length ({len(data_labels)}) must match y length ({len(y)})"
         raise ValueError(msg)
 
     # Create figure
