@@ -175,7 +175,7 @@ class GenerateReport:
                 # First column (left field)
                 label, value = pair[0]
                 if label == "Test Date":
-                    # Value is already a Python date object (converted by model)
+                    # Value is a Python date object (converted by presenter)
                     value = value.strftime("%Y-%m-%d")
                 row.cell(
                     text=f"{label}: --{value}--",

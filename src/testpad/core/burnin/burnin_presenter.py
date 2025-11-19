@@ -1,9 +1,11 @@
 """Contains the BurninPresenter class, which is the presenter for the Burnin tab."""
 
+import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDialog
 
 from testpad.config.plotting import (
@@ -259,10 +261,17 @@ class BurninPresenter:
             self._model.update_metadata(data)
 
         metadata = self._model.get_metadata()
+        # Convert QDate to Python datetime.date for PDF generation
+        test_date_value = metadata.test_date
+        test_date = None
+        if test_date_value is not None and isinstance(test_date_value, QDate):
+            test_date = datetime.date(
+                test_date_value.year(), test_date_value.month(), test_date_value.day()
+            )
         report_meta = {
             "Tested By": metadata.tested_by,
             "Test Name": metadata.test_name,
-            "Test Date": metadata.test_date,
+            "Test Date": test_date,
             "RK300 Serial #": metadata.rk300_serial,
         }
         # Generate report
