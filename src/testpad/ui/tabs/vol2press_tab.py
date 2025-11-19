@@ -341,9 +341,7 @@ class Vol2PressTab(QWidget):
                 self.save_file_path = str(
                     selected_path
                 )  # Full file path (directory + file name)
-                self.save_location = str(
-                    selected_path.parent
-                )  # Just the directory
+                self.save_location = str(selected_path.parent)  # Just the directory
                 self.config_filename = selected_path.name  # Just the file name
                 self.text_display.append("Save Location: " + self.save_location + "\n")
                 self.text_display.append(

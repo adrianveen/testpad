@@ -195,9 +195,7 @@ def add_ncycle_sweep_to_transducer_file(
     transducer_sn, freq_strs, ncycle_sweep_subfolders = (
         _parse_info_from_ncycle_sweep_directory(results_directory)
     )
-    yaml_dict = yaml.load(
-        Path(transducer_config_file).open(), Loader=yaml.FullLoader
-    )
+    yaml_dict = yaml.load(Path(transducer_config_file).open(), Loader=yaml.FullLoader)
     plot_data = []
 
     for freq_str, ncycle_sweep_subfolder in zip(

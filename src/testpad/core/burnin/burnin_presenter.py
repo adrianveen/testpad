@@ -115,8 +115,8 @@ class BurninPresenter:
 
             # Update the UI with the new path
             self._refresh_view()
-            self._view.show_info(f"Output folder set to {path}")
-            self._view.add_text_to_text_display(f"Output folder: {path}\n")
+            self._view.show_info(f"Output folder set to:\n{path}")
+            self._view.add_text_to_text_display(f"Output folder:\n{path}\n")
 
     def on_print_graph_clicked(self) -> None:
         """Call when the print graph button is clicked."""
@@ -307,15 +307,19 @@ class BurninPresenter:
 
         list_of_pngs = [save_figure_to_temp_file(fig) for fig in list_of_figs]
 
+        output_path = self._model.get_output_folder()
         report_generator = GenerateReport(
             meta_data=report_meta,
             burnin_stats=self._stats_classes,
             list_of_temp_pngs=list_of_pngs,
-            output_dir=self._model.get_output_folder() or DEFAULT_EXPORT_DIR,
+            output_dir=output_path or DEFAULT_EXPORT_DIR,
         )
 
         try:
             report_generator.generate_report()
+            self._view.add_text_to_text_display(
+                f"Report generated successfully. Report was saved to:\n{output_path}"
+            )
         except (ValueError, OSError, PermissionError) as e:
             self._view.show_critical(
                 f"Failed to generate report: {e}"
