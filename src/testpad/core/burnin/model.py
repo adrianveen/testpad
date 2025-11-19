@@ -119,6 +119,8 @@ class BurninFileInfo:
 
 @dataclass
 class BurninData:
+    """Data class for storing the data from a single RK-300 burnin test."""
+
     time: np.ndarray
     error: np.ndarray
     positive_errors: np.ndarray
@@ -300,7 +302,7 @@ class BurninModel:
 
         """
         valid_mask = ~np.isnan(array)
-        arr_filled = np.where(valid_mask, 0, array)
+        arr_filled = np.where(valid_mask, array, 0)
 
         window_sums = np.convolve(arr_filled, np.ones(window), mode="same")
         window_counts = np.convolve(

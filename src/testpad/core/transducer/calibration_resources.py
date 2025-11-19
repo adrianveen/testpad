@@ -348,9 +348,9 @@ def fwhmx(
     # last_index = x[idx[-1]] # last x-coordinate where the 0.5 line is crossed
 
     fwhmx = last_index - first_index  # FWHMX calculation
-    # print(axis, type_of_scan+type_of_data+':', '{0:.1f}'.format(last_index), "-",
-    #'{0:.1f}'.format(first_index), "=", '{0:.1f}'.format(fwhmx)+'\n') # print statements
-    # for testing purposes
+    # print(axis, type_of_scan+type_of_data+':', '{0:.1f}'.format(last_index),
+    # "-", '{0:.1f}'.format(first_index), "=", '{0:.1f}'.format(fwhmx)+'\n')
+    # print statements for testing purposes
 
     offset = (first_index + last_index) / 2
     return fwhmx, offset
@@ -801,7 +801,15 @@ def field_graph(
     # interp = RegularGridInterpolator((horizontal, vertical), pressure)
     # # print(interp)
 
-    # pcm = ax1.imshow(interp((X1, Y1)), extent=(np.min(horizontal), np.max(horizontal), np.min(vertical), np.max(vertical)), cmap=cmap, interpolation='none')
+    # pcm = ax1.imshow(
+    #     interp((X1, Y1)),
+    #     extent=(
+    #         np.min(horizontal), np.max(horizontal),
+    #         np.min(vertical), np.max(vertical)
+    #     ),
+    #     cmap=cmap,
+    #     interpolation='none',
+    # )
 
     # NO INTERPOLATION METHOD
     # pcm = ax1.pcolormesh(X1, Y1, pressure, cmap=cmap)

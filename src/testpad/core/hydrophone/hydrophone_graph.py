@@ -263,6 +263,16 @@ class HydrophoneGraph:
         self._finalize_plot("Hydrophone Sensitivity (Combined)")
 
     def generate_color_palette(self, base_color: str, num_colors: int) -> list[str]:
+        """Generate a color palette based on the base color provided.
+
+        Args:
+            base_color (str): The base color to generate the palette from.
+            num_colors (int): The number of colors in the palette.
+
+        Returns:
+            list[str]: A list of color hex codes.
+
+        """
         brgb = to_rgb(base_color)
         return [
             to_hex(

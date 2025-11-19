@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import Qt, Slot
@@ -207,29 +207,25 @@ class NanobubblesTab(QWidget):
                     self.nanobubbles_files, self.selected_data_type
                 )
                 graph = nanobubbles_object.get_graphs(
-                    float(self.bin_width_field.text()),
-                    False,
-                    False,
-                    self.compare_box.isChecked(),
-                    self.selected_data_type,
+                    bins=int(float(self.bin_width_field.text())),
+                    scale=False,
+                    overlaid=self.compare_box.isChecked(),
+                    data_selection=self.selected_data_type,
                     apply_convolution_filter=self.convolution_box.isChecked(),
                     convolution_size=self.convolution_spinbox.value(),
                 )
-            # False, self.normal_box.isChecked(), self.compare_box.isChecked())
             else:  # log scale
                 nanobubbles_object = NanobubblesGraph(
                     self.nanobubbles_files, self.selected_data_type
                 )
                 graph = nanobubbles_object.get_graphs(
-                    float(self.bin_count_spinbox.value()),
-                    "log",
-                    False,
-                    self.compare_box.isChecked(),
-                    self.selected_data_type,
+                    bins=int(self.bin_count_spinbox.value()),
+                    scale=True,
+                    overlaid=self.compare_box.isChecked(),
+                    data_selection=self.selected_data_type,
                     apply_convolution_filter=self.convolution_box.isChecked(),
                     convolution_size=self.convolution_spinbox.value(),
                 )
-                # self.normal_box.isChecked(), self.compare_box.isChecked())
 
             nav_tool = NavigationToolbar(graph)
 
@@ -252,8 +248,9 @@ class NanobubblesTab(QWidget):
                 )
 
             if self.save_box.isChecked():
-                if self.file_save_location is None or not os.path.exists(
-                    self.file_save_location
+                if (
+                    self.file_save_location is None
+                    or not Path(self.file_save_location).exists()
                 ):
                     error_message = (
                         "Error: Save location was not specified or does not exist.\n"

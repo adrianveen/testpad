@@ -1,6 +1,6 @@
 """Matching Box module for the Matching Box Tab View."""
 
-from PySide6.QtCore import QEvent, QPoint, Qt, Slot
+from PySide6.QtCore import QEvent, QObject, QPoint, Qt, Slot
 from PySide6.QtGui import QDoubleValidator, QPixmap, QResizeEvent
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -158,7 +158,9 @@ class MatchingBoxTab(QWidget):
         csv_graphs_layout.addWidget(print_graphs_button, 4, 0, 1, 3)
         for i in range(len(csv_list_col_1)):
             if csv_list_col_1[i] == self.save_checkbox:
-                csv_graphs_layout.addWidget(csv_list_col_1[i], i, 1, Qt.AlignCenter)
+                csv_graphs_layout.addWidget(
+                    csv_list_col_1[i], i, 1, Qt.AlignmentFlag.AlignCenter
+                )
             else:
                 csv_graphs_layout.addWidget(csv_list_col_1[i], i, 1)
         for i in range(len(csv_list_col_2)):
@@ -180,7 +182,8 @@ class MatchingBoxTab(QWidget):
         self.setLayout(main_layout)
 
     # enable custom toroid textbox when custom is selected
-    def update_toroid_textbox(self):
+    def update_toroid_textbox(self) -> None:
+        """Enable custom toroid textbox when custom is selected."""
         if self.toroid_box.currentText() == "Custom":
             self.toroid_textbox.setEnabled(True)
         else:
@@ -188,11 +191,13 @@ class MatchingBoxTab(QWidget):
 
     # keep current image scale across resizes; scroll area handles overflow
     def resizeEvent(self, event: QResizeEvent) -> None:
+        """Keep current image scale across resizes."""
         return super().resizeEvent(event)
 
     # execute matching box program
     @Slot()
-    def getValues(self):
+    def getValues(self) -> None:
+        """Execute matching box program."""
         self.text_display.clear()
         freq = 0
         if self.freq_textbox.text():
@@ -229,27 +234,35 @@ class MatchingBoxTab(QWidget):
     #     # resize the image if the matching calculations have already been made
     #     if self.new_match is not None:
     #         self.pixmap = QPixmap(self.new_match.image_file)
-    #         self.image_display.setPixmap(self.pixmap.scaledToWidth(self.text_display.width()))
+    #         self.image_display.setPixmap\
+    #             (self.pixmap.scaledToWidth(self.text_display.width()))
 
     # choose files
     @Slot()
-    def openFileDialog(self, type):
+    def openFileDialog(self, type: str) -> None:
+        """Open a file dialog to select a file or dir based on d_type specified.
+
+        Args:
+            type (str): The mode of the dialog to open.
+
+        """
         # self.selected_csv_file, self.selected_save_folder = None, None
         if type == "file":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("CSV File")
-            self.dialog1.setFileMode(QFileDialog.ExistingFile)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
             if self.dialog1.exec():
                 self.selected_csv_file = self.dialog1.selectedFiles()[0]
         elif type == "save":
             self.dialog2 = QFileDialog(self)
-            self.dialog2.setFileMode(QFileDialog.Directory)
+            self.dialog2.setFileMode(QFileDialog.FileMode.Directory)
             if self.dialog2.exec():
                 self.selected_save_folder = self.dialog2.selectedFiles()[0]
 
     # print CSV graphs to viewer
     @Slot()
-    def printCSVGraphs(self):
+    def printCSVGraphs(self) -> None:
+        """Print CSV graphs to viewer."""
         self.graph_display.clear()
         # print(self.selected_csv_file)
         # print(self.selected_save_folder)
@@ -264,7 +277,7 @@ class MatchingBoxTab(QWidget):
         self.graph_display.addTab(phase_graph, "Phase Graph")
         # self.graph_display.adjustSize()
 
-    def _apply_scale(self, factor: float):
+    def _apply_scale(self, factor: float) -> None:
         """Apply scale to the original image and set it on the label.
 
         Ensures a minimum of 15% of the original size.
@@ -284,18 +297,28 @@ class MatchingBoxTab(QWidget):
         self.image_display.setPixmap(self.pixmap)
         self.image_display.adjustSize()
 
-    def eventFilter(self, obj, event):
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        """Event filter for panning and zooming.
+
+        Args:
+            obj (QObject): The object being filtered.
+            event (QEvent): The event being processed.
+
+        Returns:
+            bool: True if the event was handled, False otherwise.
+
+        """
         # Panning with left click-drag; zoom with Ctrl+scroll
         if obj is self.image_scroll.viewport():
             if (
-                event.type() == QEvent.MouseButtonPress
-                and event.button() == Qt.LeftButton
+                event.type() == QEvent.Type.MouseButtonPress
+                and event.button() == Qt.MouseButton.LeftButton
             ):
                 self._panning = True
                 self._pan_start = event.pos()
-                self.image_scroll.setCursor(Qt.ClosedHandCursor)
+                self.image_scroll.setCursor(Qt.CursorShape.ClosedHandCursor)
                 return True
-            if event.type() == QEvent.MouseMove and self._panning:
+            if event.type() == QEvent.Type.MouseMove and self._panning:
                 delta = event.pos() - self._pan_start
                 self._pan_start = event.pos()
                 h = self.image_scroll.horizontalScrollBar()
@@ -304,14 +327,14 @@ class MatchingBoxTab(QWidget):
                 v.setValue(v.value() - delta.y())
                 return True
             if (
-                event.type() == QEvent.MouseButtonRelease
-                and event.button() == Qt.LeftButton
+                event.type() == QEvent.Type.MouseButtonRelease
+                and event.button() == Qt.MouseButton.LeftButton
             ):
                 self._panning = False
-                self.image_scroll.setCursor(Qt.ArrowCursor)
+                self.image_scroll.setCursor(Qt.CursorShape.ArrowCursor)
                 return True
-            if event.type() == QEvent.Wheel and (
-                event.modifiers() & Qt.ControlModifier
+            if event.type() == QEvent.Type.Wheel and (
+                event.modifiers() & Qt.KeyboardModifier.ControlModifier
             ):
                 # Zoom in/out keeping the cursor position roughly stable
                 if self._source_pixmap is None or self._source_pixmap.isNull():

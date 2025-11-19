@@ -78,7 +78,7 @@ def compute_baseline_stats(data: np.ndarray) -> dict[str, float]:
 _baseline = compute_baseline_stats(vpp_baseline)
 
 
-def update_baseline(new_values, replace: bool = False) -> dict[str, int | float]:
+def update_baseline(new_values: list, replace: bool = False) -> dict[str, int | float]:
     """Update the baseline dataset and recompute stats.
 
     Parameters
@@ -98,10 +98,7 @@ def update_baseline(new_values, replace: bool = False) -> dict[str, int | float]
     arr = np.asarray(new_values, float)
     if arr.size == 0:
         return _baseline
-    if replace:
-        vpp_baseline = arr.copy()
-    else:
-        vpp_baseline = np.concatenate([vpp_baseline, arr])
+    vpp_baseline = arr.copy() if replace else np.concatenate([vpp_baseline, arr])
     _baseline = compute_baseline_stats(vpp_baseline)
     return _baseline
 
@@ -109,9 +106,12 @@ def update_baseline(new_values, replace: bool = False) -> dict[str, int | float]
 # ---------------------------- Prediction Intervals ---------------------------- #
 
 
-def prediction_interval_t(value_stats: dict, alpha: float = 0.05):
-    """Two-sided (1-alpha) prediction interval for ONE future observation
-    assuming approximate normality (used as a secondary check only).
+def prediction_interval_t(
+    value_stats: dict, alpha: float = 0.05
+) -> tuple[float | None, float | None]:
+    """Two-sided (1-alpha) prediction interval for ONE future observation.
+
+    Assuming approximate normality (used as a secondary check only).
     PI: mean ± t_{1-alpha/2, n-1} * s * sqrt(1 + 1/n)
     Returns (lo, hi) or (None, None) if insufficient data.
     """
@@ -134,7 +134,7 @@ HampelSuspectZ = 3.0
 HampelOutlierZ = 4.5
 
 
-def robust_z(value: float, stats_dict: dict):
+def robust_z(value: float, stats_dict: dict) -> float:
     """Compute robust standardized distance (z) for a new value."""
     mad_s = stats_dict["mad_scaled"]
     if mad_s == 0:  # Fallback to sd if MAD degenerates
@@ -144,7 +144,7 @@ def robust_z(value: float, stats_dict: dict):
     return (value - stats_dict["median"]) / mad_s
 
 
-def classify_vpp(value: float):
+def classify_vpp(value: float) -> dict:
     """Classify a new Vpp measurement.
 
     Returns dict with fields:
@@ -197,6 +197,7 @@ def classify_vpp(value: float):
 # Backwards compatible simple boolean (kept name but now uses Hampel OK interval)
 def check_new_vpp(vpp_new: float) -> bool:
     """Return True only if the value is classified as 'OK' (|z| <= HampelSuspectZ).
+
     Eliminates edge inconsistency caused by floating point comparisons with the
     precomputed interval.
     """

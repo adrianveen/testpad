@@ -76,7 +76,9 @@ class TransducerLinearTab(QWidget):
         # column 1
         for i in range(len(linear_col_1)):
             if i >= 2:
-                selections_layout.addWidget(linear_col_1[i], i, 1, Qt.AlignCenter)
+                selections_layout.addWidget(
+                    linear_col_1[i], i, 1, Qt.AlignmentFlag.AlignCenter
+                )
             else:
                 selections_layout.addWidget(linear_col_1[i], i, 1)
         selections_layout.addWidget(print_graph_button, 6, 0, 1, 2)
@@ -101,11 +103,17 @@ class TransducerLinearTab(QWidget):
         self.setLayout(main_layout)
 
     @Slot()
-    def openFileDialog(self, type):
-        if type == "data":
+    def openFileDialog(self, dialog_mode: str) -> None:
+        """Open a file dialog to select a file or dir based on d_type specified.
+
+        Args:
+            dialog_mode (str): The mode of the dialog to open.
+
+        """
+        if dialog_mode == "data":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Data Files")
-            self.dialog1.setFileMode(QFileDialog.ExistingFiles)
+            self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
             if self.dialog1.exec():
                 self.text_display.append("Data Files: ")
                 self.selected_data_files = self.dialog1.selectedFiles()
@@ -114,10 +122,10 @@ class TransducerLinearTab(QWidget):
                     self.text_display.append(i + "\n")
                 else:
                     self.text_display.append(i)
-        elif type == "save":
+        elif dialog_mode == "save":
             self.dialog2 = QFileDialog(self)
             self.dialog2.setWindowTitle("Save Folder")
-            self.dialog2.setFileMode(QFileDialog.Directory)
+            self.dialog2.setFileMode(QFileDialog.FileMode.Directory)
             if self.dialog2.exec():
                 self.selected_save_folder = self.dialog2.selectedFiles()[0]
                 self.text_display.append(
@@ -125,7 +133,8 @@ class TransducerLinearTab(QWidget):
                 )
 
     @Slot()
-    def printGraphs(self):
+    def printGraphs(self) -> None:
+        """Print graphs."""
         # self.text_display.clear()
         self.graph_display.clear()
         # print(self.selected_data_files, self.selected_save_folder)

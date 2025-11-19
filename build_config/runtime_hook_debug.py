@@ -10,7 +10,7 @@ import traceback
 _original_import = __builtins__.__import__
 
 
-def _debug_import(name, *return moduleargs, **kwargs) -> object:
+def _debug_import(name, *args, **kwargs) -> object:
     try:
         module = _original_import(name, *args, **kwargs)
         # Uncomment to see ALL imports (very verbose):

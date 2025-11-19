@@ -18,15 +18,16 @@ from .model import DegasserModel
 
 # Defer Qt imports to avoid issues during testing
 if TYPE_CHECKING:
-    from .presenter import DegasserPresenter
+    from PySide6.QtWidgets import QWidget
+
     from .view import DegasserTab
 
 
-def create_degasser_tab(parent=None) -> DegasserTab:
+def create_degasser_tab(parent: QWidget | None = None) -> DegasserTab:
     """Create factory function initializing Degasser Tab."""
     # Import here to avoid Qt dependencies during module import (for testing)
-    from .presenter import DegasserPresenter
-    from .view import DegasserTab
+    from .presenter import DegasserPresenter  # noqa: PLC0415
+    from .view import DegasserTab  # noqa: PLC0415
 
     # Debug: Check if resources are accessible
     try:

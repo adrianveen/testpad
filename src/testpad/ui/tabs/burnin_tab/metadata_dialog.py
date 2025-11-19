@@ -108,8 +108,7 @@ class MetadataDialog(QDialog):
 
     def _add_buttons(self) -> None:
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok
-            | QDialogButtonBox.StandardButton.Cancel,
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             parent=self,
         )
         ok_btn = buttons.button(QDialogButtonBox.StandardButton.Ok)

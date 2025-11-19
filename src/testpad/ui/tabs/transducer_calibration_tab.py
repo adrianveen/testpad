@@ -22,7 +22,9 @@ from testpad.core.transducer.combined_calibration_figures_python import (
 
 
 class TransducerCalibrationTab(QWidget):
-    def __init__(self, parent: QWidget | None = None):
+    """TransducerCalibrationTab UI class."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         # need to initialise these so that saving can happen
@@ -253,7 +255,8 @@ class TransducerCalibrationTab(QWidget):
         self.setLayout(main_layout)
 
     @Slot()
-    def change_text(self, box: QCheckBox, box_type: str):
+    def change_text(self, box: QCheckBox, box_type: str) -> None:
+        """Change text based on checkbox state."""
         if box_type == "ax_field":
             if box.isChecked():
                 self.ax_left_field_length.setText("Axial Left Field Length*")
@@ -291,7 +294,13 @@ class TransducerCalibrationTab(QWidget):
                 self.save_folder.setText("Save Folder")
 
     @Slot()
-    def open_file_dialog(self, dialog_type: str):
+    def open_file_dialog(self, dialog_type: str) -> None:
+        """Open a file dialog to select a file or dir based on d_type specified.
+
+        Args:
+            dialog_type (str): The mode of the dialog to open.
+
+        """
         if dialog_type == "data":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Data Files")
@@ -328,13 +337,16 @@ class TransducerCalibrationTab(QWidget):
 
     # placeholder function
     @Slot()
-    def print_graph(self):
+    def print_graph(self) -> None:
+        """Print graphs."""
         # clear all tabs
         self.graph_group.clear()
         # print(self.ax_left)
 
         # sweep_data, axial_field, axial_line, lateral_field, lateral_line
-        # axial_left_field_length, axial_right_field_length, axial_field_height, axial_left_line_length, axial_right_line_length, lateral_field_length, interp_step
+        # axial_left_field_length, axial_right_field_length, axial_field_height,
+        # axial_left_line_length, axial_right_line_length, lateral_field_length,
+        # interp_step
         cfg = CombinedCalibrationConfig(
             files=[Path(p) for p in self.selected_data_files],
             save_folder=Path(self.selected_save_folder)

@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -11,7 +10,12 @@ class CSVGraph:
     """CSV Graph class."""
 
     def __init__(
-        self, frequency, unit, filename: str, save: bool, save_folder: str = ""
+        self,
+        frequency: float,
+        unit: str,
+        filename: str,
+        save: bool,
+        save_folder: str = "",
     ) -> None:
         """Initialize CsvGraph object.
 
@@ -20,7 +24,8 @@ class CSVGraph:
             unit (str): Unit of the frequency (either "kHz" or "MHz")
             filename (str): Path to the CSV file
             save (bool): Whether to save the graph or not
-            save_folder (str): Folder to which to save the graph (default is empty string)
+            save_folder (str): Folder to which to save the graph
+                (default is empty string)
 
         Returns:
             None
@@ -46,7 +51,7 @@ class CSVGraph:
                     self.filename, header=0, sep=",", usecols=[1, 7, 9], skiprows=20
                 )
             )
-        except Exception as e:
+        except (FileNotFoundError, pd.errors.ParserError, ValueError) as e:
             print(
                 str(e) + "\nWARNING: Unable to open file. Did you select a CSV file?\n"
             )
@@ -121,12 +126,7 @@ class CSVGraph:
         if self.save:
             graph_type = (self.filename.split("/")[-1]).split(".")[0]
 
-            save_filename = os.path.join(
-                self.save_folder, graph_type + "_" + box_type + ".svg"
-            )
-            save_filename = (
-                Path(self.save_folder) / graph_type / "_" / box_type / ".svg"
-            )
+            save_filename = Path(self.save_folder) / f"{graph_type}_{box_type}.svg"
             print(f"Saving {title} graph to {save_filename}...")
             try:
                 fig.savefig(
@@ -136,7 +136,7 @@ class CSVGraph:
                     pad_inches=0,
                     transparent=True,
                 )  # pad_inches = 0 removes need to shrink image in Inkscape
-            except Exception as e:
+            except OSError as e:
                 print(
                     str(e)
                     + "\nWARNING: Unable to save. Did you select a save location?\n"

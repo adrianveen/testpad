@@ -7,6 +7,12 @@ from PySide6.QtWidgets import QFileDialog
 
 from testpad.config import DEFAULT_EXPORT_DIR
 
+from .config import (
+    MEASURED_COL_INDEX,
+    PASS_FAIL_COL_INDEX,
+    SPEC_MAX_COL_INDEX,
+    SPEC_MIN_COL_INDEX,
+)
 from .generate_pdf_report import GenerateReport
 from .model import DegasserModel
 from .view_state import DegasserViewState
@@ -16,6 +22,8 @@ if TYPE_CHECKING:
 
 
 class DegasserPresenter:
+    """Degasser tab presenter."""
+
     def __init__(self, model: DegasserModel, view: "DegasserTab") -> None:
         self._model = model
         self._view = view
@@ -44,7 +52,8 @@ class DegasserPresenter:
         self._model.set_metadata_field("location", text)
 
     def on_date_changed(
-        self, date
+        self,
+        date,  # noqa: ANN001
     ) -> None:  # TODO: Add proper type hints for this workflow
         """Handle date edit changes."""
         if self._updating:
@@ -69,17 +78,17 @@ class DegasserPresenter:
         value = self._view.get_test_table_cell_value(row, column)
 
         try:
-            if column == 1:  # Pass/Fail
+            if column == PASS_FAIL_COL_INDEX:  # Pass/Fail
                 self._model.update_test_row(row, pass_fail=value)
-            elif column == 2:  # Spec Min
+            elif column == SPEC_MIN_COL_INDEX:  # Spec Min
                 self._model.update_test_row(
                     row, spec_min=None if value.strip() == "" else value
                 )
-            elif column == 3:  # Spec Max
+            elif column == SPEC_MAX_COL_INDEX:  # Spec Max
                 self._model.update_test_row(
                     row, spec_max=None if value.strip() == "" else value
                 )
-            elif column == 4:  # Data Measured
+            elif column == MEASURED_COL_INDEX:  # Data Measured
                 self._model.update_test_row(
                     row, measured=None if value.strip() == "" else value
                 )
@@ -137,9 +146,7 @@ class DegasserPresenter:
         try:
             self._model.set_measurement(row, value)
             self._refresh_view()
-            self._view.log_message(
-                f"Set oxygen level at minute {row} to {value} mg/L"
-            )
+            self._view.log_message(f"Set oxygen level at minute {row} to {value} mg/L")
         except ValueError as e:
             self._view.log_message(f"Invalid oxygen level at minute {row}: {e}")
 
@@ -225,14 +232,14 @@ class DegasserPresenter:
                 "\n- Close any open instances of the report file if it already exists."
                 "\n- Check if the output directory is valid and accessible.",
             )
-        except Exception as e:
-            self._view.log_message(
-                f"❌ Unexpected error during report generation: {e}"
-            )
-            self._view.critical_dialog(
-                title="Report Generation Error",
-                text=f"An unexpected error occurred: {e}",
-            )
+        # except Exception as e:
+        #     self._view.log_message(
+        #         f"❌ Unexpected error during report generation: {e}"
+        #     )
+        #     self._view.critical_dialog(
+        #         title="Report Generation Error",
+        #         text=f"An unexpected error occurred: {e}",
+        #     )
 
     def _on_import_csv(self) -> None:
         """Handle import CSV button click.
@@ -261,8 +268,8 @@ class DegasserPresenter:
             self._view.log_message(f"✅ Imported data from {path}")
         except ValueError as e:
             self._view.log_message(f"❌ Import error: {e}")
-        except Exception as e:
-            self._view.log_message(f"❌ Unexpected error during import: {e}")
+        # except Exception as e:
+        #     self._view.log_message(f"❌ Unexpected error during import: {e}")
 
     def _on_export_csv(self) -> None:
         """Handle export CSV button click.
@@ -291,8 +298,8 @@ class DegasserPresenter:
             self._view.log_message(f"✅ Exported data to {path}")
         except ValueError as e:
             self._view.log_message(f"❌ Export error: {e}")
-        except Exception as e:
-            self._view.log_message(f"❌ Unexpected error during export: {e}")
+        # except Exception as e:
+        #     self._view.log_message(f"❌ Unexpected error during export: {e}")
 
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""
