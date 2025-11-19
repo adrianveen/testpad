@@ -65,7 +65,6 @@ a = Analysis(
     'IPython',
     'matplotlib.tests',
     'pandas.tests',
-    'scipy.fft',
     'tkinter',
     'PySide6.QtWebEngine',
     'PySide6.QtMultimedia'
