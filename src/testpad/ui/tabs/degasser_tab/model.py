@@ -147,10 +147,10 @@ class DegasserModel:
         return Metadata(**asdict(self._metadata))
 
     # -------- Time Series API --------
-    def set_measurement(self, minute: int, oxygen_mg_per_L: float) -> TimeSeriesState:
+    def set_measurement(self, minute: int, oxygen_mg_per_l: float) -> TimeSeriesState:
         """Insert or update the oxygen reading for a specific minute slot."""
         self._validate_minute(minute)
-        self._oxygen_data[minute] = self._validate_oxygen(oxygen_mg_per_L)
+        self._oxygen_data[minute] = self._validate_oxygen(oxygen_mg_per_l)
         return self.get_state()
 
     def clear_measurement(self, minute: int) -> TimeSeriesState:

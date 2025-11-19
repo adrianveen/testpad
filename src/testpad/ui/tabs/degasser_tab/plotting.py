@@ -90,7 +90,7 @@ def normalize_time_series_data(
     data: Mapping[int, float] | Sequence[tuple[int, float]],
 ) -> list[tuple[int, float]]:
     """Normalize data to sorted list of (minute, oxygen) tuples."""
-    if hasattr(data, "items"):
+    if isinstance(data, Mapping):
         return sorted((int(k), float(v)) for k, v in data.items())
     return sorted((int(k), float(v)) for k, v in data)
 

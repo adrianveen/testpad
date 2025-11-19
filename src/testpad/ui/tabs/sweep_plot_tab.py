@@ -3,8 +3,8 @@
 This module provides the user interface for the Sweep Plot Tab.
 """
 
-import os
 from datetime import datetime
+from pathlib import Path
 
 import h5py
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
@@ -106,13 +106,13 @@ class SweepGraphTab(QWidget):
                 self.text_display.append(self.file_save_location + "\n")
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                time_svg_path = os.path.join(
-                    self.file_save_location,
-                    f"{self.scan_data_object.serial_no}_time_graph_{timestamp}.svg",
+                time_svg_path = (
+                    Path(self.file_save_location)
+                    / f"{self.scan_data_object.serial_no}_time_graph_{timestamp}.svg"
                 )
-                fft_svg_path = os.path.join(
-                    self.file_save_location,
-                    f"{self.scan_data_object.serial_no}_fft_graph_{timestamp}.svg",
+                fft_svg_path = (
+                    Path(self.file_save_location)
+                    / f"{self.scan_data_object.serial_no}_fft_graph_{timestamp}.svg"
                 )
 
                 # Define DPI and compute dimensions for a 1080p display

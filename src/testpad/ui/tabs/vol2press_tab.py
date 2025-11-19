@@ -1,7 +1,7 @@
 """Sweep Analysis Tab."""
 
-import os
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -262,7 +262,7 @@ class Vol2PressTab(QWidget):
 
             # Set the default directory if it exists
             default_dir = r"G:\Shared drives\FUS_Team\Transducers Calibration and RFB"
-            if os.path.isdir(default_dir):
+            if Path(default_dir).is_dir():
                 self.dialog1.setDirectory(default_dir)
 
             if self.dialog1.exec():
@@ -279,8 +279,11 @@ class Vol2PressTab(QWidget):
             self.dialog1.setDefaultSuffix("yaml")  # default suffix of yaml
 
             # Specify the desired initial directory.
-            specified_path = r"G:\Shared drives\FUS_Team\Siglent.And.EB-50-Calibration\eb-50_yaml\2183-eb50"
-            if os.path.isdir(specified_path):
+            specified_path = (
+                r"G:\Shared drives\FUS_Team\Siglent.And.EB-50-Calibration"
+                r"\eb-50_yaml\2183-eb50"
+            )
+            if Path(specified_path).is_dir():
                 self.dialog1.setDirectory(specified_path)
             # Otherwise, QFileDialog will use its default directory.
 
@@ -300,7 +303,7 @@ class Vol2PressTab(QWidget):
             specified_path = (
                 r"G:\Shared drives\FUS_Team\Siglent.And.EB-50-Calibration\eb-50_yaml"
             )
-            if os.path.isdir(specified_path):
+            if Path(specified_path).is_dir():
                 self.dialog1.setDirectory(specified_path)
 
             if self.dialog1.exec():
@@ -320,7 +323,7 @@ class Vol2PressTab(QWidget):
                 selected_dir = self.dialog1.selectedFiles()[0]
                 # Now store the selected directory and its parent directory
                 self.n_cycles_dir = selected_dir
-                self.n_cycles_parent_dir = os.path.dirname(selected_dir)
+                self.n_cycles_parent_dir = str(Path(selected_dir).parent)
                 self.text_display.append("N Cycles Data: " + selected_dir + "\n")
 
         elif d_type == "save":
@@ -332,17 +335,16 @@ class Vol2PressTab(QWidget):
             if self.dialog1.exec():
                 selected_file = self.dialog1.selectedFiles()[0]
                 # If a directory is selected, append a default file name.
-                if os.path.isdir(selected_file):
-                    selected_file = os.path.join(selected_file, "default_config.yaml")
-                self.save_file_path = (
-                    selected_file  # Full file path (directory + file name)
-                )
-                self.save_location = os.path.dirname(
-                    selected_file
+                selected_path = Path(selected_file)
+                if selected_path.is_dir():
+                    selected_path = selected_path / "default_config.yaml"
+                self.save_file_path = str(
+                    selected_path
+                )  # Full file path (directory + file name)
+                self.save_location = str(
+                    selected_path.parent
                 )  # Just the directory
-                self.config_filename = os.path.basename(
-                    selected_file
-                )  # Just the file name
+                self.config_filename = selected_path.name  # Just the file name
                 self.text_display.append("Save Location: " + self.save_location + "\n")
                 self.text_display.append(
                     "Config File Name: " + self.config_filename + "\n"
@@ -358,8 +360,11 @@ class Vol2PressTab(QWidget):
                 self.text_display.append(self.file_save_location + "\n")
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                file_name = f"T{self.n_cycles_plot_data[0][0]}_normalized_pnp_plot_{timestamp}.svg"
-                pnp_svg_path = os.path.join(self.file_save_location, file_name)
+                file_name = (
+                    f"T{self.n_cycles_plot_data[0][0]}"
+                    f"_normalized_pnp_plot_{timestamp}.svg"
+                )
+                pnp_svg_path = Path(self.file_save_location) / file_name
 
                 dpi = 100
                 fig_width = 6.5
@@ -393,9 +398,9 @@ class Vol2PressTab(QWidget):
                 header = "Cycles," + ",".join(
                     [f"{freq / 1e6:.3f} MHz" for freq, _, _ in self.n_cycles_plot_data]
                 )
-                txt_file_path = os.path.join(
-                    self.file_save_location,
-                    f"combined_normalized_pnp_data_{timestamp}.txt",
+                txt_file_path = (
+                    Path(self.file_save_location)
+                    / f"combined_normalized_pnp_data_{timestamp}.txt"
                 )
                 np.savetxt(
                     txt_file_path,
@@ -541,8 +546,8 @@ class Vol2PressTab(QWidget):
         self.summary_dict = {}
         self.summary_dict[self.transducer_field.text()] = self.values_dict
 
-        with open(self.save_file_path, "w", encoding="utf8") as f:
-            full_path = os.path.join(self.save_location, self.config_filename)
+        with Path(self.save_file_path).open("w", encoding="utf8") as f:
+            full_path = Path(self.save_location) / self.config_filename
             self.text_display.append(f"Writing dictionary to {full_path}...\n")
             yaml.dump(self.summary_dict, f, default_flow_style=None, sort_keys=False)
             self.text_display.append(

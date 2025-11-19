@@ -11,6 +11,8 @@ from testpad.core.transducer.calibration_resources import (
 
 
 class LinearScan:
+    """A class to generate linear scan graphs."""
+
     def __init__(self, variables_dict: list, textbox: QTextBrowser) -> None:
         plt.close("all")  # closes previous graphs
 
@@ -24,9 +26,21 @@ class LinearScan:
         """
         MANUAL PARAMETER OVERRIDE (THE MANUAL FILE OVERRIDE IS BELOW)
         """
-        # folder = r"C:\Users\RKPC\Documents\transducer_calibrations\103-T479.5H750\1432kHz\scan_data" # data folder
-        # save_folder = r"C:\Users\RKPC\Documents\transducer_calibrations\103-T479.5H750\1432kHz\report" # save folder
-        # eb50_file = r"C:\Users\RKPC\Documents\summer_2022\fn_generator\eb50_data\2244-eb50\2244-eb50.txt" # eb50 txt file
+        # data folder
+        # folder = (
+        #     r"C:\Users\RKPC\Documents\transducer_calibrations"
+        #     r"\103-T479.5H750\1432kHz\scan_data"
+        # )
+        # save folder
+        # save_folder = (
+        #     r"C:\Users\RKPC\Documents\transducer_calibrations"
+        #     r"\103-T479.5H750\1432kHz\report"
+        # )
+        # eb50 txt file
+        # eb50_file = (
+        #     r"C:\Users\RKPC\Documents\summer_2022\fn_generator"
+        #     r"\eb50_data\2244-eb50\2244-eb50.txt"
+        # )
 
         # # below parameters are for graph appearances
         # axial_left_field_length = -8 # yz field & line graph left x-axis limit
@@ -53,8 +67,11 @@ class LinearScan:
         FILE STUFF
         """
         # print(variables_dict)
-        # files_list = [f for f in os.listdir(folder) if f.endswith('.hdf5')] # include only hdf5 files
-        # files_list = sorted(files_list, key=lambda x: int((x.split('.')[0]).split('_')[-1])) # sort so that the latest scan is used
+        # files_list = [f for f in os.listdir(folder) if f.endswith('.hdf5')]
+        # include only hdf5 files
+        # files_list = sorted(
+        #     files_list, key=lambda x: int((x.split('.')[0]).split('_')[-1])
+        # )  # sort so that the latest scan is used
         files_list = sorted(
             files, key=lambda x: int(x[x.rfind(".") - 1])
         )  # sort so that the latest scan is used
@@ -78,13 +95,24 @@ class LinearScan:
         """
         MANUAL FILE OVERRIDE
         """
-        # sweep_filename = r"518_T1000H550_sweep_1000kHz_01.hdf5" # voltage sweep filename
-        # axial_filename = r"532_T500H750_yz_500kHz_2000mVpp_08.hdf5" # yz field & line plot
-        # lateral_filename = r"526_T1570H750_xz_1570kHz_1000mVpp_04.hdf5" # xz field & line plot
-        # x_line_scan = r"317_T1150H550_x_3450kHz_1500mVpp_01.hdf5" # x linear scan
-        # y_line_scan = r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\scan_data\532_T500H750_y_500kHz_2000mVpp_02.hdf5" # y linear scan
-        # z_line_scan = r"317_T1150H550_z_3450kHz_1500mVpp_01.hdf5" # z linear scan
-        # save_folder = r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750\500kHz\report_PYTHON"
+        # sweep_filename = r"518_T1000H550_sweep_1000kHz_01.hdf5"
+        # voltage sweep filename
+        # axial_filename = r"532_T500H750_yz_500kHz_2000mVpp_08.hdf5"
+        # yz field & line plot
+        # lateral_filename = r"526_T1570H750_xz_1570kHz_1000mVpp_04.hdf5"
+        # xz field & line plot
+        # x_line_scan = r"317_T1150H550_x_3450kHz_1500mVpp_01.hdf5"
+        # x linear scan
+        # y_line_scan = (
+        #     r"C:\Users\RKPC\Documents\transducer_calibrations\532-T500H750"
+        #     r"\500kHz\scan_data\532_T500H750_y_500kHz_2000mVpp_02.hdf5"
+        # )  # y linear scan
+        # z_line_scan = r"317_T1150H550_z_3450kHz_1500mVpp_01.hdf5"
+        # z linear scan
+        # save_folder = (
+        #     r"C:\Users\RKPC\Documents\transducer_calibrations"
+        #     r"\532-T500H750\500kHz\report_PYTHON"
+        # )
 
         # Do the files exist? If not, exit
 
@@ -213,4 +241,5 @@ class LinearScan:
         )
 
     def getGraphs(self) -> list[object | None]:
+        """Return the graphs list."""
         return self.graphs_list

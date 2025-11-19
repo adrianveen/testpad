@@ -239,7 +239,7 @@ class MatchingBoxTab(QWidget):
 
     # choose files
     @Slot()
-    def openFileDialog(self, type) -> None:
+    def openFileDialog(self, type: str) -> None:
         """Open a file dialog to select a file or dir based on d_type specified.
 
         Args:

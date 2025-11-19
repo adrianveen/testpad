@@ -1,12 +1,13 @@
 # Custom QLineEdit that changes color based on validation
 import math
 
+from PySide6.QtCore import QObject
 from PySide6.QtGui import QDoubleValidator, QIntValidator
-from PySide6.QtWidgets import QLineEdit
+from PySide6.QtWidgets import QLineEdit, QWidget
 
 
 class ValidatedLineEdit(QLineEdit):
-    def __init__(self, parent: QLineEdit | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         # Store the original stylesheet
         self.original_style = self.styleSheet()
@@ -51,7 +52,7 @@ class FixupDoubleValidator(QDoubleValidator):
         bottom: float,
         top: float,
         decimals: int,
-        parent: QDoubleValidator | None = None,
+        parent: QObject | None = None,
     ) -> None:
         super().__init__(bottom, top, decimals, parent)
 
@@ -79,7 +80,7 @@ class FixupDoubleValidator(QDoubleValidator):
 # Custom QIntValidator that overrides the fixup method
 class FixupIntValidator(QIntValidator):
     def __init__(
-        self, bottom: int, top: int, parent: QIntValidator | None = None
+        self, bottom: int, top: int, parent: QObject | None = None
     ) -> None:
         """Initialize the FixupIntValidator class."""
         super().__init__(bottom, top, parent)

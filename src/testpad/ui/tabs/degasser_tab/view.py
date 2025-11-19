@@ -113,7 +113,7 @@ class ColumnMajorTableWidget(QTableWidget):
         return rows - 1, cols - 1
 
     @override
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event: "QKeyEvent") -> None:
         """Override Qt's default key handling to implement column-major navigation.
 
         By default, QTableWidget uses row-major Tab navigation (left→right).
@@ -187,7 +187,7 @@ class ColumnMajorNavigationMixin:
                 table = self.parent()  # type: ignore[attr-defined]  # Delegate's parent is the table widget
                 if isinstance(table, ColumnMajorTableWidget):
                     # Forward the event to the table's custom navigation handler
-                    table.keyPressEvent(event)
+                    table.keyPressEvent(key_event)
                     return True  # Event handled, stop propagation
         # Not a navigation key, or not our custom table - use default behavior
         return super().eventFilter(watched, event)  # type: ignore[misc]
@@ -849,7 +849,11 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
         super().__init__(parent)
         self._units_by_row = units_by_row
 
-    def initStyleOption(self, option, index) -> None:
+    def initStyleOption(
+        self,
+        option: "QStyleOptionViewItem",
+        index: "QModelIndex | QPersistentModelIndex",
+    ) -> None:
         super().initStyleOption(option, index)
 
         if index.column() != MEASURED_COL_INDEX:

@@ -1,5 +1,4 @@
 import math
-import os
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +13,12 @@ class Calculations:
         self.image_file = None
 
     # returns values to calculation function below
-    def lmatch(self, ZG, ZL, box_type: str) -> NDArray | None:
+    def lmatch(
+        self,
+        ZG: complex | NDArray[np.complexfloating],
+        ZL: complex | NDArray[np.complexfloating],
+        box_type: str,
+    ) -> NDArray | None:
         """Calculate the matching box values.
 
         Args:
@@ -128,14 +132,16 @@ class Calculations:
             # raise an error if inductance/capacitance is below 0
             if L < 0 or C < 0:
                 self.text += f"\nType {box_type} gives error. Switching box_type.\n"
-                msg = "Error: inductance or capacitance is less than 0. Switching \
-                    box_type to find alternative solution."
-                raise Exception(msg)
+                msg = (
+                    "Error: inductance or capacitance is less than 0. Switching "
+                    "box_type to find alternative solution."
+                )
+                raise ValueError(msg)
 
             N = np.sqrt(L / AL) * 100  # number of turns
 
         # switch the box_type if inductance/capacitance are below 0
-        except Exception as e:
+        except ValueError as e:
             print(e)
             box_type = "n" if box_type == "r" else "r"
 
@@ -152,7 +158,7 @@ class Calculations:
             self.text += "\ncapacitors across the source input\n\n"
             # creating the image filepath
             self.image_file = str(
-                Path(os.path.realpath(__file__)).parent / "cap_across_source.jpg"
+                Path(__file__).resolve().parent / "cap_across_source.jpg"
             )
 
         # otherwise, if the box_type is r, add a picture of the capacitors across the
@@ -161,7 +167,7 @@ class Calculations:
             self.text += "\ncapacitors across the transducer load\n\n"
             # creating the image filepath
             self.image_file = str(
-                Path(os.path.realpath(__file__)).parent / "cap_across_load.jpg"
+                Path(__file__).resolve().parent / "cap_across_load.jpg"
             )
 
         # print all the details such as capacitance, inductance, number of turns

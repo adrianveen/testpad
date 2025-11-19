@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import h5py
 import numpy as np
@@ -33,20 +33,19 @@ def _get_unified_vol2press_and_peak_pressure_across_trials(
     folder_path: str, freq_str: str, transducer_serial: str
 ) -> float:
     # List all the files in the folder with .hdf5 extension
-    file_list = [f for f in os.listdir(folder_path) if f.endswith(".hdf5")]
-
-    for i in range(len(file_list)):
-        file_list[i] = os.path.join(folder_path, file_list[i])
+    folder = Path(folder_path)
+    file_list = [str(f) for f in folder.iterdir() if f.suffix == ".hdf5"]
 
     sweep_list = []
 
     for file in file_list:
+        file_path = Path(file)
         # Skip the file if it does not match the expected format
         if (
             freq_str not in file
             or transducer_serial not in file
             or "sweep" not in file
-            or not os.path.isfile(os.path.join(folder_path, file))
+            or not file_path.is_file()
         ):
             continue
 
@@ -67,12 +66,9 @@ def _get_unified_vol2press_and_peak_pressure_across_trials(
 def _get_peak_pressure_MPa_by_cycle(
     folder_path: str, freq_str: str, transducer_serial: str
 ) -> list:
-    # List all the files in the folder with .hdf5 extension
-    folder_list = [
-        f
-        for f in os.listdir(folder_path)
-        if os.path.isdir(os.path.join(folder_path, f))
-    ]
+    # List all the directories in the folder
+    folder_base = Path(folder_path)
+    folder_list = [f.name for f in folder_base.iterdir() if f.is_dir()]
 
     # Initialize a numpy array with NaN values matching the number of subfolders
     PNP_MPa_ray = np.full(len(folder_list), np.nan)
@@ -81,7 +77,7 @@ def _get_peak_pressure_MPa_by_cycle(
             # try:
             num_cycles = int(folder.split("_")[0])
             PNP_MPa = _get_unified_vol2press_and_peak_pressure_across_trials(
-                os.path.join(folder_path, folder), freq_str, transducer_serial
+                str(folder_base / folder), freq_str, transducer_serial
             )
             PNP_MPa_ray[num_cycles - 1] = PNP_MPa
             # except Exception as e:
@@ -126,14 +122,15 @@ def _parse_info_from_ncycle_sweep_directory(
             ncycle sweep subfolders.
 
     """
-    subfolders = [f.path for f in os.scandir(results_directory) if f.is_dir()]
+    results_path = Path(results_directory)
+    subfolders = [str(f) for f in results_path.iterdir() if f.is_dir()]
     ncycle_sweep_subfolders = []
     freq_strs = []
 
     for subfolder in subfolders:
         if "ncycle_sweep" in subfolder:
             ncycle_sweep_subfolders.append(subfolder)
-            split_folder_name = os.path.basename(subfolder).split("_")
+            split_folder_name = Path(subfolder).name.split("_")
 
             # Get the transducer serial if it was not provided explicitly
             if transducer_sn is None and len(split_folder_name) >= 2:
@@ -192,13 +189,15 @@ def add_ncycle_sweep_to_transducer_file(
     normalized_PNP_MPa_by_cycle: np.ndarray
     A list of floats containing the normalized peak pressure for each cycle count.
         The final value of the lists
-    Note: Keys such as 612-T550H825\\550000.0\\normalized_pnp_by_num_cycles will be added
-        or overwritten.
+    Note: Keys such as 612-T550H825\\550000.0\\normalized_pnp_by_num_cycles
+        will be added or overwritten.
     """
     transducer_sn, freq_strs, ncycle_sweep_subfolders = (
         _parse_info_from_ncycle_sweep_directory(results_directory)
     )
-    yaml_dict = yaml.load(open(transducer_config_file), Loader=yaml.FullLoader)
+    yaml_dict = yaml.load(
+        Path(transducer_config_file).open(), Loader=yaml.FullLoader
+    )
     plot_data = []
 
     for freq_str, ncycle_sweep_subfolder in zip(
@@ -245,18 +244,22 @@ def add_ncycle_sweep_to_transducer_file(
                 break
         if not frequency_key_found:
             print(
-                f"Warning: Did not find frequency key for {freq_int} in the transducer config file."
+                f"Warning: Did not find frequency key for {freq_int} "
+                f"in the transducer config file."
             )
 
-    with open(transducer_config_file, "w") as file:
+    with Path(transducer_config_file).open("w") as file:
         yaml.dump(yaml_dict, file)
 
     return plot_data
 
 
 def run_example() -> None:
-    # Example usage. Ncycle adjustment data will be added to the transducer config file.
-    results_dir = r"G:\\Shared drives\\FUS_Team\\Transducers Calibration and RFB\\612-T550H825_DUAL_FREQUENCY\\Scan Data\\Cycle_sweeps_Feb_20"
+    # Example usage. Ncycle adjustment data added to the transducer config file.
+    results_dir = (
+        r"G:\\Shared drives\\FUS_Team\\Transducers Calibration and RFB"
+        r"\\612-T550H825_DUAL_FREQUENCY\\Scan Data\\Cycle_sweeps_Feb_20"
+    )
     tx_config = (
         r"G:\\Shared drives\\FUS_Team\\Transducers Calibration and "
         r"RFB\\612-T550H825_DUAL_FREQUENCY\\612-T550H825_DUAL_FREQUENCY - Copy.yaml"

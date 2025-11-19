@@ -1,5 +1,6 @@
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import Slot
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
@@ -63,7 +64,7 @@ class TempAnalysisTab(QWidget):
         main_layout.addWidget(self.graph_tab, 0, 1, 2, 1)
         self.setLayout(main_layout)
 
-    def resizeEvent(self, event) -> None:
+    def resizeEvent(self, event: QResizeEvent) -> None:
         """Recalculate the position of the image when the window is resized."""
         super().resizeEvent(event)
         self.update_image_position()
@@ -124,7 +125,7 @@ class TempAnalysisTab(QWidget):
         # self.temperature_object.draw()
 
     @Slot()
-    def openFileDialog(self, d_type) -> None:
+    def openFileDialog(self, d_type: str) -> None:
         """Open a file dialog to select a file or dir based on d_type specified."""
         if d_type == "csv":  # open temperature csv
             self.dialog1 = QFileDialog(self)

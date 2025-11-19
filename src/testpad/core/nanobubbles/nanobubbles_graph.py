@@ -294,15 +294,13 @@ class NanobubblesGraph:
 
 if __name__ == "__main__":
     # Example paths:
-    # n = NanobubblesGraph(
-    #     r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt", ""
-    # )
-    # n = NanobubblesGraph(
-    #     r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt", ""
-    # )
-    # n = NanobubblesGraph(
-    #     r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt", ""
-    # )
+    n = NanobubblesGraph(
+        r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS 2.txt", ""
+    )
+    n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-1st-FUS.txt", "")
+    n = NanobubblesGraph(
+        r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt", ""
+    )
     n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS.txt", "")
     n.get_graphs(bins=100, overlaid=True, scale=True)
     plt.show()

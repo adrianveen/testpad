@@ -228,16 +228,27 @@ class TemperatureGraph:
     # def save_graph(self, folder, overlaid=False):
     #     # Check if temperature_csv is a list and get the first file path
     #     if overlaid == True:
-    #         temperature_svg_filename = "multi_batch_histogram"#(Path(self.temperature_csv[0]).name).split(".")[0]
+    #         temperature_svg_filename = "multi_batch_histogram"
+    #         # (Path(self.temperature_csv[0]).name).split(".")[0]
     #     else:
-    #         temperature_svg_filename = (Path(self.temperature_csv[0]).name).split(".")[0]
+    #         temperature_svg_filename = (
+    #             (Path(self.temperature_csv[0]).name).split(".")[0]
+    #         )
 
-    #     full_save_name = os.path.join(folder, str(temperature_svg_filename) + ".svg")
+    #     full_save_name = os.path.join(
+    #         folder, str(temperature_svg_filename) + ".svg"
+    #     )
 
     #     # Debugging statement
     #     print(f"Saving graph to: {full_save_name}")
 
-    #     self.fig.savefig(full_save_name, format='svg', bbox_inches='tight', pad_inches=0, transparent=True)
+    #     self.fig.savefig(
+    #         full_save_name,
+    #         format='svg',
+    #         bbox_inches='tight',
+    #         pad_inches=0,
+    #         transparent=True,
+    #     )
     #     return full_save_name
 
 
