@@ -5,15 +5,14 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass, fields
 from datetime import date
-from typing import TYPE_CHECKING, final
+from pathlib import Path
+from typing import final
 
 import h5py
 import numpy as np
 
+from testpad.config.defaults import DEFAULT_EXPORT_DIR
 from testpad.core.burnin.config import DEFAULT_TEST_DATE
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 # ------------------ Data Structures ------------------
@@ -170,7 +169,7 @@ class BurninModel:
         self._separate_errors_option: bool = False
         self._moving_average_option: bool = False
         self._burnin_file_infos: list[BurninFileInfo] = []
-        self._output_folder: Path | None = None
+        self._output_folder: Path = DEFAULT_EXPORT_DIR
         self._output_file: Path | None = None
 
     """
@@ -233,17 +232,35 @@ class BurninModel:
     ======== Output File Settings ========
     """
 
+    def get_output_folder(self) -> Path | None:
+        """Return the output folder.
+
+        Returns:
+            Path: The current output folder.
+
+        """
+        return self._output_folder
+
     def set_output_folder(self, output_folder: Path) -> None:
-        """Set the output folder."""
-        self._output_folder = output_folder
+        """Set the output folder.
+
+        Args:
+            output_folder: The new output folder.
+
+        Raises:
+            ValueError: If the path is not absolute.
+
+        """
+        path = Path(output_folder)
+        if not path.is_absolute():
+            msg = "Output folder must be absolute."
+            raise ValueError(msg)
+
+        self._output_folder = path
 
     def clear_output_folder(self) -> None:
         """Clear the output folder."""
         self._output_folder = None
-
-    def get_output_folder(self) -> Path | None:
-        """Return the output folder."""
-        return self._output_folder
 
     def set_output_file(self, output_file: Path) -> None:
         """Set the output file."""

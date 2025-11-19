@@ -6,6 +6,7 @@ displaying the burn-in graph and providing user interactions.
 """
 
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from matplotlib.backends.backend_qt import (
@@ -75,6 +76,9 @@ class BurninTab(QWidget):
         self._moving_average_checkbox.toggled.connect(
             presenter.on_moving_average_toggled
         )
+        self._select_output_folder_btn.clicked.connect(
+            presenter.on_select_output_folder_clicked
+        )
         self._print_graph_btn.clicked.connect(presenter.on_print_graph_clicked)
         self._generate_report_btn_new.clicked.connect(
             presenter.on_generate_report_clicked
@@ -106,6 +110,55 @@ class BurninTab(QWidget):
             display_layout.addWidget(canvas)
 
             self.graph_display.addTab(display_widget, f"{canvas.figure.get_suptitle()}")
+
+    def show_folder_dialog(self, current_path: str = "") -> str | None:
+        """Show folder selection dialog and return the selected path.
+
+        Args:
+            current_path: The current path to set as the initial directory.
+
+        Returns:
+            The selected path, or None if the dialog was cancelled.
+
+        """
+        # Try to ensure the default directory exists
+        start_path = ""
+        if current_path:
+            try:
+                # Create the directory if it doesn't exist
+                path_obj = Path(current_path)
+                # Create the parent directory if it doesn't exist
+                path_obj.mkdir(parents=True, exist_ok=True)
+                # Verify the directory exists and is a directory
+                if path_obj.exists() and path_obj.is_dir():
+                    start_path = current_path
+            except (OSError, PermissionError):
+                # Fall back to Qt default (empty string)
+                pass
+
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Select Output Folder",
+            start_path,
+            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks,
+        )
+        return folder if folder else None
+
+    def add_text_to_text_display(self, text: str) -> None:
+        """Add text to the text display."""
+        self.text_display.append(text)
+
+    def show_info(self, message: str) -> None:
+        """Show a warning message in the text disqplay."""
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.Icon.Information)
+        message_box.setWindowTitle("Warning")
+        message_box.setText(message)
+        message_box.setStandardButtons(
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+        )
+
+        message_box.exec()
 
     def show_warning(self, message: str) -> None:
         """Show a warning message in the text disqplay."""
@@ -182,12 +235,14 @@ class BurninTab(QWidget):
         widget.setLayout(layout)
 
         # Create buttons and apply stylesheet class
+        self._select_output_folder_btn = QPushButton("Select Output Folder...")
         self._print_graph_btn = QPushButton("Print Graph(s)")
         self._print_graph_btn.setProperty("class", "action-button")
 
         self._generate_report_btn_new = QPushButton("Generate Report")
         self._generate_report_btn_new.setProperty("class", "action-button")
 
+        layout.addWidget(self._select_output_folder_btn)
         layout.addWidget(self._print_graph_btn)
         layout.addWidget(self._generate_report_btn_new)
 

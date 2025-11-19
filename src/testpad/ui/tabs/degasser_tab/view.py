@@ -4,6 +4,7 @@ This module provides the user interface for the Degasser Tab.
 """
 
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, cast, override
 
 import PySide6.QtCore
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -330,6 +332,9 @@ class DegasserTab(BaseTab):
         self._temperature_edit.textChanged.connect(presenter.on_temperature_changed)
 
         # Action Buttons
+        self._select_output_folder_btn.clicked.connect(
+            presenter.on_select_output_folder_clicked
+        )
         self._generate_report_btn.clicked.connect(presenter.on_generate_report)
         self._reset_btn.clicked.connect(presenter.on_reset)
 
@@ -393,6 +398,38 @@ class DegasserTab(BaseTab):
             return float(text)
         except ValueError:
             return None
+
+    def show_folder_dialog(self, current_path: str = "") -> str | None:
+        """Show folder selection dialog and return the selected path.
+
+        Args:
+            current_path: The current path to set as the initial directory.
+                Will attempt to create this directory if it doesn't exist.
+                Falls back to Qt default if creation fails.
+
+        Returns:
+            The selected path, or None if the dialog was cancelled.
+
+        """
+        # Try to ensure the default directory exists
+        start_path = ""
+        if current_path:
+            try:
+                path_obj = Path(current_path)
+                path_obj.mkdir(parents=True, exist_ok=True)
+                if path_obj.exists() and path_obj.is_dir():
+                    start_path = current_path
+            except (OSError, PermissionError):
+                # Fall back to Qt default (empty string)
+                pass
+
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Select Output Folder",
+            start_path,
+            QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks,
+        )
+        return folder if folder else None
 
     def question_dialog(self, title: str, text: str) -> bool:
         """Show a question dialog and return the result."""
@@ -669,6 +706,7 @@ class DegasserTab(BaseTab):
         # Create Widgets
         self._import_csv_btn = QPushButton("Import CSV")
         self._export_csv_btn = QPushButton("Export CSV")
+        self._select_output_folder_btn = QPushButton("Select Output Folder...")
         self._generate_report_btn = QPushButton("Generate Report")
 
         # Reset Button
@@ -677,6 +715,7 @@ class DegasserTab(BaseTab):
         layout.addWidget(self._import_csv_btn)
         layout.addWidget(self._export_csv_btn)
         layout.addStretch()  # Spacer
+        layout.addWidget(self._select_output_folder_btn)
         layout.addWidget(self._generate_report_btn)
         layout.addWidget(self._reset_btn)
 

@@ -97,7 +97,21 @@ class GenerateReport:
 
         # Save PDF to the output path
         # Make the directory if it doesn't exist
-        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+        output_path = Path(self.output_dir)
+        try:
+            output_path.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError) as e:
+            msg = f"Failed to create output directory '{output_path}': {e}"
+            raise OSError(msg) from e
+
+        # Verify directory was actually created
+        if not output_path.exists() or not output_path.is_dir():
+            msg = (
+                f"Output directory does not exist or is not a directory: "
+                f"'{output_path}'"
+            )
+            raise OSError(msg)
+
         self.pdf.output(filename)
 
     def _build_report_base(self, margins: float) -> None:

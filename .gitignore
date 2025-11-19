@@ -10,6 +10,7 @@ planning/ignore/*
 # Agent and AI files
 AGENTS.*
 CLAUDE.*
+GEMINI.*
 .python-version
 # Some specific test files
 minimal_example.py
