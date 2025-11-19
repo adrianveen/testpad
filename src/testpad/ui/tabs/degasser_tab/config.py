@@ -98,5 +98,9 @@ TEST_TABLE_HEADERS = [
     "Maximum Spec",
     "Data Measured",
 ]
+PASS_FAIL_COL_INDEX = 1
+SPEC_MIN_COL_INDEX = 2
+SPEC_MAX_COL_INDEX = 3
+MEASURED_COL_INDEX = 4
 TIME_SERIES_HEADERS = ["Time (minutes)", "Dissolvea Oxygen (mg/L)"]
 DEFAULT_TEST_DATE = default_date

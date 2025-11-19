@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -5,8 +6,10 @@ import numpy as np
 import yaml
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
-# x values: input mV (get average from 5 sweeps [SHOULD BE THE SAME FOR ALL OF THEM, THOUGH])
-# y values: neg pressure (get average from 5 sweeps)
+# x values:
+#    input mV (get average from 5 sweeps [SHOULD BE THE SAME FOR ALL OF THEM, THOUGH])
+# y values:
+#    neg pressure (get average from 5 sweeps)
 
 # average gain from closest frequency of both EB-50 YAML files
 # get the difference of both
@@ -16,7 +19,11 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 
 class Vol2Press:
-    def __init__(self, cal_eb50_file, sys_eb50_file, sweep_txt, freq) -> None:
+    """Vol2Press class."""
+
+    def __init__(
+        self, cal_eb50_file: str, sys_eb50_file: str, sweep_txt: str, freq: float | str
+    ) -> None:
         self.freq = freq  # frequency given in MHz
 
         self.closest_cal_freq, self.cal_eb50_dict = self.closest_frequency(
@@ -42,13 +49,15 @@ class Vol2Press:
         self.y_values = self.neg_pressure
 
     # return r-value (THIS FUNCTION SHOULD PROBBALY BE RENAMED)
-    def return_B_value(self):
+    def return_B_value(self) -> float:
+        """Return the B value."""
         A = np.vstack([self.x_values]).T
         self.m = np.linalg.lstsq(A, self.y_values, rcond=None)[0][0]
         return self.m
 
     # return graphs
-    def getGraphs(self):
+    def getGraphs(self) -> FigureCanvas:
+        """Return the graphs."""
         self.fig, self.ax = plt.subplots(1, 1)
         self.canvas = FigureCanvas(self.fig)
 
@@ -77,7 +86,16 @@ class Vol2Press:
         return self.canvas
 
     # convert Hz to kHz, MHz
-    def fmt(self, freq):
+    def fmt(self, freq: float) -> tuple[float, str]:
+        """Convert Hz to kHz, MHz.
+
+        Args:
+            freq (float): The frequency in Hz.
+
+        Returns:
+            tuple[float, str]: The frequency in kHz and its unit.
+
+        """
         SI_Frequency = [(1000, "kHz"), (1000000, "MHz")]
         useFactor, useName = SI_Frequency[0]
         for factor, name in SI_Frequency:
@@ -86,32 +104,57 @@ class Vol2Press:
         return (freq / useFactor, useName)
 
     # convert kHz to MHz
-    def fmt_kHz_to_MHz(self, freq) -> tuple[float, Literal["MHz"]]:
+    def fmt_kHz_to_MHz(self, freq: str) -> tuple[float, Literal["MHz"]]:
+        """Convert kHz to MHz.
+
+        Args:
+            freq (str): The frequency in kHz.
+
+        Returns:
+            tuple[float, Literal["MHz"]]: The frequency in MHz and its unit.
+
+        """
         new_freq = float(freq[:-3]) / 1000
         return (new_freq, "MHz")
 
-    def get_freq(self):
-        return float(self.freq[:-3]) * 1000
+    def get_freq(self) -> float:
+        """Get the frequency in Hz."""
+        if isinstance(self.freq, str):
+            return float(self.freq[:-3]) * 1000
+        return self.freq * 1000
 
     # find the closest frequency to the requested frequency (parsing YAML file)
-    def closest_frequency(self, frequency, filename):
+    def closest_frequency(
+        self, frequency: float | str, filename: str
+    ) -> tuple[str, dict]:
+        """Find the closest frequency to the requested frequency.
+
+        Args:
+            frequency (float | str): The requested frequency.
+            filename (str): The path to the EB-50 calibration file.
+
+        Returns:
+            tuple[str, dict]: Closest frequency and its corresponding EB-50 dictionary.
+
+        """
         # requested frequency
         ending = "MHz"
         # frequency, ending = self.fmt_kHz_to_MHz(frequency)
         # print("Requested frequency:", str(frequency)+ending)
 
         # opens the eb50 file to get the frequencies
-        with open(filename) as file:
+        with Path(filename).open() as file:
             lines = yaml.safe_load(file)
 
-        # find closest frequency (can later be changed into interpolation of two frequencies)
+        # find closest frequency
+        # (can later be changed into interpolation of two frequencies)
         frequencies = list(
             lines["frequencies"].keys()
         )  # for all the frequencies in the eb50 file
         for i in range(len(frequencies)):
-            frequencies[i] = float(
-                frequencies[i][:-3]
-            )  # gets rid of the kHz/MHz attachment (might have problems with Hz! come up with a fix)
+            # gets rid of the kHz/MHz attachment
+            # (might have problems with Hz! come up with a fix)
+            frequencies[i] = float(frequencies[i][:-3])
 
         closest_frequency = (
             str(self.find_nearest(frequencies, float(frequency))) + ending
@@ -125,10 +168,11 @@ class Vol2Press:
         return (closest_frequency, eb50_dict)
 
     # used to find the nearest number in an array
-    def find_nearest(self, array, value):
-        array = np.asarray(array)
-        idx = (np.abs(array - value)).argmin()
-        return array[idx]
+    def find_nearest(self, array: list, value: float) -> float:
+        """Find the nearest value in an array."""
+        array_np = np.asarray(array)
+        idx = (np.abs(array_np - value)).argmin()
+        return float(array_np[idx])
 
 
 # testing

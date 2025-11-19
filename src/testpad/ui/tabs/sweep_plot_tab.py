@@ -115,7 +115,8 @@ class SweepGraphTab(QWidget):
                     f"{self.scan_data_object.serial_no}_fft_graph_{timestamp}.svg",
                 )
 
-                # Define DPI and compute dimensions for a 1080p display (1920x1080 pixels)
+                # Define DPI and compute dimensions for a 1080p display
+                # (1920x1080 pixels)
                 dpi = 100
                 fig_width = 1920 / dpi  # 19.2 inches
                 fig_height = 1080 / dpi  # 10.8 inches

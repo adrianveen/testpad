@@ -46,6 +46,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     DS50_SPEC_UNITS,
     HEADER_ROW_COLOR,
     HEADER_ROW_INDEX,
+    MEASURED_COL_INDEX,
     METADATA_FIELDS,
     NO_LIMIT_SYMBOL,
     NUM_TEST_COLS,
@@ -53,6 +54,8 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TIME_SERIES_COLS,
     NUM_TIME_SERIES_ROWS,
     ROW_SPEC_MAPPING,
+    SPEC_MAX_COL_INDEX,
+    SPEC_MIN_COL_INDEX,
     TEST_TABLE_HEADERS,
     TIME_SERIES_HEADERS,
 )
@@ -357,7 +360,7 @@ class DegasserTab(BaseTab):
         if item is None:
             return ""
 
-        if column == 4:
+        if column == MEASURED_COL_INDEX:
             edit_value = item.data(Qt.ItemDataRole.EditRole)
             if edit_value not in (None, ""):
                 return str(edit_value).strip()
@@ -478,7 +481,7 @@ class DegasserTab(BaseTab):
         return widget
 
     def _build_test_table(self) -> QWidget:
-        # TODO: Split up into smaller methods for readability and replace magic numbers
+        # TODO: Split up into smaller methods for readability
         """Build the test table section."""
         widget = QWidget()
         layout = QVBoxLayout()
@@ -523,12 +526,12 @@ class DegasserTab(BaseTab):
                     units_by_row[row] = unit
 
                 for col in range(2, NUM_TEST_COLS):
-                    if col == 2:  # Spec_Min
+                    if col == SPEC_MIN_COL_INDEX:  # Spec_Min
                         if spec[0] is None:
                             spec_value = NO_LIMIT_SYMBOL
                         else:
                             spec_value = f"{spec[0]} {unit}" if unit else str(spec[0])
-                    elif col == 3:  # Spec_Max
+                    elif col == SPEC_MAX_COL_INDEX:  # Spec_Max
                         if spec[1] is None:
                             spec_value = NO_LIMIT_SYMBOL
                         else:
@@ -849,7 +852,7 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
     def initStyleOption(self, option, index) -> None:
         super().initStyleOption(option, index)
 
-        if index.column() != 4:
+        if index.column() != MEASURED_COL_INDEX:
             return
 
         unit = self._units_by_row.get(index.row())

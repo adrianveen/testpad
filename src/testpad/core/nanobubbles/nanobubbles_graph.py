@@ -274,9 +274,7 @@ class NanobubblesGraph:
         if overlaid:
             nanobubble_svg_filename = "multi_batch_histogram"
         else:
-            nanobubble_svg_filename = (Path(self.nanobubble_txt[0]).name).split(".")[
-                0
-            ]
+            nanobubble_svg_filename = (Path(self.nanobubble_txt[0]).name).split(".")[0]
 
         # full_save_name = os.path.join(folder, str(nanobubble_svg_filename) + ".svg")
         full_save_name = Path(folder) / f"{nanobubble_svg_filename}.svg"
@@ -305,8 +303,6 @@ if __name__ == "__main__":
     # n = NanobubblesGraph(
     #     r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS 2.txt", ""
     # )
-    n = NanobubblesGraph(
-        r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS.txt", ""
-    )
+    n = NanobubblesGraph(r"G:\Shared drives\FUS_Team\IY NanoBubbles\IY-2nd-FUS.txt", "")
     n.get_graphs(bins=100, overlaid=True, scale=True)
     plt.show()

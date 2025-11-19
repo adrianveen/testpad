@@ -165,9 +165,7 @@ class TemperatureGraph:
 
         if not overlaid or len(self.raw_data) == 1:
             # Single dataset
-            colors = self._generate_color_palette(
-                "#73A89E", len(temperatures.columns)
-            )
+            colors = self._generate_color_palette("#73A89E", len(temperatures.columns))
             for i, sensor in enumerate(temperatures.columns):
                 linewidth = 2 if len(temperatures.columns) == 1 else 1
                 self.ax.plot(

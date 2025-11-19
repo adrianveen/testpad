@@ -9,12 +9,23 @@ from numpy.typing import NDArray
 class Calculations:
     """Class for calculations and determining what type the lcmatch should be."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.text = ""
         self.image_file = None
 
     # returns values to calculation function below
-    def lmatch(self, ZG, ZL, type) -> NDArray | None:
+    def lmatch(self, ZG, ZL, box_type: str) -> NDArray | None:
+        """Calculate the matching box values.
+
+        Args:
+            ZG (complex): The impedance of the source.
+            ZL (complex): The impedance of the load.
+            box_type (str): The type of the matching box.
+
+        Returns:
+            NDArray | None: The matching box values.
+
+        """
         if np.ndim(ZG) == 0 and np.ndim(ZL) == 0:
             ZG = np.array([ZG], dtype=complex)
             ZL = np.array([ZL], dtype=complex)
@@ -25,7 +36,7 @@ class Calculations:
 
             return np.array([[X1, 0], [0, X2]])
 
-        if type == "n":
+        if box_type == "n":
             RG = np.real(ZG)[0]
             XG = np.imag(ZG)[0]
             RL = np.real(ZL)[0]
@@ -46,7 +57,7 @@ class Calculations:
         Q = np.sqrt(RG / RL - 1 + XG**2 / (RG * RL))
 
         if not np.isreal(Q):
-            self.text += f'\nNo real solution of box_type "{type}" exists\n'
+            self.text += f'\nNo real solution of box_type "{box_type}" exists\n'
             return None
 
         X1 = (XG + np.array([1, -1]) * Q * RG) / (RG / RL - 1)
@@ -55,7 +66,21 @@ class Calculations:
         return np.array([X1, X2])
 
     # performs all the actual calculations returned to the UI
-    def calculations(self, frequency, absZ, phase, toroid) -> str:
+    def calculations(
+        self, frequency: float, absZ: float, phase: float, toroid: float
+    ) -> str:
+        """Perform the actual calculations.
+
+        Args:
+            frequency (float): The frequency in Hz.
+            absZ (float): The impedance of the load in Ohms.
+            phase (float): The phase angle of the load in degrees.
+            toroid (float): The toroid constant in uH/100 turns.
+
+        Returns:
+            str: The output text.
+
+        """
         if frequency == 0 and absZ == 0 and phase == 0:
             return "Please enter values!"
         if absZ == 50 and phase == 0:
@@ -85,16 +110,16 @@ class Calculations:
             if (RG > RL and abs(XL) < math.sqrt(RL * (RG - RL))) or (
                 RG > RL and abs(XL) > math.sqrt(RL * (RG - RL))
             ):
-                type = "n"
+                box_type = "n"
             else:
-                type = "r"
+                box_type = "r"
         # if there's an error, return the error message
         except ValueError as e:
             return str(e)
 
         # try box_type, if the capacitance/inductance are below 0 then switch box_type
         try:
-            X12 = self.lmatch(ZG, ZL, type)  # either 'r' or 'n'
+            X12 = self.lmatch(ZG, ZL, box_type)  # either 'r' or 'n'
             # print(X12)
 
             L = X12[1, 1] / omega * 1e6  # inductance in micro Henry
@@ -102,7 +127,7 @@ class Calculations:
 
             # raise an error if inductance/capacitance is below 0
             if L < 0 or C < 0:
-                self.text += f"\nType {type} gives error. Switching box_type.\n"
+                self.text += f"\nType {box_type} gives error. Switching box_type.\n"
                 msg = "Error: inductance or capacitance is less than 0. Switching \
                     box_type to find alternative solution."
                 raise Exception(msg)
@@ -112,9 +137,9 @@ class Calculations:
         # switch the box_type if inductance/capacitance are below 0
         except Exception as e:
             print(e)
-            type = "n" if type == "r" else "r"
+            box_type = "n" if box_type == "r" else "r"
 
-            X12 = self.lmatch(ZG, ZL, type)  # either 'r' or 'n'
+            X12 = self.lmatch(ZG, ZL, box_type)  # either 'r' or 'n'
 
             L = X12[1, 1] / omega * 1e6  # inductance in micro Henry
             C = (-1 / X12[0, 1] / omega) * 1e12  # capacitance in pico Farad
@@ -123,7 +148,7 @@ class Calculations:
 
         # if the box_type is n, add a picture of the capacitors across the source input
         # (and print it in the output textbox )
-        if type == "n":
+        if box_type == "n":
             self.text += "\ncapacitors across the source input\n\n"
             # creating the image filepath
             self.image_file = str(
@@ -132,7 +157,7 @@ class Calculations:
 
         # otherwise, if the box_type is r, add a picture of the capacitors across the
         # load (and print it in the output textbox)
-        elif type == "r":
+        elif box_type == "r":
             self.text += "\ncapacitors across the transducer load\n\n"
             # creating the image filepath
             self.image_file = str(

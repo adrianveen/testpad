@@ -10,9 +10,10 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QCoreApplication, QSignalBlocker, QTimer
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
+    QLabel,
     QMainWindow,
     QTabWidget,
     QVBoxLayout,
@@ -41,9 +42,7 @@ def get_icon_path() -> str:
     if Path(icon_path_pkg).exists():
         icon_path = icon_path_pkg
     elif meipass:
-        icon_path = (
-            Path(meipass) / "testpad" / "resources" / "fus_icon_transparent.ico"
-        )
+        icon_path = Path(meipass) / "testpad" / "resources" / "fus_icon_transparent.ico"
     else:
         icon_path = (
             Path.cwd() / "src" / "testpad" / "resources" / "fus_icon_transparent.ico"
@@ -87,7 +86,7 @@ class _ApplicationWindow(QMainWindow):
         # so the main window appears with UI ready.
         self._ensure_loaded(self._tab_widget.currentIndex(), progress_cb)
 
-    def showEvent(self, event) -> None:
+    def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
         if not self._shown_once:
             self._shown_once = True
@@ -98,14 +97,13 @@ class _ApplicationWindow(QMainWindow):
     def _setup_lazy_tabs(
         self,
         _progress_cb: Callable[[str], None] | None,
-        tabs_spec: list[tuple[str, str, str]] | None,
+        tabs_spec: list[TabSpec] | None,
     ) -> None:
         if tabs_spec is None:
             tabs_spec = list(TABS_SPEC)
         self._lazy_specs = list(tabs_spec)
 
         # Add lightweight placeholders (so the UI can show immediately)
-        from PySide6.QtWidgets import QLabel
 
         for spec in self._lazy_specs:
             label = spec.label
@@ -136,14 +134,13 @@ class _ApplicationWindow(QMainWindow):
                 self.seen_mods: set[str] = set()
                 self.seen_files: set[str] = set()
 
-            def find_spec(self, fullname: str, path, target=None) -> None:
+            def find_spec(self, fullname: str, path: Any, _target: Any = None) -> None:
                 top = fullname.split(".", 1)[0]
                 if top not in targets:
                     return
-                try:
-                    spec = _PathFinder.find_spec(fullname, path)
-                except Exception:
-                    spec = None
+
+                spec = _PathFinder.find_spec(fullname, path)
+
                 # Emit top-level import name once
                 if top not in self.seen_mods:
                     self.seen_mods.add(top)
@@ -178,7 +175,7 @@ class _ApplicationWindow(QMainWindow):
     def _ensure_loaded(
         self, index: int, progress_cb: Callable[[str], None] | None = None
     ) -> None:
-        # Skip work if the tab is already loaded or the index falls outside the spec list.
+        # Skip work if tab is already loaded or the index falls outside the spec list.
         if index in self._loaded or index < 0 or index >= len(self._lazy_specs):
             return
         spec = self._lazy_specs[index]
@@ -190,8 +187,9 @@ class _ApplicationWindow(QMainWindow):
             # Provide immediate feedback that this tab is the one being resolved.
             if progress_cb:
                 progress_cb(f"Loading: {label} ({truncate_to_testpad(module_path)})")
-            # Highlight module families that tend to dominate import time so the progress UI can
-            # surface meaningful messages while the interpreter walks their files.
+            # Highlight module families that tend to dominate import time so the
+            # progress UI can surface meaningful messages while the interpreter walks
+            # their files
             heavy = {
                 "testpad",
                 "PySide6",
@@ -215,9 +213,7 @@ class _ApplicationWindow(QMainWindow):
             widget = cls() if label == "Sweep Graphs" else cls(self)
             if progress_cb:
                 progress_cb(f"Loaded: {label}")
-        except Exception as e:
-            from PySide6.QtWidgets import QLabel
-
+        except ValueError as e:
             # Substitute a failure indicator so the user sees
             # the problem instead of a blank tab.
             widget = QLabel(f"Failed to load '{label}': {e}")

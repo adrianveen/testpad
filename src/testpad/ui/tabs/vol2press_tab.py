@@ -252,7 +252,7 @@ class Vol2PressTab(QWidget):
     # file dialog boxes to select sweep/calibration
     # eb-50/customer eb-50 files/a save location
     def _open_file_dialog(self, d_type: str) -> None:
-        """Open a file dialog to select a file or directory based on d_type specified."""
+        """Open a file dialog to select a file or dir based on d_type specified."""
         if d_type == "sweep":
             self.dialog1 = QFileDialog(self)
             self.dialog1.setWindowTitle("Sweep File")
@@ -314,7 +314,7 @@ class Vol2PressTab(QWidget):
             # Set the file mode to Directory so only folders can be selected
             self.dialog1.setFileMode(QFileDialog.FileMode.Directory)
             # Ensure that only directories are shown
-            self.dialog1.setOption(QFileDialog.Option.ShowDirsOnly, True)
+            self.dialog1.setOption(QFileDialog.Option.ShowDirsOnly, on=True)
 
             if self.dialog1.exec():
                 selected_dir = self.dialog1.selectedFiles()[0]
@@ -369,7 +369,8 @@ class Vol2PressTab(QWidget):
 
                 original_line_widths = {}
 
-                # Temporarily reduce marker size, marker edge width, and line width to 70% for saving
+                # Temporarily reduce marker size, marker edge width, and line width to
+                # 70% for saving
                 for ax in self.pnp_plot.figure.get_axes():
                     for line in ax.get_lines():
                         # Save original values
@@ -440,7 +441,7 @@ class Vol2PressTab(QWidget):
 
     @Slot()
     # return calc values
-    def get_calcs(self):
+    def get_calcs(self) -> None:
         if (
             self.sweep_file is not None
             and self.cal_eb50_file is not None
@@ -466,13 +467,13 @@ class Vol2PressTab(QWidget):
 
     # print the graphs
     @Slot()
-    def _print_graphs(self, dataset) -> None:
+    def _print_graphs(self, dataset: Vol2Press) -> None:
         self.graph_display.clear()
         comparison_graph = self.calcs.getGraphs()
         self.graph_display.addTab(comparison_graph, "Comparison Graph")
 
     # add data to a dictionary
-    def _add_to_dict(self, key, value, dictionary) -> None:
+    def _add_to_dict(self, key: str, value: str, dictionary: dict) -> None:
         if value != "":
             if key == "offset":
                 dictionary[key] = np.array(

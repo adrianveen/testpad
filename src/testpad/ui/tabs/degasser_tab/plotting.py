@@ -76,12 +76,14 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
 
     try:
         figure.savefig(temp_path, dpi=figure.get_dpi(), bbox_inches="tight")
-        return temp_path
+
     except Exception:
         # Clean up on error
         with contextlib.suppress(OSError):
             Path(temp_path).unlink()
         raise
+    else:
+        return temp_path
 
 
 def normalize_time_series_data(

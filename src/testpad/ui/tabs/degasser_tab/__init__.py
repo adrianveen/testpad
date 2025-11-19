@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 def create_degasser_tab(parent=None) -> DegasserTab:
     """Create factory function initializing Degasser Tab."""
     # Import here to avoid Qt dependencies during module import (for testing)
-    from .presenter import DegasserPresenter
-    from .view import DegasserTab
+    from .presenter import DegasserPresenter  # noqa: PLC0415
+    from .view import DegasserTab  # noqa: PLC0415
 
     # Debug: Check if resources are accessible
     try:

@@ -4,8 +4,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 def load_custom_palette(palette_name: str) -> tuple[QtGui.QPalette, str]:
     """Return a Qt palette and optional tooltip style for a given theme name.
 
-    Uses fully-qualified enum references for clarity (QtGui.QPalette.ColorRole, QtGui.QPalette.ColorGroup,
-    QtCore.Qt.GlobalColor).
+    Uses fully-qualified enum references for clarity (QtGui.QPalette.ColorRole,
+        QtGui.QPalette.ColorGroup, QtCore.Qt.GlobalColor).
     """
     if palette_name == "dark_palette":
         palette = QtGui.QPalette()

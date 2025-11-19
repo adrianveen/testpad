@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """Report layout configuration for PDF generation.
 
 This module defines layout constants and configuration objects

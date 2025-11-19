@@ -1,4 +1,4 @@
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -17,6 +17,8 @@ from testpad.core.temp_analysis.temperature_graph import TemperatureGraph
 
 
 class TempAnalysisTab(QWidget):
+    """TempAnalysisTab UI class."""
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
@@ -61,13 +63,13 @@ class TempAnalysisTab(QWidget):
         main_layout.addWidget(self.graph_tab, 0, 1, 2, 1)
         self.setLayout(main_layout)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
         """Recalculate the position of the image when the window is resized."""
         super().resizeEvent(event)
         self.update_image_position()
 
-    def update_image_position(self):
-        """Update the image's position and size based on the legend's height and direction."""
+    def update_image_position(self) -> None:
+        """Update the image position and size based on legend height and direction."""
         if self.temperature_object is None:
             return
 
@@ -122,15 +124,16 @@ class TempAnalysisTab(QWidget):
         # self.temperature_object.draw()
 
     @Slot()
-    def openFileDialog(self, d_type):
+    def openFileDialog(self, d_type) -> None:
+        """Open a file dialog to select a file or dir based on d_type specified."""
         if d_type == "csv":  # open temperature csv
             self.dialog1 = QFileDialog(self)
 
             if self.compare_box.isChecked():
-                self.dialog1.setFileMode(QFileDialog.ExistingFiles)
+                self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFiles)
                 self.dialog1.setWindowTitle("Temperature Data CSV Files")
             else:
-                self.dialog1.setFileMode(QFileDialog.ExistingFile)
+                self.dialog1.setFileMode(QFileDialog.FileMode.ExistingFile)
                 self.dialog1.setWindowTitle("Temperature Data CSV File")
 
             self.dialog1.setNameFilter("*.csv")
@@ -147,14 +150,15 @@ class TempAnalysisTab(QWidget):
             self.dialog = QFileDialog(self)
             self.dialog.setWindowTitle("Graph Save Location")
             # self.dialog.setDefaultSuffix("*.txt")
-            self.dialog.setFileMode(QFileDialog.Directory)
+            self.dialog.setFileMode(QFileDialog.FileMode.Directory)
             if self.dialog.exec():
                 self.text_display.append("Save Location: ")
                 self.file_save_location = self.dialog.selectedFiles()[0]
                 self.text_display.append(self.file_save_location + "\n")
 
     @Slot()
-    def create_graph(self):
+    def create_graph(self) -> None:
+        """Create graph."""
         if self.temperature_data_files is not None:
             self.graph_tab.clear()
 

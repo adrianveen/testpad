@@ -6,15 +6,15 @@ from PySide6.QtWidgets import QLineEdit
 
 
 class ValidatedLineEdit(QLineEdit):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QLineEdit | None = None) -> None:
         super().__init__(parent)
         # Store the original stylesheet
         self.original_style = self.styleSheet()
         # Connect the textChanged signal to the validation function
         self.textChanged.connect(self.validate_input)
 
-    def get_style_property(self, property_name):
-        """Helper method to extract specific properties from the stylesheet."""
+    def get_style_property(self, property_name: str) -> str:
+        """Extract specific properties from the stylesheet."""
         style = self.styleSheet()
         start_index = style.find(property_name)
         if start_index == -1:
@@ -25,7 +25,7 @@ class ValidatedLineEdit(QLineEdit):
             end_index = len(style)
         return style[start_index:end_index].strip()
 
-    def validate_input(self):
+    def validate_input(self) -> None:
         # Extract the current color and border properties from the stylesheet
         color = self.get_style_property("color")
 
@@ -46,10 +46,16 @@ class ValidatedLineEdit(QLineEdit):
 
 # Custom QDoubleValidator that overrides the fixup method
 class FixupDoubleValidator(QDoubleValidator):
-    def __init__(self, bottom, top, decimals, parent=None):
+    def __init__(
+        self,
+        bottom: float,
+        top: float,
+        decimals: int,
+        parent: QDoubleValidator | None = None,
+    ) -> None:
         super().__init__(bottom, top, decimals, parent)
 
-    def fixup(self, in_str):
+    def fixup(self, in_str: str) -> str:
         try:
             value = float(in_str)
         except ValueError:
@@ -72,10 +78,13 @@ class FixupDoubleValidator(QDoubleValidator):
 
 # Custom QIntValidator that overrides the fixup method
 class FixupIntValidator(QIntValidator):
-    def __init__(self, bottom, top, parent=None):
+    def __init__(
+        self, bottom: int, top: int, parent: QIntValidator | None = None
+    ) -> None:
+        """Initialize the FixupIntValidator class."""
         super().__init__(bottom, top, parent)
 
-    def fixup(self, inp):
+    def fixup(self, inp: str) -> str:
         # Automatically correct the input to a valid value
         # noinspection PyUnresolvedReferences
         if self.validate(inp, 0)[0] != QIntValidator.State.Acceptable:
@@ -91,7 +100,8 @@ class FixupIntValidator(QIntValidator):
             elif value > self.top():
                 inp = str(self.top())
             else:
-                # If the value is within the valid range, adjust it to the closest integer
+                # If the value is within the valid range,
+                # adjust it to the closest integer
                 inp = str(value)
         return inp
 

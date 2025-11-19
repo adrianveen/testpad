@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -73,9 +72,7 @@ class GenerateReport:
         """Generate and export the PDF report for the Burnin Tab."""
         filename = (
             Path(self.output_dir)
-            / f"RK-300 Burnin Report {
-                datetime.datetime.now().strftime('%Y-%m-%d')
-            }.pdf"
+            / f"RK-300 Burnin Report {datetime.datetime.now().strftime('%Y-%m-%d')}.pdf"
         )
         filename = str(filename)
 
