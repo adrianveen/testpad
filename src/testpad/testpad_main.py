@@ -253,9 +253,7 @@ def main() -> None:
 
     # Load and combine stylesheets
     button_styles = load_stylesheet("buttons.qss")
-    # increase font size slightly of QLabels in main window (not splash screen)
-    label_styles = "QMainWindow QLabel{font-size: 11pt;}"
-    combined_styles = f"{label_styles}\n{palette_tooltip}\n{button_styles}"
+    combined_styles = f"{palette_tooltip}\n{button_styles}"
     app.setStyleSheet(combined_styles)
 
     # Splash screen setup
