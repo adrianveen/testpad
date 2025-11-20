@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast, override
 
 import PySide6.QtCore
-from PySide6.QtCore import QDate, QSignalBlocker, Qt, QTimer
+from PySide6.QtCore import QDate, QSignalBlocker, Qt
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QApplication,
@@ -304,6 +304,7 @@ class DegasserTab(BaseTab):
             self._update_test_table(state.test_rows)
 
             self._update_time_series_table(state.time_series_table_rows)
+            self._output_dir_line_edit.setText(state.output_directory)
 
         finally:
             self._block_signals(block=False)
@@ -470,6 +471,36 @@ class DegasserTab(BaseTab):
             QMessageBox.StandardButton.Ok,
         )
         return reply == QMessageBox.StandardButton.Ok
+
+    def existing_file_dialog(self, title: str, text: str) -> str:
+        """Show an existing file dialog.
+
+        Args:
+            title: The title of the dialog.
+            text: The text of the dialog.
+
+        Returns:
+            The result of the dialog.
+            "change_serial" if the user clicked the change serial button.
+            "create_second_file" if the user clicked the create second file button.
+
+        """
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.Icon.Warning)
+        message_box.setText(text)
+        message_box.setWindowTitle(title)
+        change_serial = message_box.addButton(
+            "Change Serial Number", QMessageBox.ButtonRole.RejectRole
+        )
+        create_second_file = message_box.addButton(
+            "Create New Report", QMessageBox.ButtonRole.ApplyRole
+        )
+        message_box.exec()
+        if message_box.clickedButton() == change_serial:
+            return "change_serial"
+        if message_box.clickedButton() == create_second_file:
+            return "create_new_file"
+        return ""
 
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
@@ -698,26 +729,49 @@ class DegasserTab(BaseTab):
         return widget
 
     def _build_action_buttons(self) -> QWidget:
-        """Build the action buttons section."""
+        """Build the action buttons section.
+
+        Also include a line for the output directory path.
+        """
         widget = QWidget()
         layout = QHBoxLayout()
         widget.setLayout(layout)
 
-        # Create Widgets
+        # Create Import/Export
         self._import_csv_btn = QPushButton("Import CSV")
         self._export_csv_btn = QPushButton("Export CSV")
+        # Create Ouput Directory path display, report generation button and reset button
+        output_dir = self._model.get_output_directory() if self._model else ""
+        self._output_dir_label = QLabel("Current Output Directory: ")
+        self._output_dir_line_edit = QLineEdit(str(output_dir))
+        self._output_dir_line_edit.setReadOnly(True)
+        self._output_dir_line_edit.setMinimumWidth(len(str(output_dir)) * 6)
+
         self._select_output_folder_btn = QPushButton("Select Output Folder...")
         self._generate_report_btn = QPushButton("Generate Report")
-
         # Reset Button
         self._reset_btn = QPushButton("Reset All")
+
+        # Add output directory widgets to horizontal layout
+        directory_layout = QHBoxLayout()
+        directory_layout.addWidget(self._output_dir_label)
+        directory_layout.addWidget(self._output_dir_line_edit)
+        # Add line edite and right buttons to QGridLayout
+        sub_layout = QGridLayout()
+        sub_layout.addLayout(directory_layout, 0, 0, 1, 3)
+        sub_layout.addWidget(self._select_output_folder_btn, 1, 0)
+        sub_layout.addWidget(self._generate_report_btn, 1, 1)
+        sub_layout.addWidget(self._reset_btn, 1, 2)
+        # Set column stretch so the line edit can expand
+        sub_layout.setColumnStretch(0, 1)
+        sub_layout.setColumnStretch(1, 1)
+        sub_layout.setColumnStretch(2, 1)
+
         # Add to Layout
         layout.addWidget(self._import_csv_btn)
         layout.addWidget(self._export_csv_btn)
-        layout.addStretch()  # Spacer
-        layout.addWidget(self._select_output_folder_btn)
-        layout.addWidget(self._generate_report_btn)
-        layout.addWidget(self._reset_btn)
+        layout.addStretch(1)  # Spacer
+        layout.addLayout(sub_layout, 1)  # Give sub_layout a stretch factor
 
         return widget
 
@@ -748,10 +802,6 @@ class DegasserTab(BaseTab):
     def _on_console_toggled(self, checked: bool) -> None:
         """Show/hide console output when checkbox is toggled."""
         self._console_output.setVisible(checked)
-        # Controls window resize on hide
-        main_win = self.window()
-        if main_win and not main_win.isMaximized() and not main_win.isFullScreen():
-            QTimer.singleShot(0, lambda: main_win.resize(main_win.sizeHint()))
 
     def _update_test_table(self, test_rows: list) -> None:
         """Update the test table from state data.

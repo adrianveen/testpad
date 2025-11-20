@@ -12,6 +12,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
     NO_LIMIT_SYMBOL,
+    PDF_REPORT_NAME_PREFIX,
     REPORT_VERSION,
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
@@ -79,23 +80,37 @@ class GenerateReport:
         # Y location trackers
         self.time_series_y = 0
 
-    def generate_report(self) -> None:
-        """Call the draw functions and exports the report."""
+    def generate_report(
+        self,
+        filename: str | Path | None = None,
+        overwrite: bool = False,
+        auto_increment: bool = False,
+    ) -> Path:
+        """Call the draw functions and exports the report.
+
+        Args:
+            filename: The filename to save the report to. If None, a filename
+
+        """
         serial_num = self.metadata.get("ds50_serial", "").replace("#", "")
-        filename = Path(self.output_dir) / f"FUS DS-50 Test Report-{serial_num}.pdf"
-        filename = str(filename)
+        if filename is None:
+            filename = (
+                Path(self.output_dir) / f"{PDF_REPORT_NAME_PREFIX}{serial_num}.pdf"
+            )
+        else:
+            filename = Path(filename)
 
-        # Call remaining draw methods
-        self._build_report_base(self.layout.left_margin_mm)
-        self._build_header(logo_path=self.logo_path)
-        self._build_title_block(self.metadata)
-        self._build_test_table(self.test_data)
-        self._build_time_series_table(self.time_series)
+        # Check if file exists before building pdf
+        if filename.exists() and not overwrite:
+            if auto_increment:
+                filename = self._get_next_available_filename(filename)
+            else:
+                msg = (
+                    f"Report already exists: {filename}\n"
+                    f"Use overwrite=True or auto_increment=True to handle this."
+                )
+                raise FileExistsError(msg)
 
-        # Create and add figure
-        self._add_time_series_figure()
-
-        # Save PDF to the output path
         # Make the directory if it doesn't exist
         output_path = Path(self.output_dir)
         try:
@@ -112,7 +127,53 @@ class GenerateReport:
             )
             raise OSError(msg)
 
-        self.pdf.output(filename)
+        # Call remaining draw methods
+        self._build_report_base(self.layout.left_margin_mm)
+        self._build_header(logo_path=self.logo_path)
+        self._build_title_block(self.metadata)
+        self._build_test_table(self.test_data)
+        self._build_time_series_table(self.time_series)
+
+        # Create and add figure
+        self._add_time_series_figure()
+
+        # Save PDF to the output path
+        self.pdf.output(str(filename))
+
+        return filename
+
+    def _get_next_available_filename(
+        self, base_filename: Path, max_attempts: int = 100
+    ) -> Path:
+        """Find next available filename with increment suffix.
+
+        Args:
+          base_filename: Original filename (e.g., "DS50_Test_Report_#9999.pdf")
+          max_attempts: Maximum number of suffixes to try
+
+        Returns:
+          Next available path (e.g., "DS50_Test_Report_#9999_1.pdf")
+
+        Raises:
+          OSError: If max_attempts reached without finding available filename
+
+        """
+        if not base_filename.exists():
+            return base_filename
+
+        # Extract stem and suffix
+        # "DS50_Test_Report_#9999.pdf" -> stem="DS50_Test_Report_#9999", suffix=".pdf"
+        stem = base_filename.stem
+        suffix = base_filename.suffix
+        parent = base_filename.parent
+
+        for i in range(1, max_attempts + 1):
+            new_filename = parent / f"{stem}_{i}{suffix}"
+            if not new_filename.exists():
+                return new_filename
+
+        msg = f"Could not find available filename after {max_attempts} attempts"
+        raise OSError(msg)
 
     def _build_report_base(self, margins: float) -> None:
         """Initialize the report object and draws the report skeleton such as margins.

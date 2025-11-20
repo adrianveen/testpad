@@ -242,9 +242,42 @@ class DegasserPresenter:
         )
         try:
             report_generator.generate_report()
-            self._view.log_message(
-                f"Report generated successfully. The report was saved to {output_path}"
+            msg = f"Report generated successfully. The report was saved to:\n{output_path}"
+            self._view.log_message(msg)
+            self._view.info_dialog(title="Report Generated", text=msg)
+        except FileExistsError:
+            # Ask user how to handle
+            title = "Report already exists"
+            serial = data_dict["metadata"]["ds50_serial"]
+            msg = (
+                f"A file with the serial number '{serial}' already exists.\n"
+                "How do you want to proceed?"
             )
+
+            response = self._view.existing_file_dialog(title=title, text=msg)
+
+            if response == "create_new_file":
+                try:
+                    # Let GenerateReport handle incrementing
+                    generated_file = report_generator.generate_report(
+                        auto_increment=True,
+                    )
+                    msg = f"Report generated successfully. The report was saved to:\n{generated_file.parent}"
+                    self._view.log_message(msg)
+                    self._view.info_dialog(title="Report Generated", text=msg)
+                except (ValueError, OSError) as err:
+                    self._view.log_message(f"Error: {err}")
+                    self._view.critical_dialog(
+                        title="Error Generating Report",
+                        text=f"Failed to generate report: {err}",
+                    )
+            elif response == "change_serial":
+                # Cancel to allow user to change serial number
+                return
+            else:
+                # User cancelled
+                self._view.log_message("Report generation cancelled")
+
         except (ValueError, OSError, PermissionError) as e:
             self._view.log_message(f"Report generation error: {e}")
             self._view.critical_dialog(
@@ -345,6 +378,7 @@ class DegasserPresenter:
         temperature_c = self._model.get_temperature_c()
         test_rows = self._model.get_test_rows()
         time_series_rows = self._model.build_time_series_rows()
+        output_dir = self._model.get_output_directory()
 
         # Package into ViewState
         return DegasserViewState(
@@ -356,6 +390,7 @@ class DegasserPresenter:
             temperature_c=temperature_c,
             test_rows=test_rows,
             time_series_table_rows=time_series_rows,
+            output_directory=str(output_dir),
         )
 
     def shutdown(self) -> None:

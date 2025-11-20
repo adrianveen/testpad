@@ -104,3 +104,6 @@ SPEC_MAX_COL_INDEX = 3
 MEASURED_COL_INDEX = 4
 TIME_SERIES_HEADERS = ["Time (minutes)", "Dissolved Oxygen (mg/L)"]
 DEFAULT_TEST_DATE = default_date
+
+# === Output File Configuration ===
+PDF_REPORT_NAME_PREFIX = "FUS DS-50 Test Report-"
