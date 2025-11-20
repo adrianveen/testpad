@@ -17,6 +17,9 @@ dependencies = [
   "shiboken6==6.9.3",
 ]
 
+[project.scripts]
+testpad = "testpad.testpad_main:main"
+
 [project.optional-dependencies]
 dev = [
   "ipykernel>=7.0.1",
