@@ -58,7 +58,7 @@ Follow these steps to set up the project locally for use or development.
 
 ### Prerequisites
 - Python 3.12
-- Conda (Miniconda/Anaconda) for environment management
+- uv for environment management
 - Windows PowerShell recommended for helper scripts (cross-platform Python run is still supported)
 
 ### Installation
@@ -70,18 +70,14 @@ cd testpad
 ```
 
 2) Create the developer environment (includes PySide6 and libraries)
-- Recommended (uses lockfile if available):
 ```powershell
-./scripts/setup-dev-env.ps1
-```
-- Manual:
-```powershell
-conda env create -f environment-dev.yml
+uv venv
+uv pip install -e .[dev]
 ```
 
 3) Activate the environment
 ```powershell
-conda activate testpad-dev
+.venv\Scripts\activate
 ```
 
 ---
@@ -144,7 +140,7 @@ We use PyInstaller specs under `build_config/` to generate executables.
 ```
 Manual equivalent:
 ```powershell
-conda run -n testpad-release pyinstaller build_config/testpad_main-release.spec --noconfirm
+uv run python -m pyinstaller build_config/testpad_main-release.spec --noconfirm
 ```
 
 Notes
@@ -180,8 +176,6 @@ Branch name prefixes: `new_feat/` or `bug/` are suggested.
   - Run from `src/` (e.g., `cd src; python -m testpad.testpad_main`) or set `PYTHONPATH=src` from the repo root. The helper script `./scripts/run.ps1` runs in module mode for you.
 - Qt plugin errors when frozen
   - Ensure you build using the PyInstaller specs; runtime hooks collect Qt plugins and Matplotlib backends.
-- Missing DLLs (BLAS/HDF5)
-  - Use the provided conda environments (`environment-*.yml`) or lockfiles.
 - PowerShell execution policy blocks scripts
   - Enable for the current session:
     ```powershell

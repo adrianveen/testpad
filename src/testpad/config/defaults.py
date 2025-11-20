@@ -23,7 +23,7 @@ DEFAULT_TABLE_ROW_HEIGHT = 7
 
 # === File Defaults ===
 PACKAGE_ROOT = Path(__file__).parent.parent
-DEFAULT_OUTPUT_DIR = Path.home() / "Documents" / "FUS Instruments" / "Testpad"
+DEFAULT_OUTPUT_DIR = Path.home() / "Documents" / "FUS_Instruments" / "Testpad"
 DEFAULT_EXPORT_DIR = DEFAULT_OUTPUT_DIR / "Exports"
 DEFAULT_FUS_LOGO_PATH = PACKAGE_ROOT / "resources" / "FUS_logo_text_icon_ms_v3.svg"
 DEFAULT_CSV_ENCODING = "utf-8"

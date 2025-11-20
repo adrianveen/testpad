@@ -79,9 +79,7 @@ class FixupDoubleValidator(QDoubleValidator):
 
 # Custom QIntValidator that overrides the fixup method
 class FixupIntValidator(QIntValidator):
-    def __init__(
-        self, bottom: int, top: int, parent: QObject | None = None
-    ) -> None:
+    def __init__(self, bottom: int, top: int, parent: QObject | None = None) -> None:
         """Initialize the FixupIntValidator class."""
         super().__init__(bottom, top, parent)
 

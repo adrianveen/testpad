@@ -5,6 +5,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, final
 
+from testpad.config.defaults import DEFAULT_EXPORT_DIR
+
 from .config import (
     DEFAULT_TEST_DATE,
     DEFAULT_TEST_DESCRIPTIONS,
@@ -96,6 +98,7 @@ class DegasserModel:
             TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS
         ]
         self._source_path: str | None = None
+        self._output_directory: Path = DEFAULT_EXPORT_DIR
 
         self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
 
@@ -316,6 +319,33 @@ class DegasserModel:
                 if include_temperature and self._temperature_c is not None:
                     row.append(self._temperature_c)
                 writer.writerow(row)
+
+    # -------- Output Directory --------
+    def get_output_directory(self) -> Path:
+        """Get the current output directory.
+
+        Returns:
+            Path: The current output directory.
+
+        """
+        return self._output_directory
+
+    def set_output_directory(self, path: Path) -> None:
+        """Set the output directory for reports.
+
+        Args:
+            path: The new output directory.
+
+        Raises:
+            ValueError: If the path is not absolute.
+
+        """
+        path = Path(path)
+        if not path.is_absolute():
+            msg = "Output directory must be absolute."
+            raise ValueError(msg)
+
+        self._output_directory = path
 
     # -------- State / Reset / Serialization --------
     def reset(self) -> TimeSeriesState:

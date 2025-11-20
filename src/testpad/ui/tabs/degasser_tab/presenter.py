@@ -1,11 +1,10 @@
 """Degasser tab presenter."""
 
 from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from PySide6.QtWidgets import QFileDialog
-
-from testpad.config import DEFAULT_EXPORT_DIR
 
 from .config import (
     MEASURED_COL_INDEX,
@@ -173,6 +172,31 @@ class DegasserPresenter:
             except ValueError as e:
                 self._view.log_message(f"Temperature error: {e}")
 
+    def on_select_output_folder_clicked(self) -> None:
+        """Handle output folder selection button click."""
+        if self._updating:
+            return
+
+        # Get the current output folder path
+        current_path = str(self._model.get_output_directory())
+
+        # Ask view to show dialog
+        selected_path = self._view.show_folder_dialog(current_path)
+
+        if selected_path:
+            # Validate the path
+            path = Path(selected_path)
+            if not path.is_absolute():
+                self._view.log_message("Error: Selected path must be absolute.")
+                return
+
+            # Update the model with the new path
+            self._model.set_output_directory(path)
+
+            # Update the UI with the new path
+            self._refresh_view()
+            self._view.log_message(f"Output folder set to {path}")
+
     def on_reset(self) -> None:
         """Handle reset button click - clear all data."""
         if self._updating:
@@ -207,7 +231,7 @@ class DegasserPresenter:
         metadata = data_dict["metadata"]
         test_data = data_dict["test_table"]
 
-        output_path = DEFAULT_EXPORT_DIR
+        output_path = self._model.get_output_directory()
 
         report_generator = GenerateReport(
             time_series=time_series,
@@ -219,27 +243,19 @@ class DegasserPresenter:
         try:
             report_generator.generate_report()
             self._view.log_message(
-                "✅ Report generated successfully. "
-                f"The report was saved to {output_path}"
+                f"Report generated successfully. The report was saved to {output_path}"
             )
-        except (ValueError, OSError) as e:
-            self._view.log_message(f"❌ Report generation error: {e}")
+        except (ValueError, OSError, PermissionError) as e:
+            self._view.log_message(f"Report generation error: {e}")
             self._view.critical_dialog(
                 title="Report Generation Error",
                 text=f"Failed to generate report: {e}"
                 "\nConfirm the following before proceeding:"
                 "\n- Ensure you have write permissions for the output directory."
                 "\n- Close any open instances of the report file if it already exists."
-                "\n- Check if the output directory is valid and accessible.",
+                "\n- Check if the output directory is valid and accessible."
+                f"\n\nOutput directory: {output_path}",
             )
-        # except Exception as e:
-        #     self._view.log_message(
-        #         f"❌ Unexpected error during report generation: {e}"
-        #     )
-        #     self._view.critical_dialog(
-        #         title="Report Generation Error",
-        #         text=f"An unexpected error occurred: {e}",
-        #     )
 
     def _on_import_csv(self) -> None:
         """Handle import CSV button click.
