@@ -10,8 +10,10 @@ from testpad.config.defaults import DEFAULT_EXPORT_DIR
 from .config import (
     DEFAULT_TEST_DATE,
     DEFAULT_TEST_DESCRIPTIONS,
+    DS50_SPEC_RANGES,
     HEADER_ROW_INDEX,
     MINIMUM_END_MINUTE,
+    ROW_SPEC_MAPPING,
     START_MINUTE,
 )
 
@@ -89,19 +91,44 @@ class DegasserModel:
         result rows. The temperature is set to None, and the metadata is initialized
         with the default test date.
 
-        Returns:
-            None
-
         """
         self._oxygen_data: dict[int, float] = {}
         self._temperature_c: float | None = None
-        self._test_rows: list[TestResultRow] = [
-            TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS
-        ]
+        self._test_rows: list[TestResultRow] = self._create_default_test_rows()
         self._source_path: str | None = None
         self._output_directory: Path = DEFAULT_EXPORT_DIR
 
         self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
+
+    @staticmethod
+    def _create_default_test_rows() -> list[TestResultRow]:
+        """Create test result rows initialized with spec ranges from config.
+
+        Returns:
+            List of TestResultRow objects with descriptions and spec ranges populated.
+
+        """
+        rows = []
+        for row_idx, description in enumerate(DEFAULT_TEST_DESCRIPTIONS):
+            # Look up spec key for this row (None for header row)
+            spec_key = ROW_SPEC_MAPPING[row_idx]
+
+            if spec_key is not None:
+                # Get spec range from config
+                spec_range = DS50_SPEC_RANGES.get(spec_key, (None, None))
+                spec_min, spec_max = spec_range
+            else:
+                # Header row - no specs
+                spec_min, spec_max = None, None
+
+            rows.append(
+                TestResultRow(
+                    description=description,
+                    spec_min=spec_min,
+                    spec_max=spec_max,
+                )
+            )
+        return rows
 
     # -------- Validation Helpers --------
     @staticmethod
@@ -222,15 +249,56 @@ class DegasserModel:
             msg = "Test row index out of range."
             raise ValueError(msg)
         row = self._test_rows[index]
-        if pass_fail is not None:
-            row.pass_fail = pass_fail
+
+        # Update spec fields first (if provided)
         if spec_min is not None:
             row.spec_min = float(spec_min)
         if spec_max is not None:
             row.spec_max = float(spec_max)
+
+        # Update measured value (if provided)
         if measured is not None:
-            row.measured = float(measured)
+            # Handle empty string as clearing the measured value
+            if str(measured).strip() == "":
+                row.measured = None
+            else:
+                row.measured = float(measured)
+
+        # Auto-validate Pass/Fail ONLY if pass_fail was not explicitly provided
+        # and measured value was updated
+        self._auto_validate_pass_fail(row)
+
+        # If pass_fail was explicitly provided, use that (overrides auto-validation)
+        if pass_fail is not None:
+            row.pass_fail = pass_fail
+
         return self.get_test_rows()
+
+    def _auto_validate_pass_fail(self, row: TestResultRow) -> None:
+        """Auto-validate the pass/fail status of a test row.
+
+        This method is called after a test row is updated with measured value.
+        It checks the measured value against the spec range and updates the
+        pass/fail status accordingly.
+
+        Args:
+            row: The test row to validate.
+
+        """
+        if row.measured is None:
+            # Clear pass/fail if measured value is cleared
+            row.pass_fail = ""
+        elif row.spec_min is not None or row.spec_max is not None:
+            # Check against spec limits (None means no limit on that end)
+            # Type narrowing: row.measured is guaranteed non-None here
+            measured_val = row.measured
+            passes_min = row.spec_min is None or measured_val >= row.spec_min
+            passes_max = row.spec_max is None or measured_val <= row.spec_max
+
+            if passes_min and passes_max:
+                row.pass_fail = "Pass"  # noqa: S105
+            else:
+                row.pass_fail = "Fail"  # noqa: S105
 
     def get_test_rows(self) -> list[TestResultRow]:
         """Return deep-copied test rows so callers cannot mutate internal state."""
@@ -354,7 +422,7 @@ class DegasserModel:
         """Restore the model to a pristine state with default rows and no data."""
         self._oxygen_data.clear()
         self._temperature_c = None
-        self._test_rows = [TestResultRow(desc) for desc in DEFAULT_TEST_DESCRIPTIONS]
+        self._test_rows = self._create_default_test_rows()
         self._source_path = None
         self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
         return self.get_state()

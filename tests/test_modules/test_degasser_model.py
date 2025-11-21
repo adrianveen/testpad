@@ -396,6 +396,86 @@ class TestTableTests:
         with pytest.raises(ValueError, match="out of range"):
             model.update_test_row(99, pass_fail="Fail")
 
+    def test_auto_pass_fail_validation_within_spec(self) -> None:
+        """Measured value within spec range should auto-set Pass/Fail to 'Pass'."""
+        model = DegasserModel()
+
+        # Row 0 is vacuum_pressure with spec (None, -22)
+        # Any value <= -22 should pass
+        model.update_test_row(0, measured=-25.0)
+        rows = model.get_test_rows()
+        assert rows[0].pass_fail == "Pass"
+
+        # Row 1 is flow_rate with spec (300, 700)
+        # Value of 500 should pass
+        model.update_test_row(1, measured=500.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+        # Test boundary values
+        model.update_test_row(1, measured=300.0)  # Min boundary
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+        model.update_test_row(1, measured=700.0)  # Max boundary
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+    def test_auto_pass_fail_validation_outside_spec(self) -> None:
+        """Measured value outside spec range should auto-set Pass/Fail to 'Fail'."""
+        model = DegasserModel()
+
+        # Row 1 is flow_rate with spec (300, 700)
+        # Value of 800 should fail (above max)
+        model.update_test_row(1, measured=800.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Fail"
+
+        # Value of 200 should fail (below min)
+        model.update_test_row(1, measured=200.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Fail"
+
+    def test_auto_pass_fail_validation_clears_on_empty(self) -> None:
+        """Clearing measured value should clear Pass/Fail."""
+        model = DegasserModel()
+
+        # Set a passing value first
+        model.update_test_row(1, measured=500.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+        # Clear the measured value
+        model.update_test_row(1, measured="")
+        rows = model.get_test_rows()
+        assert rows[1].measured is None
+        assert rows[1].pass_fail == ""
+
+    def test_specs_initialized_from_config(self) -> None:
+        """Test rows should be initialized with spec ranges from config."""
+        model = DegasserModel()
+        rows = model.get_test_rows()
+
+        # Row 0: vacuum_pressure (None, -22)
+        assert rows[0].spec_min is None
+        assert rows[0].spec_max == -22
+
+        # Row 1: flow_rate (300, 700)
+        assert rows[1].spec_min == 300
+        assert rows[1].spec_max == 700
+
+        # Row 2: do_level (None, 3.0)
+        assert rows[2].spec_min is None
+        assert rows[2].spec_max == 3.0
+
+        # Row 3: Header row - no specs
+        assert rows[3].spec_min is None
+        assert rows[3].spec_max is None
+
+        # Row 4: recirculation_start (7.0, None)
+        assert rows[4].spec_min == 7.0
+        assert rows[4].spec_max is None
+
 
 # ====================================================================================
 # METADATA TESTS

@@ -1,4 +1,4 @@
-"""Configuration specific to the Degasser (Dissolved O2) tab.
+"""Configuration specific to the Degasser tab.
 
 Contains DS-50 specifications, test descriptions, and validation rules.
 """
@@ -60,6 +60,16 @@ DS50_SPEC_UNITS = {
     "recirculation_start": f"{MG_PER_LITER_STRING}",
     "recirculation_to_4mg": "min",
     "recirculation_to_2mg": "min",
+}
+
+# Decimal precision for displaying measured values
+DS50_DECIMAL_PRECISION = {
+    "vacuum_pressure": 0,  # No decimal places for vacuum pressure
+    "flow_rate": 0,  # No decimal places for flow rate
+    "do_level": 2,  # 2 decimal places for dissolved oxygen
+    "recirculation_start": 2,  # 2 decimal places for dissolved oxygen
+    "recirculation_to_4mg": 0,  # 0 decimal place for time measurements
+    "recirculation_to_2mg": 0,  # 0 decimal place for time measurements
 }
 
 # Symbol to display when no limit exists

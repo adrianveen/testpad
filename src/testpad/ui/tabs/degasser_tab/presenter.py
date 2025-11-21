@@ -91,6 +91,8 @@ class DegasserPresenter:
                 self._model.update_test_row(
                     row, measured=None if value.strip() == "" else value
                 )
+                # Refresh view to show auto-calculated Pass/Fail
+                self._refresh_view()
 
         except ValueError as e:
             self._view.log_message(f"Test table error: {e}")

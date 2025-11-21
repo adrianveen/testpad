@@ -44,6 +44,7 @@ from testpad.ui.tabs.degasser_tab.chart_widgets import TimeSeriesChartWidget
 from testpad.ui.tabs.degasser_tab.config import (
     DEFAULT_TEST_DESCRIPTIONS,
     DEFAULT_TIME_SERIES_TEMP,
+    DS50_DECIMAL_PRECISION,
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
     HEADER_ROW_COLOR,
@@ -518,8 +519,10 @@ class DegasserTab(BaseTab):
         message_box.setWindowTitle(title)
         message_box.setText(text)
         message_box.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+            QMessageBox.StandardButton.Cancel | QMessageBox.StandardButton.Yes
         )
+        message_box.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
         return message_box.exec() == QMessageBox.StandardButton.Yes
 
     def _build_metadata_section(self) -> QWidget:
@@ -875,7 +878,7 @@ class DegasserTab(BaseTab):
                 oxy_item.setText("")
 
     def _set_table_cell_float(self, row: int, col: int, value: float | None) -> None:
-        """Set table cell to a float value.
+        """Set table cell to a float value with row-specific precision.
 
         Args:
             row: Row index
@@ -889,7 +892,12 @@ class DegasserTab(BaseTab):
             self._test_table.setItem(row, col, item)
 
         if value is not None:
-            numeric_text = f"{value:.2f}"
+            # Get decimal precision for this row type
+            spec_key = ROW_SPEC_MAPPING[row]
+            precision = DS50_DECIMAL_PRECISION.get(spec_key, 2) if spec_key else 2
+
+            # Format with appropriate precision
+            numeric_text = f"{value:.{precision}f}"
             item.setText(numeric_text)
             item.setData(Qt.ItemDataRole.EditRole, numeric_text)
         else:

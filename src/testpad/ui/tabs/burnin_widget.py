@@ -154,7 +154,7 @@ class BurninTab(QWidget):
         self.text_display.append(text)
 
     def show_info(self, message: str) -> None:
-        """Show an info message in the text disqplay.
+        """Show an info message in the text display.
 
         Args:
             message: The message to display.
@@ -171,7 +171,7 @@ class BurninTab(QWidget):
         message_box.exec()
 
     def show_warning(self, message: str) -> None:
-        """Show a warning message in the text disqplay.
+        """Show a warning message in the text display.
 
         Args:
             message: The message to display.
@@ -188,7 +188,7 @@ class BurninTab(QWidget):
         message_box.exec()
 
     def show_critical(self, message: str) -> None:
-        """Show a critical message in the text disqplay.
+        """Show a critical message in the text display.
 
         Args:
             message: The message to display.
