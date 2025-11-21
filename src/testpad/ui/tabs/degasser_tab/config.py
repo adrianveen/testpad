@@ -11,10 +11,15 @@ from testpad.config.defaults import (
     default_date,
 )
 
-MIN_MINUTE = 0
-MAX_MINUTE = 10
+START_MINUTE = 0
+MINIMUM_END_MINUTE = 10
 TIME_SERIES_RESOLUTION_MINUTES = 1  # Measurement interval
 DEFAULT_TIME_SERIES_TEMP = DEFAULT_TEMPERATURE_C
+# === String Constants ===
+# Common strings used in the application
+DISSOLVED_OXYGEN_STRING = "Dissolved Oxygen"
+MG_PER_LITER_STRING = "mg/l"
+
 # === Metadata Fields ===
 METADATA_FIELDS = {
     "tester_name": "Tester Name",
@@ -28,11 +33,11 @@ METADATA_FIELDS = {
 DEFAULT_TEST_DESCRIPTIONS = [
     "Vacuum Pressure:",
     "Flow Rate:",
-    "Dissolved Oxygen Level Test:",
-    "Dissolved Oxygen Re-circulation Test (1000 mL):",
-    "   Starting DO Level:",
-    "   Time to Reach 4 mg/L (min):",
-    "   Time to Reach 2 mg/L (min):",
+    f"{DISSOLVED_OXYGEN_STRING} Level Test:",
+    f"{DISSOLVED_OXYGEN_STRING} Re-circulation Test (1000 mL):",
+    "   Starting Dissolved Oxygen Level:",
+    "   Time to Reach 4 {MG_PER_LITER} (min):",
+    "   Time to Reach 2 {MG_PER_LITER} (min):",
 ]
 
 # === DS-50 Specification Ranges ===
@@ -51,8 +56,8 @@ DS50_SPEC_RANGES = {
 DS50_SPEC_UNITS = {
     "vacuum_pressure": "inHg",
     "flow_rate": "mL/min",
-    "do_level": "mg/L",
-    "recirculation_start": "mg/L",
+    "do_level": f"{MG_PER_LITER_STRING}",
+    "recirculation_start": f"{MG_PER_LITER_STRING}",
     "recirculation_to_4mg": "min",
     "recirculation_to_2mg": "min",
 }
@@ -102,7 +107,10 @@ PASS_FAIL_COL_INDEX = 1
 SPEC_MIN_COL_INDEX = 2
 SPEC_MAX_COL_INDEX = 3
 MEASURED_COL_INDEX = 4
-TIME_SERIES_HEADERS = ["Time (minutes)", "Dissolved Oxygen (mg/L)"]
+TIME_SERIES_HEADERS = [
+    "Time (minutes)",
+    f"{DISSOLVED_OXYGEN_STRING} ({MG_PER_LITER_STRING})",
+]
 DEFAULT_TEST_DATE = default_date
 
 # === Output File Configuration ===

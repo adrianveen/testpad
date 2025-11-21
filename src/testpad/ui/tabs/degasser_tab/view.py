@@ -502,6 +502,26 @@ class DegasserTab(BaseTab):
             return "create_new_file"
         return ""
 
+    def missing_values_dialog(self, title: str, text: str) -> bool:
+        """If values are missing, prompt the user on how to proceed.
+
+        Args:
+            title: The title of the dialog.
+            text: The text of the dialog.
+
+        Returns:
+            True if the user clicked continue, False if they clicked cancel.
+
+        """
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.Icon.Warning)
+        message_box.setWindowTitle(title)
+        message_box.setText(text)
+        message_box.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+        )
+        return message_box.exec() == QMessageBox.StandardButton.Yes
+
     def _build_metadata_section(self) -> QWidget:
         """Build the metadata section."""
         widget = QWidget()
@@ -640,6 +660,12 @@ class DegasserTab(BaseTab):
         layout.addWidget(self._test_table)
         return widget
 
+    def _build_time_series_table(self):
+        """Build time series table horizontally."""
+        # TODO: Finish building horizontal time series table
+        widget = QWidget()
+        layout = QVBoxLayout()
+
     def _build_time_series_section(self) -> QWidget:
         """Build the time series data entry section."""
         widget = QWidget()
@@ -696,7 +722,7 @@ class DegasserTab(BaseTab):
 
         # Temperature widget
         temp_layout = QHBoxLayout()
-        temp_checkbox = QCheckBox("Temperature Measured (°C):")
+        temp_checkbox = QCheckBox("Water Temperature Measured (°C):")
         temp_checkbox.setChecked(False)
         self._temperature_edit = QLineEdit()
         self._temperature_edit.hide()  # Start hidden

@@ -10,8 +10,9 @@ from testpad.config.defaults import DEFAULT_EXPORT_DIR
 from .config import (
     DEFAULT_TEST_DATE,
     DEFAULT_TEST_DESCRIPTIONS,
-    MAX_MINUTE,
-    MIN_MINUTE,
+    HEADER_ROW_INDEX,
+    MINIMUM_END_MINUTE,
+    START_MINUTE,
 )
 
 if TYPE_CHECKING:
@@ -109,8 +110,8 @@ class DegasserModel:
         if not isinstance(minute, int):
             msg = "Minute must be an integer."
             raise TypeError(msg)
-        if minute < MIN_MINUTE or minute > MAX_MINUTE:
-            msg = f"Minute must be in range {MIN_MINUTE}..{MAX_MINUTE}."
+        if minute < START_MINUTE or minute > MINIMUM_END_MINUTE:
+            msg = f"Minute must be in range {START_MINUTE}..{MINIMUM_END_MINUTE}."
             raise ValueError(msg)
 
     @staticmethod
@@ -169,7 +170,8 @@ class DegasserModel:
     def build_time_series_rows(self) -> list[tuple[int, float | None]]:
         """Return the time series data as a list of rows for the UI table."""
         return [
-            (m, self._oxygen_data.get(m)) for m in range(MIN_MINUTE, MAX_MINUTE + 1)
+            (m, self._oxygen_data.get(m))
+            for m in range(START_MINUTE, MINIMUM_END_MINUTE + 1)
         ]
 
     # -------- Temperature --------
@@ -357,6 +359,51 @@ class DegasserModel:
         self._metadata = Metadata(test_date=DEFAULT_TEST_DATE())
         return self.get_state()
 
+    def validate_for_report(self) -> list[str]:
+        """Check for missing or empty values before report generation.
+
+        This is a soft validation - reporst can be generated with missing data,
+        but users should be warned about what is missing.
+
+        Returns:
+            List of human-readable warning messages about missing data.
+            Empty list if all fields are populated.
+
+        """
+        warnings = []
+
+        # Metadata validation
+        if not self._metadata.tester_name or not self._metadata.tester_name.strip():
+            warnings.append("'Tester Name'")
+        if not self._metadata.test_date:
+            warnings.append("'Test Date'")
+        if not self._metadata.ds50_serial or not self._metadata.ds50_serial.strip():
+            warnings.append("'DS50 Serial Number'")
+        if not self._metadata.location or not self._metadata.location.strip():
+            warnings.append("'Location'")
+
+        # Test Table validation
+        for idx, row in enumerate(self._test_rows):
+            if idx == HEADER_ROW_INDEX:
+                continue
+            # Get the test description and strip whitespace/punctuation
+            desc = DEFAULT_TEST_DESCRIPTIONS[idx].rstrip(":").strip()
+
+            # Check measured value
+            if row.measured is None:
+                warnings.append(f"'{desc}' measurement")
+
+            # Check pass/fail value
+            if not row.pass_fail or not row.pass_fail.strip():
+                warnings.append(f"'{desc}' pass/fail")
+
+        # Time Series validation
+        for minute in self._oxygen_data:
+            if minute <= MINIMUM_END_MINUTE and not self._oxygen_data:
+                warnings.extend("Dissolved Oxygen measurements")
+
+        return warnings
+
     def get_state(self) -> TimeSeriesState:
         """Snapshot the current model state for presenter/view consumption."""
         return TimeSeriesState(
@@ -373,11 +420,11 @@ class DegasserModel:
             Dict: A dictionary representation of the model state.
 
         Dict Keys:
-            - "time_series": Dict[int, float] - minute to oxygen mapping.
+            - "time_series": dict[int, float] - minute to oxygen mapping.
             - "temperature_c": float | None - the bath temperature.
-            - "test_table": List[Dict[str, Any]] - list of test result rows as dicts.
+            - "test_table": list[dict[str, Any]] - list of test result rows as dicts.
             - "source_path": str | None - path of last loaded CSV, if any.
-            - "metadata": Dict[str, Any] - metadata fields as a dict.
+            - "metadata": dict[str, Any] - metadata fields as a dict.
 
         """
         # Persistence breadcrumb:

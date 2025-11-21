@@ -225,6 +225,14 @@ class DegasserPresenter:
         """
         if self._updating:
             return
+
+        # Validate any missing values before report generation
+        missing_values = self._model.validate_for_report()
+        if missing_values and not self._prompt_continue_missing_values(missing_values):
+            # User cancelled
+            self._view.log_message("Report generation cancelled")
+            return
+
         data_dict = self._model.to_dict()
         time_series = data_dict["time_series"]
         temperature_c = data_dict["temperature_c"]
@@ -290,6 +298,26 @@ class DegasserPresenter:
                 f"\n\nOutput directory: {output_path}",
             )
 
+    def _prompt_continue_missing_values(self, warnings: list[str]) -> bool:
+        """Handle missing values dialog.
+
+        Args:
+            warnings: List of human-readable warning messages about missing data.
+
+        Returns:
+            The result of the dialog.
+            "change_serial" if the user clicked the change serial button.
+            "create_second_file" if the user clicked the create second file button.
+
+        """
+        title = "Missing Values"
+        message = (
+            "The following fields are missing or invalid:\n\n"
+            + "\n".join(f"- {w}" for w in warnings)
+            + "\n\nDo you want to continue generating the report anyway?"
+        )
+        return self._view.missing_values_dialog(title, message)
+
     def _on_import_csv(self) -> None:
         """Handle import CSV button click.
 
@@ -300,7 +328,7 @@ class DegasserPresenter:
         """
         if self._updating:
             return
-        # TODO: remove pyside dependency
+        # TODO: move pyside dependency to view
         path, _ = QFileDialog.getOpenFileName(
             self._view,
             "Import Degasser Data",
@@ -317,8 +345,6 @@ class DegasserPresenter:
             self._view.log_message(f"✅ Imported data from {path}")
         except ValueError as e:
             self._view.log_message(f"❌ Import error: {e}")
-        # except Exception as e:
-        #     self._view.log_message(f"❌ Unexpected error during import: {e}")
 
     def _on_export_csv(self) -> None:
         """Handle export CSV button click.
@@ -331,7 +357,7 @@ class DegasserPresenter:
         if self._updating:
             return
         timestamp = datetime.now().strftime("%y%m%d-%H%M%")
-        # TODO: remove pyside dependency
+        # TODO: move pyside dependency to view
         path, _ = QFileDialog.getSaveFileName(
             self._view,
             "Export Degasser Data",
