@@ -11,14 +11,10 @@ from testpad.config.defaults import (
     default_date,
 )
 
-START_MINUTE = 0
-MINIMUM_END_MINUTE = 10
-TIME_SERIES_RESOLUTION_MINUTES = 1  # Measurement interval
-DEFAULT_TIME_SERIES_TEMP = DEFAULT_TEMPERATURE_C
 # === String Constants ===
 # Common strings used in the application
 DISSOLVED_OXYGEN_STRING = "Dissolved Oxygen"
-MG_PER_LITER_STRING = "mg/l"
+MG_PER_LITER_STRING = "mg/L"
 
 # === Metadata Fields ===
 METADATA_FIELDS = {
@@ -27,6 +23,7 @@ METADATA_FIELDS = {
     "ds50_serial_number": "DS-50 Serial Number",
     "location": "Location",
 }
+DEFAULT_TEST_DATE = default_date
 
 # === DS-50 Test Specifications ===
 # These are the standard test descriptions for DS-50 degasser testing
@@ -36,8 +33,8 @@ DEFAULT_TEST_DESCRIPTIONS = [
     f"{DISSOLVED_OXYGEN_STRING} Level Test:",
     f"{DISSOLVED_OXYGEN_STRING} Re-circulation Test (1000 mL):",
     "   Starting Dissolved Oxygen Level:",
-    "   Time to Reach 4 {MG_PER_LITER} (min):",
-    "   Time to Reach 2 {MG_PER_LITER} (min):",
+    f"   Time to Reach 4 {MG_PER_LITER_STRING} (min):",
+    f"   Time to Reach 2 {MG_PER_LITER_STRING} (min):",
 ]
 
 # === DS-50 Specification Ranges ===
@@ -99,10 +96,11 @@ MIN_OXYGEN_VALUE = 0.0  # mg/L, must be positive
 REQUIRE_TEMPERATURE_FOR_REPORT = False  # Temperature is optional
 
 # === Tables and Report Configuration ===
+# Test Table
 NUM_TEST_ROWS = 7
 NUM_TEST_COLS = 5
-NUM_TIME_SERIES_ROWS = 11
-NUM_TIME_SERIES_COLS = 2
+NUM_TIME_SERIES_ROWS = 2
+NUM_TIME_SERIES_COLS = 21
 HEADER_ROW_INDEX = 3
 HEADER_ROW_COLOR = QColor(60, 60, 60)
 REPORT_VERSION = "2025.0.4"
@@ -117,11 +115,18 @@ PASS_FAIL_COL_INDEX = 1
 SPEC_MIN_COL_INDEX = 2
 SPEC_MAX_COL_INDEX = 3
 MEASURED_COL_INDEX = 4
+# Time Series Table
+TIME_MINUTES_ROW_INDEX = 0
+MEASURED_OXYGEN_ROW_INDEX = 1
 TIME_SERIES_HEADERS = [
     "Time (minutes)",
     f"{DISSOLVED_OXYGEN_STRING} ({MG_PER_LITER_STRING})",
 ]
-DEFAULT_TEST_DATE = default_date
+START_MINUTE = 0
+MINIMUM_END_MINUTE = 20
+TIME_SERIES_RESOLUTION_MINUTES = 1  # Measurement interval
+DEFAULT_TIME_SERIES_TEMP = DEFAULT_TEMPERATURE_C
+
 
 # === Output File Configuration ===
 PDF_REPORT_NAME_PREFIX = "FUS DS-50 Test Report-"

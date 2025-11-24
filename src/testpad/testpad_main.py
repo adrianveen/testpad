@@ -307,7 +307,7 @@ def main() -> None:
         on_first_show=finalize_ready,
         per_file_cb=per_file_cb,
     )
-    tab_dialog.resize(1200, 800)
+    # tab_dialog.resize(800, 800)
 
     # Show the window, then mark 100% when it is actually exposed (interactable)
     setp(95, "Finalizing UI…")

@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QStyle,
     QStyledItemDelegate,
     QTableWidget,
     QTableWidgetItem,
@@ -62,10 +63,9 @@ from testpad.ui.tabs.degasser_tab.config import (
     TEST_TABLE_HEADERS,
     TIME_SERIES_HEADERS,
 )
-from testpad.ui.tabs.degasser_tab.model import DegasserModel
+from testpad.ui.tabs.degasser_tab.model import DegasserModel, TestResultRow
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 from testpad.ui.tabs.degasser_tab.view_state import DegasserViewState
-from testpad.utils.lineedit_validators import FixupDoubleValidator, ValidatedLineEdit
 
 
 class ColumnMajorTableWidget(QTableWidget):
@@ -76,7 +76,7 @@ class ColumnMajorTableWidget(QTableWidget):
     """
 
     def _get_next_cell(
-        self, row: int, col: int, forward: bool = True
+        self, row: int, col: int, *, forward: bool = True
     ) -> tuple[int, int]:
         """Calculate next cell position in column-major order.
 
@@ -251,7 +251,7 @@ class DegasserTab(BaseTab):
         layout = QGridLayout(self)
         layout.addWidget(self._build_metadata_section(), 0, 0, 1, 2)
         layout.addWidget(self._build_test_table(), 1, 0, 1, 2)
-        layout.addWidget(self._build_time_series_section(), 2, 0, 1, 1)
+        layout.addWidget(self._build_time_series_table(), 2, 0, 1, 1)
         layout.addWidget(self._build_action_buttons(), 3, 0, 1, 2)
         layout.addWidget(self._build_console_section(), 4, 0, 1, 2)
         layout.setRowStretch(0, 0)  # Metadata section not stretchable
@@ -572,7 +572,6 @@ class DegasserTab(BaseTab):
         return widget
 
     def _build_test_table(self) -> QWidget:
-        # TODO: Split up into smaller methods for readability
         """Build the test table section."""
         widget = QWidget()
         layout = QVBoxLayout()
@@ -587,6 +586,28 @@ class DegasserTab(BaseTab):
 
         units_by_row: dict[int, str] = {}
 
+        self._populate_test_table_rows(units_by_row)
+
+        # Configure table headers
+        header = self._test_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        # Set a fixed height to prevent scrollbars based on table contents
+        fixed_height = self._autosize_table(self._test_table)
+        self._test_table.setFixedHeight(fixed_height)
+        self._test_table.setSizeAdjustPolicy(
+            QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
+        )
+
+        self._test_table.setItemDelegateForColumn(
+            4, _MeasuredValueDelegate(units_by_row, self._test_table)
+        )
+
+        layout.addWidget(self._test_table)
+        return widget
+
+    def _populate_test_table_rows(self, units_by_row: dict[int, str]) -> None:
+        """Populate the test table with default rows and specs."""
         # Pre-fill descriptions (these are read-only)
         for row, desc in enumerate(DEFAULT_TEST_DESCRIPTIONS):
             # Column 0: Description only
@@ -610,34 +631,7 @@ class DegasserTab(BaseTab):
 
             # Only add spec cells for non-header rows
             if spec_key is not None:
-                spec = DS50_SPEC_RANGES.get(spec_key, (None, None))
-                unit = DS50_SPEC_UNITS.get(spec_key, "")
-
-                if unit:
-                    units_by_row[row] = unit
-
-                for col in range(2, NUM_TEST_COLS):
-                    if col == SPEC_MIN_COL_INDEX:  # Spec_Min
-                        if spec[0] is None:
-                            spec_value = NO_LIMIT_SYMBOL
-                        else:
-                            spec_value = f"{spec[0]} {unit}" if unit else str(spec[0])
-                    elif col == SPEC_MAX_COL_INDEX:  # Spec_Max
-                        if spec[1] is None:
-                            spec_value = NO_LIMIT_SYMBOL
-                        else:
-                            spec_value = f"{spec[1]} {unit}" if unit else str(spec[1])
-                    else:  # Data Measured (col == 4)
-                        spec_value = ""
-
-                    spec_item = QTableWidgetItem(spec_value)
-                    spec_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                    if col in (2, 3):  # Spec columns are read-only
-                        spec_item.setFlags(
-                            spec_item.flags()
-                            & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable
-                        )
-                    self._test_table.setItem(row, col, spec_item)
+                self._populate_spec_cells(row, spec_key, units_by_row)
 
             if row != HEADER_ROW_INDEX:
                 # Column 1: Pass/Fail dropdown for non header rows
@@ -645,99 +639,122 @@ class DegasserTab(BaseTab):
                 pass_fail_combo.addItems(["", "Pass", "Fail"])
                 self._test_table.setCellWidget(row, 1, pass_fail_combo)
 
-        # Configure table headers
-        header = self._test_table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+    def _populate_spec_cells(
+        self, row: int, spec_key: str, units_by_row: dict[int, str]
+    ) -> None:
+        """Populate spec cells for a given row."""
+        spec = DS50_SPEC_RANGES.get(spec_key, (None, None))
+        unit = DS50_SPEC_UNITS.get(spec_key, "")
 
-        # Set a fixed height to prevent scrollbars based on table contents
-        fixed_height = self._autosize_table(self._test_table)
-        self._test_table.setFixedHeight(fixed_height)
-        self._test_table.setSizeAdjustPolicy(
-            QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
-        )
+        if unit:
+            units_by_row[row] = unit
 
-        self._test_table.setItemDelegateForColumn(
-            4, _MeasuredValueDelegate(units_by_row, self._test_table)
-        )
+        for col in range(2, NUM_TEST_COLS):
+            if col == SPEC_MIN_COL_INDEX:  # Spec_Min
+                if spec[0] is None:
+                    spec_value = NO_LIMIT_SYMBOL
+                else:
+                    spec_value = f"{spec[0]} {unit}" if unit else str(spec[0])
+            elif col == SPEC_MAX_COL_INDEX:  # Spec_Max
+                if spec[1] is None:
+                    spec_value = NO_LIMIT_SYMBOL
+                else:
+                    spec_value = f"{spec[1]} {unit}" if unit else str(spec[1])
+            else:  # Data Measured (col == 4)
+                spec_value = ""
 
-        layout.addWidget(self._test_table)
-        return widget
+            spec_item = QTableWidgetItem(spec_value)
+            spec_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            if col in (2, 3):  # Spec columns are read-only
+                spec_item.setFlags(
+                    spec_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable
+                )
+            self._test_table.setItem(row, col, spec_item)
 
-    def _build_time_series_table(self):
-        """Build time series table horizontally."""
-        # TODO: Finish building horizontal time series table
+    def _build_time_series_table(self) -> QWidget:
+        """Build just the time series table."""
         widget = QWidget()
         layout = QVBoxLayout()
+        widget.setLayout(layout)
 
-    def _build_time_series_section(self) -> QWidget:
-        """Build the time series data entry section."""
-        widget = QWidget()
-        main_layout = QVBoxLayout()
-        widget.setLayout(main_layout)
-
-        # Horizontal layout for chart and table
-        h_layout = QHBoxLayout()
-
-        # Left: Time Series Table
-        table_container = QWidget()
-        table_layout = QVBoxLayout()
-        table_container.setLayout(table_layout)
-
-        # Create Widgets
-        self._time_series_widget = ColumnMajorTableWidget(
+        self._time_series_widget = QTableWidget(
             NUM_TIME_SERIES_ROWS, NUM_TIME_SERIES_COLS
         )
-        self._time_series_widget.setItemDelegateForColumn(
-            1, ValidatedFloatDelegate(self._time_series_widget)
-        )
-        self._time_series_widget.setHorizontalHeaderLabels(TIME_SERIES_HEADERS)
-        self._time_series_widget.verticalHeader().setVisible(True)  # Push to left
+        self._time_series_widget.setVerticalHeaderLabels(TIME_SERIES_HEADERS)
+        self._time_series_widget.verticalHeader().setVisible(True)
 
-        for row in range(NUM_TIME_SERIES_ROWS):
-            minute_item = QTableWidgetItem(str(row))
+        # Hide the horizontal header (column numbers)
+        self._time_series_widget.horizontalHeader().setVisible(False)
+
+        # Configure fixed column widths (all uniform for minutes 0-20)
+        h_header = self._time_series_widget.horizontalHeader()
+        # h_header.setDefaultSectionSize(35)  # Fixed width for each column
+        h_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        # Configure fixed row heights
+        v_header = self._time_series_widget.verticalHeader()
+        v_header.setDefaultSectionSize(35)  # Increased from 30 for more space
+        # v_header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+
+        # Enable horizontal scrollbar when needed, disable vertical scrollbar
+        self._time_series_widget.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self._time_series_widget.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
+        # Populate table cells
+        for col in range(NUM_TIME_SERIES_COLS):
+            minute_item = QTableWidgetItem(str(col))
             minute_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             minute_item.setFlags(
                 minute_item.flags() & ~PySide6.QtCore.Qt.ItemFlag.ItemIsEditable
-            )  # Make read-only
-            self._time_series_widget.setItem(row, 0, minute_item)
-
+            )
+            self._time_series_widget.setItem(0, col, minute_item)
             # Oxygen column - pre-create empty editable cells for alignment purposes
             oxygen_item = QTableWidgetItem()
             oxygen_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._time_series_widget.setItem(row, 1, oxygen_item)
+            self._time_series_widget.setItem(1, col, oxygen_item)
 
-        table_layout.addWidget(self._time_series_widget)
+        # Set fixed height for table
+        fixed_height = self._autosize_table(self._time_series_widget)
+        self._time_series_widget.setFixedHeight(fixed_height)
 
-        header = self._time_series_widget.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # Add table to layout
+        layout.addWidget(self._time_series_widget)
 
-        # Configure vertical header with fixed row heights for minimum size calculation
-        vertical_header = self._time_series_widget.verticalHeader()
-        vertical_header.setDefaultSectionSize(30)  # Set desired row height
-        vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        # Create and add temperature widget to layout
+        temp_layout = self._add_temperature_layout()
+        layout.addLayout(temp_layout)
 
-        # Calculate minimum height with fixed row sizes
-        minimum_height = self._autosize_table(self._time_series_widget)
-        self._time_series_widget.setMinimumHeight(minimum_height)
+        # Add chart to layout with stretch factor to fill remaining vertical space
+        self._time_series_chart.setMinimumHeight(300)
+        layout.addWidget(self._time_series_chart, 1)
 
-        # Now switch to Stretch mode for runtime behavior
-        vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._time_series_section = widget
 
-        # Temperature widget
+        return widget
+
+    def _add_temperature_layout(self) -> QHBoxLayout:
+        """Build temperate widget and layout."""
+        # Create temperature widget layout and checkbox
         temp_layout = QHBoxLayout()
         temp_checkbox = QCheckBox("Water Temperature Measured (°C):")
         temp_checkbox.setChecked(False)
+        # Create temperature line edit widget with behaviour
         self._temperature_edit = QLineEdit()
         self._temperature_edit.hide()  # Start hidden
         self._temperature_edit.setEnabled(False)
         self._temperature_edit.setText("")  # Start empty
         self._temperature_edit.setPlaceholderText("Optional")
         self._temperature_edit.setMaximumWidth(75)
+        # Add widgets to layout
         temp_layout.addWidget(temp_checkbox)
         temp_layout.addWidget(self._temperature_edit)
         temp_layout.addStretch()
-        table_layout.addLayout(temp_layout)
 
+        # Show or hide temperature edit based on checkbox state
         temp_checkbox.toggled.connect(self._temperature_edit.setVisible)
         temp_checkbox.toggled.connect(self._temperature_edit.setEnabled)
         temp_checkbox.toggled.connect(
@@ -748,14 +765,7 @@ class DegasserTab(BaseTab):
             else self._temperature_edit.setText("")
         )
 
-        # Add to main layout
-        h_layout.addWidget(table_container, 1)
-        h_layout.addWidget(self._time_series_chart, 1)
-
-        main_layout.addLayout(h_layout)
-
-        self._time_series_section = widget
-        return widget
+        return temp_layout
 
     def _build_action_buttons(self) -> QWidget:
         """Build the action buttons section.
@@ -763,7 +773,7 @@ class DegasserTab(BaseTab):
         Also include a line for the output directory path.
         """
         widget = QWidget()
-        layout = QHBoxLayout()
+        layout = QGridLayout()
         widget.setLayout(layout)
 
         # Create Import/Export
@@ -775,7 +785,7 @@ class DegasserTab(BaseTab):
         self._output_dir_line_edit = QLineEdit(str(output_dir))
         self._output_dir_line_edit.setReadOnly(True)
         self._output_dir_line_edit.setMinimumWidth(len(str(output_dir)) * 6)
-
+        # Create Folder Selection Button and Report Generation Button
         self._select_output_folder_btn = QPushButton("Select Output Folder...")
         self._generate_report_btn = QPushButton("Generate Report")
         # Reset Button
@@ -785,22 +795,15 @@ class DegasserTab(BaseTab):
         directory_layout = QHBoxLayout()
         directory_layout.addWidget(self._output_dir_label)
         directory_layout.addWidget(self._output_dir_line_edit)
-        # Add line edite and right buttons to QGridLayout
-        sub_layout = QGridLayout()
-        sub_layout.addLayout(directory_layout, 0, 0, 1, 3)
-        sub_layout.addWidget(self._select_output_folder_btn, 1, 0)
-        sub_layout.addWidget(self._generate_report_btn, 1, 1)
-        sub_layout.addWidget(self._reset_btn, 1, 2)
-        # Set column stretch so the line edit can expand
-        sub_layout.setColumnStretch(0, 1)
-        sub_layout.setColumnStretch(1, 1)
-        sub_layout.setColumnStretch(2, 1)
 
         # Add to Layout
-        layout.addWidget(self._import_csv_btn)
-        layout.addWidget(self._export_csv_btn)
-        layout.addStretch(1)  # Spacer
-        layout.addLayout(sub_layout, 1)  # Give sub_layout a stretch factor
+        layout.addWidget(self._import_csv_btn, 1, 0, 1, 1)
+        layout.addWidget(self._export_csv_btn, 1, 1, 1, 1)
+        layout.setColumnStretch(2, 1)  # Column idx 2 stretches to fill space
+        layout.addLayout(directory_layout, 0, 3, 1, 3)
+        layout.addWidget(self._select_output_folder_btn, 1, 3, 1, 1)
+        layout.addWidget(self._generate_report_btn, 1, 4, 1, 1)
+        layout.addWidget(self._reset_btn, 1, 5, 1, 1)
 
         return widget
 
@@ -828,11 +831,11 @@ class DegasserTab(BaseTab):
 
         return self._console_group_box
 
-    def _on_console_toggled(self, checked: bool) -> None:
+    def _on_console_toggled(self, checked: bool) -> None:  # noqa: FBT001
         """Show/hide console output when checkbox is toggled."""
         self._console_output.setVisible(checked)
 
-    def _update_test_table(self, test_rows: list) -> None:
+    def _update_test_table(self, test_rows: list[TestResultRow]) -> None:
         """Update the test table from state data.
 
         Args:
@@ -863,14 +866,15 @@ class DegasserTab(BaseTab):
             table_rows: List of (minute, oxygen_level) tuples to display
 
         """
-        for row_idx, (_minute, oxygen_level) in enumerate(table_rows):
-            # Column 0 (minute) is read-only; set once in __init__
+        for col_idx, (_minute, oxygen_level) in enumerate(table_rows):
+            # Row 0 (minute labels) is read-only; set once in __init__
 
-            # Column 1: Dissolved O2 measured data
-            oxy_item = self._time_series_widget.item(row_idx, 1)
+            # Row 1: Dissolved O2 measured data (horizontal layout)
+            oxy_item = self._time_series_widget.item(1, col_idx)
             if oxy_item is None:
                 oxy_item = QTableWidgetItem()
-                self._time_series_widget.setItem(row_idx, 1, oxy_item)
+                oxy_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self._time_series_widget.setItem(1, col_idx, oxy_item)
 
             if oxygen_level is not None:
                 oxy_item.setText(f"{oxygen_level:.2f}")
@@ -904,7 +908,7 @@ class DegasserTab(BaseTab):
             item.setText("")
             item.setData(Qt.ItemDataRole.EditRole, "")
 
-    def _block_signals(self, block: bool) -> None:
+    def _block_signals(self, *, block: bool) -> None:
         """Block or unblock signals from all input widgets.
 
         Used during programmatic updates to prevent triggering change handlers
@@ -946,14 +950,17 @@ class DegasserTab(BaseTab):
         """
         h_header = table.horizontalHeader()
         v_header = table.verticalHeader()
+
         frame_width = table.frameWidth()
 
         # Calculate total height: header + all rows + frame borders + padding
+        h_header_height = 0 if not h_header.isVisible() else h_header.height()
+
         return (
-            h_header.height()  # Horizontal header (column names)
+            h_header_height  # Horizontal header (column names)
             + v_header.length()  # Sum of all row heights
             + (frame_width * 2)  # Top and bottom frame borders
-            + 1  # Padding
+            + table.style().pixelMetric(QStyle.PixelMetric.PM_ScrollBarExtent)
         )
 
     def log_message(self, message: str) -> None:
@@ -989,28 +996,6 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
         text = option.text
         if text and not text.endswith(unit):
             option.text = f"{text} {unit}"
-
-
-class ValidatedFloatDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
-    """Delegate enforcing numeric-only, visually validated input in table cells."""
-
-    def createEditor(
-        self,
-        parent: QWidget | None,
-        option: "QStyleOptionViewItem",
-        index: "QModelIndex | QPersistentModelIndex",
-    ) -> QWidget:
-        """Create a validated line edit for numeric input."""
-        editor = ValidatedLineEdit(parent)
-        validator = FixupDoubleValidator(
-            0.0, 100.0, 3, editor
-        )  # adjust range/precision as needed
-        editor.setValidator(validator)
-        editor.setPlaceholderText("Enter number")
-        # Install event filter for column-major navigation
-        # (Since we create a custom editor, we bypass mixin's createEditor)
-        editor.installEventFilter(self)
-        return editor
 
 
 def _main() -> None:

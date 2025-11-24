@@ -15,7 +15,7 @@ class TimeSeriesChartWidget(QWidget):
         super().__init__(parent)
 
         # Create Matplotlib components
-        self._figure = Figure(figsize=(5, 3), tight_layout=True)
+        self._figure = Figure(figsize=(5, 3), layout="constrained")
         self._ax = self._figure.add_subplot(111)
         self._canvas = FigureCanvas(self._figure)
 
@@ -40,5 +40,4 @@ class TimeSeriesChartWidget(QWidget):
         plot_time_series_on_axis(self._ax, measurements, temperature_c)
 
         # Apply tight layout and redraw
-        self._figure.tight_layout()
         self._canvas.draw()

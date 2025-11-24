@@ -12,6 +12,7 @@ from pathlib import Path
 
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from testpad.config.plotting import (
     DEFAULT_LINE_STYLE,
@@ -59,12 +60,15 @@ def make_time_series_figure(
     return fig
 
 
-def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
+def save_figure_to_temp_file(
+    figure: Figure, output_dir: str = ".", bbox_inches: str | None = "tight"
+) -> str:
     """Save a matplotlib figure to a temporary PNG file.
 
     Args:
         figure: matplotlib Figure to save
         output_dir: Directory to save the temporary file
+        bbox_inches: Bbox strategy for saving (default: "tight")
 
     Returns:
         Path to the saved PNG file
@@ -75,7 +79,7 @@ def save_figure_to_temp_file(figure: Figure, output_dir: str = ".") -> str:
     os.close(temp_fd)  # Close the file descriptor
 
     try:
-        figure.savefig(temp_path, dpi=figure.get_dpi(), bbox_inches="tight")
+        figure.savefig(temp_path, dpi=figure.get_dpi(), bbox_inches=bbox_inches)
 
     except Exception:
         # Clean up on error
@@ -132,6 +136,12 @@ def plot_time_series_on_axis(
             linewidth=DEFAULT_LINE_WIDTH,
             label="Oxygen Level (mg/L)",
         )
+        # Set x-limits to avoid negative ticks while keeping 0 offset
+        max_time = max(time_min)
+        ax.set_xlim(left=-0.5, right=max_time + 0.5)
+    else:
+        # Default limits if no data
+        ax.set_xlim(left=-0.5, right=20.5)
 
     # Set title with optional temperature
     if temperature_c is not None:
@@ -142,6 +152,10 @@ def plot_time_series_on_axis(
     # Set labels
     ax.set_xlabel(TIME_SERIES_HEADERS[0])
     ax.set_ylabel(TIME_SERIES_HEADERS[1])
+
+    # Make ticks more frequent
+    ax.xaxis.set_major_locator(MultipleLocator(1))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=10))
 
     # Add grid
     ax.grid(

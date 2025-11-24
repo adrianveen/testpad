@@ -19,3 +19,12 @@ __pycache__
 # UV files
 *.uvprojx
 .uv*
+
+# Build files
+build
+dist
+
+# IDE files
+.vscode
+.idea
+.spyproject

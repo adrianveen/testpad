@@ -78,7 +78,7 @@ class GenerateReport:
         self.styling_config = DEFAULT_STYLE_CONFIG
 
         # Y location trackers
-        self.time_series_y = 0
+        # self.time_series_y = 0
 
     def generate_report(
         self,
@@ -90,6 +90,8 @@ class GenerateReport:
 
         Args:
             filename: The filename to save the report to. If None, a filename
+            overwrite: Overwrite the existing file if it exists
+            auto_increment: Increment the filename if it already exists
 
         """
         serial_num = self.metadata.get("ds50_serial", "").replace("#", "")
@@ -185,6 +187,7 @@ class GenerateReport:
         self.pdf = FPDF(orientation="P", unit="mm", format="letter")
         self.pdf.add_page()
         self.pdf.set_margins(left=margins, top=margins * 0.75, right=margins)
+        self.pdf.set_auto_page_break(auto=True, margin=self.layout.bottom_margin_mm)
         self.pdf.set_font("helvetica", size=self.styling_config.header_text_size)
 
     def _build_header(self, logo_path: Path) -> None:
@@ -383,10 +386,14 @@ class GenerateReport:
                 row.cell(data_measured_text, align="C", style=data_style)
 
     def _build_time_series_table(self, data: dict[int, float]) -> None:
-        """Draws the 2 x 11 time series table with a title above it.
+        """Draws a two-row horizontal table for time series data.
+
+        The first row contains time points (minutes) and the second row contains
+        the corresponding dissolved oxygen values (mg/L).
 
         Args:
-            data: 2D array of time series data
+            data (dict[int, float]): Dictionary where keys are time points (int)
+                and values are dissolved oxygen levels (float).
 
         """
         # Add spacer
@@ -413,7 +420,7 @@ class GenerateReport:
         )
         self.pdf.cell(
             text="1000 mL Distilled Water",
-            align=Align.L,
+            align=Align.C,
             center=True,
             new_x="RIGHT",
             new_y="NEXT",
@@ -426,24 +433,31 @@ class GenerateReport:
         # Define styles for table cells (FontFace only works in table context)
         header_style = FontFace(
             emphasis=self.styling_config.header_text_style,
-            size_pt=self.styling_config.header_text_size,
+            size_pt=self.styling_config.time_header_text_size,
         )
         data_style = FontFace(
             emphasis=self.styling_config.values_text_style,
-            size_pt=self.styling_config.data_text_size,
+            size_pt=self.styling_config.time_data_text_size,
             color=self.styling_config.data_text_color,
         )
 
         # Table with header row - bold, font 10
-        col_names = TIME_SERIES_HEADERS
-        with self.pdf.table(col_widths=(30), align="L") as table:
-            header_row = table.row()
-            for col_name in col_names:
-                header_row.cell(col_name, align=Align.C, style=header_style)
-            for time, do_value in data.items():
-                row = table.row()
-                row.cell(str(time), align="C")
-                row.cell(f"{do_value:.2f}", align="C", style=data_style)
+        row_names = TIME_SERIES_HEADERS
+        times = sorted(data.keys())
+        with self.pdf.table(
+            col_widths=(23, *([7] * len(times))),
+            align="L",
+            line_height=5,
+        ) as table:
+            row_keys = table.row()
+            row_keys.cell(text=row_names[0], align=Align.L, style=header_style)
+            for time in times:
+                row_keys.cell(str(time), align=Align.C, style=data_style)
+            row_values = table.row()
+            row_values.cell(text=row_names[1], align=Align.L, style=header_style)
+            for time in times:
+                do_value = data[time]
+                row_values.cell(f"{do_value:.2f}", align=Align.C, style=data_style)
 
         # Add spacer and add temperature
         self.pdf.ln(self.layout.section_spacing_mm / 2)
@@ -461,14 +475,24 @@ class GenerateReport:
         to create a properly sized figure for the PDF.
         """
         # Calculate optimal figure dimensions
-        page_width_mm = self.pdf.w
-        figure_width_mm = self.layout.calculate_figure_width(page_width_mm)
-        figure_x, _ = self.layout.get_figure_position(page_width_mm)
+        # Width: Full page width minus margins
+        figure_width_mm = (
+            self.pdf.w - self.layout.left_margin_mm - self.layout.right_margin_mm
+        )
+
+        # Height: Remaining vertical space minus bottom margin
+        # Available height = Page Height - Current Y - Bottom Margin
+        bottom_margin_mm = self.layout.bottom_margin_mm
+        figure_height_mm = self.pdf.h - self.pdf.get_y() - bottom_margin_mm
+
+        # Safety check to prevent negative or tiny height
+        if figure_height_mm < self.layout.figure_min_height_mm:
+            figure_height_mm = 50  # Fallback height
 
         # Calculate figure size in inches for matplotlib
-        figure_width_inches, figure_height_inches = (
-            self.figure_config.calculate_size_for_width(figure_width_mm)
-        )
+        # We use the exact dimensions calculated above
+        figure_width_inches = figure_width_mm / 25.4
+        figure_height_inches = figure_height_mm / 25.4
 
         # Create the figure using pure plotting function
         figure = make_time_series_figure(
@@ -479,19 +503,14 @@ class GenerateReport:
         )
 
         # Save to temporary file
+        # bbox_inches=None ensures the saved image matches size_inches exactly
         temp_path = save_figure_to_temp_file(figure, str(Path.cwd()))
 
         try:
-            # Calculate figure height in mm for PDF
-            figure_height_mm = figure_width_mm * (
-                figure_height_inches / figure_width_inches
-            )
-
             # Add to PDF
             self.pdf.image(
                 temp_path,
-                x=figure_x,
-                y=self.time_series_y,
+                x=self.layout.left_margin_mm,
                 w=figure_width_mm,
                 h=figure_height_mm,
             )
@@ -515,6 +534,7 @@ if __name__ == "__main__":
 
     # Dummy time series data
     example_time_series = {
+        0: 9.85,
         1: 8.65,
         2: 7.64,
         3: 5.60,
@@ -526,6 +546,15 @@ if __name__ == "__main__":
         9: 2.16,
         10: 2.05,
         11: 1.00,
+        12: 0.99,
+        13: 0.98,
+        14: 0.97,
+        15: 0.96,
+        16: 0.95,
+        17: 0.94,
+        18: 0.93,
+        19: 0.92,
+        20: 0.91,
     }
 
     # Dummy test table data matching the expected format
@@ -574,4 +603,4 @@ if __name__ == "__main__":
         temperature=temp,
         output_dir=output_dir,
     )
-    report.generate_report()
+    report.generate_report(auto_increment=True)

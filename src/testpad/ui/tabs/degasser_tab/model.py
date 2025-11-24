@@ -166,7 +166,7 @@ class DegasserModel:
         return v
 
     # -------- Metadata API --------
-    def set_metadata_field(self, field: str, value: Any) -> None:
+    def set_metadata_field(self, field: str, value: str | date) -> None:
         """Update a metadata field."""
         if not hasattr(self._metadata, field):
             msg = f"Unknown metadata field: {field}"
@@ -305,6 +305,20 @@ class DegasserModel:
         return [TestResultRow(**asdict(r)) for r in self._test_rows]
 
     # -------- CSV Load / Save --------
+    @staticmethod
+    def _resolve_header(
+        headers: set[str], candidates: set[str], required_col: bool  # noqa: FBT001
+    ) -> str | None:
+        """Resolve a column header from a set of candidates."""
+        for h in headers:
+            if h in candidates:
+                return h
+        if required:
+            expected = sorted(candidates)
+            msg = f"Missing required column; expected one of: {expected}"
+            raise ValueError(msg)
+        return None
+
     def load_from_csv(self, path: str) -> TimeSeriesState:
         """Load time series from CSV.
 
@@ -332,22 +346,20 @@ class DegasserModel:
                 raise ValueError(msg)
             headers = set(reader.fieldnames)
 
-            def resolve(candidates: set[str], required: bool) -> str | None:
-                for h in headers:
-                    if h in candidates:
-                        return h
-                if required:
-                    expected = sorted(candidates)
-                    msg = f"Missing required column; expected one of: {expected}"
-                    raise ValueError(msg)
-                return None
-
-            time_col = resolve(time_aliases, required=True)
-            oxy_col = resolve(oxy_aliases, required=True)
-            temp_col = resolve(temp_aliases, required=False)
+            time_col = self._resolve_header(headers, time_aliases, required_col=True)
+            oxy_col = self._resolve_header(headers, oxy_aliases, required_col=True)
+            temp_col = self._resolve_header(headers, temp_aliases, required_col=False)
 
             # Start fresh
             self._oxygen_data.clear()
+
+            # Type narrowing: time_col and oxy_col are not None because required_col=True
+            if time_col is None:
+                msg = "Internal error: time_col not resolved when required."
+                raise RuntimeError(msg)
+            if oxy_col is None:
+                msg = "Internal error: oxy_col not resolved when required."
+                raise RuntimeError(msg)
 
             for line_no, row in enumerate(reader, start=2):
                 raw_time = row.get(time_col, "").strip()
@@ -369,7 +381,11 @@ class DegasserModel:
 
         return self.get_state()
 
-    def export_csv(self, path: str, include_temperature: bool = True) -> None:
+    def export_csv(
+        self,
+        path: str,
+        include_temperature: bool = True,  # noqa: FBT001
+    ) -> None:
         """Write the time-series data (and optional temperature) to a tidy CSV file.
 
         Args:
@@ -455,7 +471,7 @@ class DegasserModel:
             if idx == HEADER_ROW_INDEX:
                 continue
             # Get the test description and strip whitespace/punctuation
-            desc = DEFAULT_TEST_DESCRIPTIONS[idx].rstrip(":").strip()
+            desc = DEFAULT_TEST_DESCRIPTIONS[idx].rstrip(":").strip().split(" {", 1)[0]
 
             # Check measured value
             if row.measured is None:
@@ -466,9 +482,8 @@ class DegasserModel:
                 warnings.append(f"'{desc}' pass/fail")
 
         # Time Series validation
-        for minute in self._oxygen_data:
-            if minute <= MINIMUM_END_MINUTE and not self._oxygen_data:
-                warnings.extend("Dissolved Oxygen measurements")
+        if not self._oxygen_data:
+            warnings.append("Dissolved Oxygen measurements")
 
         return warnings
 

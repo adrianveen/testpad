@@ -18,10 +18,10 @@ class ReportLayout:
     """
 
     # Page margins
-    left_margin_mm: float = 10
-    top_margin_mm: float = 10
-    right_margin_mm: float = 10
-    bottom_margin_mm: float = 10
+    left_margin_mm: float = 15
+    top_margin_mm: float = 15
+    right_margin_mm: float = 15
+    bottom_margin_mm: float = 15
 
     # Table dimensions
     table_width_mm: float = 70
@@ -31,6 +31,7 @@ class ReportLayout:
     figure_max_width_mm: float = 120
     figure_min_width_mm: float = 40
     figure_max_height_mm: float = 120  # Increased from 100mm
+    figure_min_height_mm: float = 20
 
     # Spacing
     large_spacing_mm: float = 10
@@ -47,13 +48,7 @@ class ReportLayout:
             Figure width in mm
 
         """
-        available_width = (
-            page_width_mm
-            - self.left_margin_mm
-            - self.right_margin_mm
-            - self.table_width_mm
-            - self.table_gap_mm
-        )
+        available_width = page_width_mm - self.left_margin_mm - self.right_margin_mm
 
         return max(
             self.figure_min_width_mm, min(self.figure_max_width_mm, available_width)
@@ -140,12 +135,14 @@ class ReportStyleConfig:
     values_text_style: TextEmphasis = TextEmphasis.NONE
 
     # Font Sizes (in points)
-    title_text_size: int = 16
-    subtitle_text_size: int = 12
-    metadata_text_size: int = 10
-    header_text_size: int = 10
-    spec_text_size: int = 10
-    data_text_size: int = 10
+    title_text_size: int = 14
+    subtitle_text_size: int = 10
+    metadata_text_size: int = 9
+    header_text_size: int = 9
+    spec_text_size: int = 9
+    data_text_size: int = 9
+    time_header_text_size: int = 8
+    time_data_text_size: int = 8
 
     # Branding
     logo_width_mm: float = 60.0

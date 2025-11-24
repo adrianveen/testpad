@@ -5,12 +5,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from PySide6.QtWidgets import QFileDialog
+from PySide6.QtCore import QDate # Import QDate
 
 from .config import (
     MEASURED_COL_INDEX,
     PASS_FAIL_COL_INDEX,
-    SPEC_MAX_COL_INDEX,
-    SPEC_MIN_COL_INDEX,
 )
 from .generate_pdf_report import GenerateReport
 from .model import DegasserModel
@@ -52,8 +51,8 @@ class DegasserPresenter:
 
     def on_date_changed(
         self,
-        date,  # noqa: ANN001
-    ) -> None:  # TODO: Add proper type hints for this workflow
+        date: "QDate",
+    ) -> None:
         """Handle date edit changes."""
         if self._updating:
             return
@@ -79,14 +78,6 @@ class DegasserPresenter:
         try:
             if column == PASS_FAIL_COL_INDEX:  # Pass/Fail
                 self._model.update_test_row(row, pass_fail=value)
-            elif column == SPEC_MIN_COL_INDEX:  # Spec Min
-                self._model.update_test_row(
-                    row, spec_min=None if value.strip() == "" else value
-                )
-            elif column == SPEC_MAX_COL_INDEX:  # Spec Max
-                self._model.update_test_row(
-                    row, spec_max=None if value.strip() == "" else value
-                )
             elif column == MEASURED_COL_INDEX:  # Data Measured
                 self._model.update_test_row(
                     row, measured=None if value.strip() == "" else value
@@ -96,6 +87,7 @@ class DegasserPresenter:
 
         except ValueError as e:
             self._view.log_message(f"Test table error: {e}")
+
 
     def on_pass_fail_changed(self, row: int, value: str) -> None:
         """Handle pass/fail combo box changes.
@@ -128,16 +120,16 @@ class DegasserPresenter:
         """
         if self._updating:
             return
-        if column != 1:
+        if row != 1:
             return
         value = self._view.get_time_series_cell_value(row, column)
 
         if value is None:
             try:
-                self._model.clear_measurement(row)
+                self._model.clear_measurement(column)
                 self._refresh_view()
                 self._view.log_message(
-                    f"Cleared oxygen level measurement at minute {row}"
+                    f"Cleared oxygen level measurement at minute {column}"
                 )
             except ValueError as e:
                 self._view.log_message(f"Clear error: {e}")
@@ -145,11 +137,13 @@ class DegasserPresenter:
 
         # Try to set the measurement (value is guaranteed to be float here)
         try:
-            self._model.set_measurement(row, value)
+            self._model.set_measurement(column, value)
             self._refresh_view()
-            self._view.log_message(f"Set oxygen level at minute {row} to {value} mg/L")
+            self._view.log_message(
+                f"Set oxygen level at minute {column} to {value} mg/L"
+            )
         except ValueError as e:
-            self._view.log_message(f"Invalid oxygen level at minute {row}: {e}")
+            self._view.log_message(f"Invalid oxygen level at minute {column}: {e}")
 
     def on_temperature_changed(self, temp: str | None = None) -> None:
         """Handle temperature edit changes.
@@ -252,7 +246,10 @@ class DegasserPresenter:
         )
         try:
             report_generator.generate_report()
-            msg = f"Report generated successfully. The report was saved to:\n{output_path}"
+            msg = (
+                "Report generated successfully. The report was saved to:\n"
+                f"{output_path}"
+            )
             self._view.log_message(msg)
             self._view.info_dialog(title="Report Generated", text=msg)
         except FileExistsError:
@@ -272,7 +269,10 @@ class DegasserPresenter:
                     generated_file = report_generator.generate_report(
                         auto_increment=True,
                     )
-                    msg = f"Report generated successfully. The report was saved to:\n{generated_file.parent}"
+                    msg = (
+                        "Report generated successfully. The report was saved to:\n"
+                        f"{generated_file.parent}"
+                    )
                     self._view.log_message(msg)
                     self._view.info_dialog(title="Report Generated", text=msg)
                 except (ValueError, OSError) as err:
@@ -358,7 +358,7 @@ class DegasserPresenter:
         """
         if self._updating:
             return
-        timestamp = datetime.now().strftime("%y%m%d-%H%M%")
+        timestamp = datetime.now().strftime("%y%m%d-%H%M")
         # TODO: move pyside dependency to view
         path, _ = QFileDialog.getSaveFileName(
             self._view,
