@@ -729,7 +729,7 @@ class DegasserTab(BaseTab):
         layout.addLayout(temp_layout)
 
         # Add chart to layout with stretch factor to fill remaining vertical space
-        self._time_series_chart.setMinimumHeight(300)
+        self._time_series_chart.setMinimumHeight(200)
         layout.addWidget(self._time_series_chart, 1)
 
         self._time_series_section = widget
