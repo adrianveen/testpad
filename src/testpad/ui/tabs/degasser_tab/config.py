@@ -14,6 +14,8 @@ from testpad.config.defaults import (
 # === String Constants ===
 # Common strings used in the application
 DISSOLVED_OXYGEN_STRING = "Dissolved Oxygen"
+RE_CIRCULATION_STRING = "Re-circulation Test"
+DISTILLED_WATER_STRING = "1000 mL Distilled Water"
 MG_PER_LITER_STRING = "mg/L"
 
 # === Metadata Fields ===
@@ -31,10 +33,10 @@ DEFAULT_TEST_DESCRIPTIONS = [
     "Vacuum Pressure:",
     "Flow Rate:",
     f"{DISSOLVED_OXYGEN_STRING} Level Test:",
-    f"{DISSOLVED_OXYGEN_STRING} Re-circulation Test (1000 mL):",
-    "   Starting Dissolved Oxygen Level:",
-    f"   Time to Reach 4 {MG_PER_LITER_STRING} (min):",
-    f"   Time to Reach 2 {MG_PER_LITER_STRING} (min):",
+    f"{DISSOLVED_OXYGEN_STRING} {RE_CIRCULATION_STRING} - {DISTILLED_WATER_STRING}",
+    "Starting Dissolved Oxygen Level:",
+    f"Time to Reach 4 {MG_PER_LITER_STRING} (min):",
+    f"Time to Reach 2 {MG_PER_LITER_STRING} (min):",
 ]
 
 # === DS-50 Specification Ranges ===

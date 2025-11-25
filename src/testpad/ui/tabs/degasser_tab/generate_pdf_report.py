@@ -6,13 +6,19 @@ from pathlib import Path
 from typing import Any
 
 from fpdf import FPDF, Align, FontFace
+from fpdf.table import Table
 
 from testpad.config.defaults import DEFAULT_EXPORT_DIR, DEFAULT_FUS_LOGO_PATH
 from testpad.ui.tabs.degasser_tab.config import (
+    DEFAULT_TEST_DESCRIPTIONS,
+    DISSOLVED_OXYGEN_STRING,
+    DISTILLED_WATER_STRING,
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
+    HEADER_ROW_INDEX,
     NO_LIMIT_SYMBOL,
     PDF_REPORT_NAME_PREFIX,
+    RE_CIRCULATION_STRING,
     REPORT_VERSION,
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
@@ -76,9 +82,6 @@ class GenerateReport:
         self.layout = DEFAULT_LAYOUT
         self.figure_config = DEFAULT_FIGURE_CONFIG
         self.styling_config = DEFAULT_STYLE_CONFIG
-
-        # Y location trackers
-        # self.time_series_y = 0
 
     def generate_report(
         self,
@@ -295,6 +298,100 @@ class GenerateReport:
                     # Odd number of fields, pad the last row
                     row.cell("", border=False)
 
+    def _format_spec_value(self, value: float | None, unit: str) -> str:
+        """Format a specification value with its unit.
+
+        Args:
+            value: The specification value (float, int, or None).
+            unit: The unit string to append.
+
+        Returns:
+            Formatted string (e.g., "5.00 mg/L", "--").
+
+        """
+        if value is None:
+            return NO_LIMIT_SYMBOL
+        if isinstance(value, float):
+            return f"{value:.2f} {unit}"
+        return f"{value} {unit}" if unit else str(value)
+
+    def _format_measured_value(self, value: float | str | None, unit: str) -> str:
+        """Format a measured value with its unit.
+
+        Args:
+            value: The measured value.
+            unit: The unit string to append (only used if value is float).
+
+        Returns:
+            Formatted string.
+
+        """
+        if value is None:
+            return NO_LIMIT_SYMBOL
+        if isinstance(value, float):
+            return f"{value:.2f} {unit}"
+        if isinstance(value, int):
+            return f"{value} {unit}" if unit else str(value)
+        return f"{value}"
+
+    def _add_test_row(
+        self,
+        table: Table,
+        idx: int,
+        row_data: dict[str, Any],
+        styles: dict[str, FontFace],
+    ) -> None:
+        """Add a single row to the test table.
+
+        Args:
+            table: The fpdf table object.
+            idx: The row index.
+            row_data: The dictionary containing row data.
+            styles: Dictionary of FontFace styles.
+
+        """
+        row = table.row()
+
+        # Handle Header Row (Merged Cell)
+        if idx == HEADER_ROW_INDEX:
+            row.cell(
+                text=f"\n{row_data['description']}",  # newline to space out table
+                align=Align.C,
+                style=styles["header"],
+                colspan=5,
+                border=0,
+            )
+            return
+
+        # Normal Data Row
+        # Column 1: Description
+        row.cell(row_data["description"], align="L", style=styles["description"])
+
+        # Column 2: Pass/Fail
+        pass_fail_text = row_data.get("pass_fail", "") or ""
+        row.cell(pass_fail_text, align="C", style=styles["data"])
+
+        # Get specs and units
+        spec_key = ROW_SPEC_MAPPING[idx]
+        spec: tuple[float | int | None, float | int | None]
+        spec = (
+            DS50_SPEC_RANGES.get(spec_key, (None, None)) if spec_key else (None, None)
+        )
+        unit = DS50_SPEC_UNITS.get(spec_key, "") if spec_key else ""
+
+        # Column 3: Spec Min
+        spec_min_text = self._format_spec_value(spec[0], unit)
+        row.cell(spec_min_text, align="C", style=styles["spec"])
+
+        # Column 4: Spec Max
+        spec_max_text = self._format_spec_value(spec[1], unit)
+        row.cell(spec_max_text, align="C", style=styles["spec"])
+
+        # Column 5: Data Measured
+        data_measured: float | int | str | None = row_data.get("measured")
+        data_measured_text = self._format_measured_value(data_measured, unit)
+        row.cell(data_measured_text, align="C", style=styles["data"])
+
     def _build_test_table(self, test_data: list[dict[str, Any]]) -> None:
         """Draws the 8 row x 5 col table for the test results and default values.
 
@@ -304,86 +401,44 @@ class GenerateReport:
 
         """
         headers = TEST_TABLE_HEADERS
-        # Set font styles for each section of the table
-        header_style = FontFace(
-            emphasis=self.styling_config.header_text_style,
-            size_pt=self.styling_config.header_text_size,
-            color=self.styling_config.header_text_color,
-        )
-        spec_style = FontFace(
-            emphasis=self.styling_config.values_text_style,
-            size_pt=self.styling_config.spec_text_size,
-            color=self.styling_config.spec_text_color,
-        )
-        data_style = FontFace(
-            emphasis=self.styling_config.values_text_style,
-            size_pt=self.styling_config.data_text_size,
-            color=self.styling_config.data_text_color,
-        )
+
+        # Define styles
+        styles = {
+            "header": FontFace(
+                emphasis=self.styling_config.header_text_style,
+                size_pt=self.styling_config.header_text_size,
+                color=self.styling_config.header_text_color,
+            ),
+            "description": FontFace(
+                emphasis=self.styling_config.header_text_style,
+                size_pt=self.styling_config.description_text_size,
+                color=self.styling_config.header_text_color,
+            ),
+            "spec": FontFace(
+                emphasis=self.styling_config.values_text_style,
+                size_pt=self.styling_config.spec_text_size,
+                color=self.styling_config.spec_text_color,
+            ),
+            "data": FontFace(
+                emphasis=self.styling_config.values_text_style,
+                size_pt=self.styling_config.data_text_size,
+                color=self.styling_config.data_text_color,
+            ),
+        }
 
         self.pdf.ln(
             self.layout.section_spacing_mm,
         )  # Add a spacer before the data table
 
         with self.pdf.table(col_widths=(40, 25, 25, 25, 25)) as table:
+            # Create Header Row
             header_row = table.row()
             for header in headers:
-                header_row.cell(header, Align.C, style=header_style)
-            # Test Results and Headers
+                header_row.cell(header, Align.C, style=styles["header"])
+
+            # Create Data Rows
             for idx, test_row_dict in enumerate(test_data):
-                row = table.row()
-
-                # Column 1: Description
-                row.cell(test_row_dict["description"], align="L", style=header_style)
-
-                # Column 2: Pass/Fail
-                pas_fail_text = test_row_dict.get("pass_fail", "") or ""
-                row.cell(pas_fail_text, align="C", style=data_style)
-
-                # Get specs from config
-                spec_key = ROW_SPEC_MAPPING[idx]
-                spec = (
-                    DS50_SPEC_RANGES.get(spec_key, (None, None))
-                    if spec_key
-                    else (None, None)
-                )
-                units = DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else ""
-
-                # Column 3: Spec_Min
-                if spec[0] is not None:
-                    if isinstance(spec[0], float):
-                        spec_min_text = f"{spec[0]:.2f} {units}"
-                    else:
-                        spec_min_text = f"{spec[0]} {units}"
-                else:
-                    spec_min_text = NO_LIMIT_SYMBOL
-                row.cell(spec_min_text, align="C", style=spec_style)
-
-                # Column 4: Spec_Max
-                if spec[1] is not None:
-                    if isinstance(spec[1], float):
-                        spec_max_text = f"{spec[1]:.2f} {units}"
-                    else:
-                        spec_max_text = f"{spec[1]} {units}"
-                else:
-                    spec_max_text = NO_LIMIT_SYMBOL
-                row.cell(spec_max_text, align="C", style=spec_style)
-
-                # Column 5: Data Measured - set to gray
-                data_measured = test_row_dict.get("measured")
-                if isinstance(data_measured, float):
-                    data_measured_text = (
-                        f"{data_measured:.2f} {units}"
-                        if data_measured is not None
-                        else NO_LIMIT_SYMBOL
-                    )
-                else:
-                    data_measured_text = (
-                        f"{data_measured}"
-                        if data_measured is not None
-                        else NO_LIMIT_SYMBOL
-                    )
-                row.cell(data_measured_text, align="C", style=data_style)
+                self._add_test_row(table, idx, test_row_dict, styles)
 
     def _build_time_series_table(self, data: dict[int, float]) -> None:
         """Draws a two-row horizontal table for time series data.
@@ -399,27 +454,13 @@ class GenerateReport:
         # Add spacer
         self.pdf.ln(self.layout.section_spacing_mm)
 
-        # Main title - bold, font 12
-        self.pdf.set_font(
-            style=self.styling_config.subtitle_text_style,
-            size=self.styling_config.subtitle_text_size,
-        )
-        title = "Dissolved Oxygen Re-circulation Test"
-        self.pdf.cell(
-            text=title,
-            align=Align.C,
-            center=True,
-            new_x="RIGHT",
-            new_y="NEXT",
-        )
-
-        # Subtitle - non-bold, font 12
+        # Subtitle - non-bold
         self.pdf.set_font(
             style=self.styling_config.values_text_style,
-            size=self.styling_config.subtitle_text_size,
+            size=self.styling_config.header_text_size,
         )
         self.pdf.cell(
-            text="1000 mL Distilled Water",
+            text=f"{DISSOLVED_OXYGEN_STRING} Measurements",
             align=Align.C,
             center=True,
             new_x="RIGHT",
@@ -427,8 +468,7 @@ class GenerateReport:
         )
 
         # Add spacer and get current y position of table
-        self.pdf.ln(self.layout.section_spacing_mm)
-        self.time_series_y = self.pdf.get_y()
+        self.pdf.ln(self.layout.small_section_spacing_mm)
 
         # Define styles for table cells (FontFace only works in table context)
         header_style = FontFace(
@@ -446,7 +486,7 @@ class GenerateReport:
         times = sorted(data.keys())
         with self.pdf.table(
             col_widths=(23, *([7] * len(times))),
-            align="L",
+            align=Align.C,
             line_height=5,
         ) as table:
             row_keys = table.row()
@@ -545,16 +585,16 @@ if __name__ == "__main__":
         8: 2.33,
         9: 2.16,
         10: 2.05,
-        11: 1.00,
-        12: 0.99,
-        13: 0.98,
-        14: 0.97,
-        15: 0.96,
-        16: 0.95,
-        17: 0.94,
-        18: 0.93,
-        19: 0.92,
-        20: 0.91,
+        11: 1.99,
+        12: 1.98,
+        13: 1.97,
+        14: 1.96,
+        15: 1.95,
+        16: 1.94,
+        17: 1.93,
+        18: 1.92,
+        19: 1.91,
+        20: 1.90,
     }
 
     # Dummy test table data matching the expected format
@@ -567,22 +607,22 @@ if __name__ == "__main__":
             "measured": 2.15,
         },
         {
-            "description": "Dissolved Oxygen Re-circulation Test (1000 mL):",
+            "description": f"{DISSOLVED_OXYGEN_STRING} {RE_CIRCULATION_STRING} - {DISTILLED_WATER_STRING}",
             "pass_fail": "",
             "measured": None,
         },
         {
-            "description": "   Starting DO Level:",
+            "description": f"{DEFAULT_TEST_DESCRIPTIONS[4]}",
             "pass_fail": "Pass",
             "measured": 8.65,
         },
         {
-            "description": "   Time to Reach 4 mg/L (min):",
+            "description": f"{DEFAULT_TEST_DESCRIPTIONS[5]}",
             "pass_fail": "Pass",
             "measured": 4.0,
         },
         {
-            "description": "   Time to Reach 2 mg/L (min):",
+            "description": f"{DEFAULT_TEST_DESCRIPTIONS[6]}",
             "pass_fail": "Pass",
             "measured": 8.0,
         },
@@ -604,3 +644,4 @@ if __name__ == "__main__":
         output_dir=output_dir,
     )
     report.generate_report(auto_increment=True)
+    print(f"Test report generated in: {output_dir}")

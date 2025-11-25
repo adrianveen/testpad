@@ -93,26 +93,33 @@ class ColumnMajorTableWidget(QTableWidget):
 
         """
         rows, cols = self.rowCount(), self.columnCount()
+        new_row, new_col = row, col  # Initialize with current values
 
         if forward:
             # Forward navigation: down column, then right to next column
-            if row < rows - 1:
-                # Not at bottom of column yet, move down one row
-                return row + 1, col
-            if col < cols - 1:
-                # At bottom of column, jump to top of next column
-                return 0, col + 1
-            # At bottom-right corner, wrap around to top-left
-            return 0, 0
-        # Backward navigation: up column, then left to previous column
-        if row > 0:
-            # Not at top of column yet, move up one row
-            return row - 1, col
-        if col > 0:
-            # At top of column, jump to bottom of previous column
-            return rows - 1, col - 1
-        # At top-left corner, wrap around to bottom-right
-        return rows - 1, cols - 1
+            if row == HEADER_ROW_INDEX - 1:  # Moving past the item above the header
+                new_row = row + 2
+            elif row < rows - 1:  # Not at bottom of column
+                new_row = row + 1
+            elif col < cols - 1:  # At bottom of column, move to next
+                new_row = 0
+                new_col = col + 1
+            else:  # At bottom-right, wrap to top-left
+                new_row = 0
+                new_col = 0
+        else:  # Backward navigation: up column, then left to previous column
+            if row == HEADER_ROW_INDEX + 1:  # Moving past the item below the header
+                new_row = row - 2
+            elif row > 0:  # Not at top of column
+                new_row = row - 1
+            elif col > 0:  # At top of column, move to previous
+                new_row = rows - 1
+                new_col = col - 1
+            else:  # At top-left, wrap to bottom-right
+                new_row = rows - 1
+                new_col = cols - 1
+
+        return new_row, new_col
 
     @override
     def keyPressEvent(self, event: "QKeyEvent") -> None:
@@ -580,6 +587,9 @@ class DegasserTab(BaseTab):
 
         # Create Widgets - use custom widget with column-major tab navigation
         self._test_table = ColumnMajorTableWidget(NUM_TEST_ROWS, NUM_TEST_COLS)
+        self._test_table.currentCellChanged.connect(
+            self._on_test_table_current_cell_changed
+        )
         self._test_table.setHorizontalHeaderLabels(TEST_TABLE_HEADERS)
         self._test_table.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
@@ -619,10 +629,13 @@ class DegasserTab(BaseTab):
             # Bold and gray background for re-circulation header rows
             if row == HEADER_ROW_INDEX:
                 font = item.font()
-                font.setBold(True)
+                # font.setBold(True)
                 font.setPointSize(font.pointSize() + 1)
+                item.setFlags(PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled)
                 item.setFont(font)
                 item.setBackground(HEADER_ROW_COLOR)  # Light gray background
+                # Align text to AlignCenter
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 # Span all columns for 2nd re-circulation header
                 self._test_table.setSpan(HEADER_ROW_INDEX, 0, 1, NUM_TEST_COLS)
             self._test_table.setItem(row, 0, item)
@@ -835,6 +848,23 @@ class DegasserTab(BaseTab):
     def _on_console_toggled(self, checked: bool) -> None:  # noqa: FBT001
         """Show/hide console output when checkbox is toggled."""
         self._console_output.setVisible(checked)
+
+    def _on_test_table_current_cell_changed(
+        self, row: int, col: int, old_row: int, old_col: int
+    ) -> None:
+        """Highlight cell widget when cell is selected."""
+        # Reset style of previous cell widget
+        if old_row >= 0 and old_col >= 0:
+            old_widget = self._test_table.cellWidget(old_row, old_col)
+            if isinstance(old_widget, QComboBox):
+                old_widget.setStyleSheet("")
+
+        # Set style of new cell widget
+        if row >= 0 and col >= 0:
+            widget = self._test_table.cellWidget(row, col)
+            if isinstance(widget, QComboBox):
+                # Use a border that contrasts with the dark theme
+                widget.setStyleSheet("border: 2px solid #7AB47A;")
 
     def _update_test_table(self, test_rows: list[TestResultRow]) -> None:
         """Update the test table from state data.

@@ -25,7 +25,11 @@ from testpad.config.plotting import (
     GRID_LINE_WIDTH,
     PRIMARY_COLOR,
 )
-from testpad.ui.tabs.degasser_tab.config import TIME_SERIES_HEADERS
+from testpad.ui.tabs.degasser_tab.config import (
+    DISSOLVED_OXYGEN_STRING,
+    MG_PER_LITER_STRING,
+    TIME_SERIES_HEADERS,
+)
 
 
 def make_time_series_figure(
@@ -134,20 +138,23 @@ def plot_time_series_on_axis(
             mfc=PRIMARY_COLOR,
             linestyle=DEFAULT_LINE_STYLE,
             linewidth=DEFAULT_LINE_WIDTH,
-            label="Oxygen Level (mg/L)",
+            label=f"Oxygen Level ({MG_PER_LITER_STRING})",
         )
         # Set x-limits to avoid negative ticks while keeping 0 offset
         max_time = max(time_min)
         ax.set_xlim(left=-0.5, right=max_time + 0.5)
+        ax.set_ylim(bottom=0 - 0.5)
     else:
         # Default limits if no data
         ax.set_xlim(left=-0.5, right=20.5)
 
     # Set title with optional temperature
     if temperature_c is not None:
-        ax.set_title(f"Dissolved Oxygen vs Time (Temp: {temperature_c:.1f} °C)")
+        ax.set_title(
+            f"{DISSOLVED_OXYGEN_STRING} vs Time (Temp: {temperature_c:.1f} °C)"
+        )
     else:
-        ax.set_title("Dissolved Oxygen vs Time")
+        ax.set_title(f"{DISSOLVED_OXYGEN_STRING} vs Time")
 
     # Set labels
     ax.set_xlabel(TIME_SERIES_HEADERS[0])

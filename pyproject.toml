@@ -72,6 +72,8 @@ ignore = [
   "ERA001",  # Checks for commented-out Python code.
   "TD002",  # Checks that a TODO comment includes an author.
   "TD003",  # Checks that a TODO comment is associated with a link to a relevant issue or ticket.
+  "FBT001",  # Checks for boolean arguments in function definitions.
+  "FBT002",  # Checks for boolean default positional arguments in function definitions.
 ]
 
 [tool.ruff.lint.per-file-ignores]
