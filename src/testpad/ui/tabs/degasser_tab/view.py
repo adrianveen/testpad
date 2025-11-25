@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QKeyEvent
     from PySide6.QtWidgets import QStyleOptionViewItem
 
-
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
 from testpad.ui.tabs.base_tab import BaseTab
 from testpad.ui.tabs.degasser_tab.chart_widgets import TimeSeriesChartWidget
@@ -351,6 +350,8 @@ class DegasserTab(BaseTab):
                     lambda text, r=row: presenter.on_pass_fail_changed(r, text)
                 )
         # TODO: Add CSV import and export connections
+        # self._import_csv_btn.clicked.connect(presenter.on_import_csv_clicked)
+        # self._export_csv_btn.clicked.connect(presenter.on_export_csv_clicked)
 
     def get_test_table_cell_value(self, row: int, column: int) -> str:
         """Get the text value from a test table cell.
@@ -378,11 +379,11 @@ class DegasserTab(BaseTab):
         """Get the numeric value from a time series table cell.
 
         Args:
-          row: Row index
-          column: Column index
+            row: Row index
+            column: Column index
 
         Returns:
-          Cell value as float, or None if cell is empty
+            Cell value as `float`, or `None` if cell is empty
 
         Raises:
           ValueError: If cell text is not a valid number
@@ -600,7 +601,7 @@ class DegasserTab(BaseTab):
         )
 
         self._test_table.setItemDelegateForColumn(
-            4, _MeasuredValueDelegate(units_by_row, self._test_table)
+            MEASURED_COL_INDEX, _MeasuredValueDelegate(units_by_row, self._test_table)
         )
 
         layout.addWidget(self._test_table)
@@ -850,7 +851,8 @@ class DegasserTab(BaseTab):
             if combo:
                 combo = cast("QComboBox", combo)
                 with QSignalBlocker(combo):
-                    combo.setCurrentText(row_data.pass_fail)
+                    if combo.currentText() != row_data.pass_fail:
+                        combo.setCurrentText(row_data.pass_fail)
 
             # Column 2 & 3 (Spec Min/Max) are static, set once in __init__
 
@@ -876,10 +878,10 @@ class DegasserTab(BaseTab):
                 oxy_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self._time_series_widget.setItem(1, col_idx, oxy_item)
 
-            if oxygen_level is not None:
-                oxy_item.setText(f"{oxygen_level:.2f}")
-            else:
-                oxy_item.setText("")
+            text = f"{oxygen_level:.2f}" if oxygen_level is not None else ""
+
+            if oxy_item.text() != text:
+                oxy_item.setText(text)
 
     def _set_table_cell_float(self, row: int, col: int, value: float | None) -> None:
         """Set table cell to a float value with row-specific precision.
@@ -902,9 +904,10 @@ class DegasserTab(BaseTab):
 
             # Format with appropriate precision
             numeric_text = f"{value:.{precision}f}"
-            item.setText(numeric_text)
-            item.setData(Qt.ItemDataRole.EditRole, numeric_text)
-        else:
+            if item.text() != numeric_text:
+                item.setText(numeric_text)
+                item.setData(Qt.ItemDataRole.EditRole, numeric_text)
+        elif item.text() != "":
             item.setText("")
             item.setData(Qt.ItemDataRole.EditRole, "")
 
@@ -961,6 +964,7 @@ class DegasserTab(BaseTab):
             + v_header.length()  # Sum of all row heights
             + (frame_width * 2)  # Top and bottom frame borders
             + table.style().pixelMetric(QStyle.PixelMetric.PM_ScrollBarExtent)
+            + 6
         )
 
     def log_message(self, message: str) -> None:

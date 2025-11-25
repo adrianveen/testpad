@@ -1,3 +1,5 @@
+"""Degasser tab model."""
+
 from __future__ import annotations
 
 import csv
@@ -307,13 +309,15 @@ class DegasserModel:
     # -------- CSV Load / Save --------
     @staticmethod
     def _resolve_header(
-        headers: set[str], candidates: set[str], required_col: bool  # noqa: FBT001
+        headers: set[str],
+        candidates: set[str],
+        required_col: bool,
     ) -> str | None:
         """Resolve a column header from a set of candidates."""
         for h in headers:
             if h in candidates:
                 return h
-        if required:
+        if required_col:
             expected = sorted(candidates)
             msg = f"Missing required column; expected one of: {expected}"
             raise ValueError(msg)
@@ -353,7 +357,8 @@ class DegasserModel:
             # Start fresh
             self._oxygen_data.clear()
 
-            # Type narrowing: time_col and oxy_col are not None because required_col=True
+            # Type narrowing:
+            # time_col and oxy_col are not None because required_col=True
             if time_col is None:
                 msg = "Internal error: time_col not resolved when required."
                 raise RuntimeError(msg)
@@ -384,7 +389,7 @@ class DegasserModel:
     def export_csv(
         self,
         path: str,
-        include_temperature: bool = True,  # noqa: FBT001
+        include_temperature: bool = True,
     ) -> None:
         """Write the time-series data (and optional temperature) to a tidy CSV file.
 

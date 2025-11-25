@@ -1,11 +1,12 @@
-"""Degasser tab presenter."""
+"""Degasser tab presenter.
+
+This module handles the logic for the degasser tab such as
+updating the view and handling user input.
+"""
 
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
-
-from PySide6.QtWidgets import QFileDialog
-from PySide6.QtCore import QDate # Import QDate
 
 from .config import (
     MEASURED_COL_INDEX,
@@ -16,6 +17,8 @@ from .model import DegasserModel
 from .view_state import DegasserViewState
 
 if TYPE_CHECKING:
+    from PySide6.QtCore import QDate
+
     from .view import DegasserTab
 
 
@@ -23,6 +26,13 @@ class DegasserPresenter:
     """Degasser tab presenter."""
 
     def __init__(self, model: DegasserModel, view: "DegasserTab") -> None:
+        """Initialize the presenter.
+
+        Args:
+            model: The data model.
+            view: The UI view.
+
+        """
         self._model = model
         self._view = view
         self._state = DegasserViewState()
@@ -87,7 +97,6 @@ class DegasserPresenter:
 
         except ValueError as e:
             self._view.log_message(f"Test table error: {e}")
-
 
     def on_pass_fail_changed(self, row: int, value: str) -> None:
         """Handle pass/fail combo box changes.
@@ -330,11 +339,9 @@ class DegasserPresenter:
         """
         if self._updating:
             return
-        # TODO: move pyside dependency to view
-        path, _ = QFileDialog.getOpenFileName(
-            self._view,
+
+        path = self._view.show_file_open_dialog(
             "Import Degasser Data",
-            "",
             "CSV Files (*.csv);;All Files (*)",
         )
 
@@ -359,11 +366,10 @@ class DegasserPresenter:
         if self._updating:
             return
         timestamp = datetime.now().strftime("%y%m%d-%H%M")
-        # TODO: move pyside dependency to view
-        path, _ = QFileDialog.getSaveFileName(
-            self._view,
+
+        path = self._view.show_file_save_dialog(
             "Export Degasser Data",
-            f"degasser_data_{timestamp}.csv",  # Filename + time stamp
+            f"degasser_data_{timestamp}.csv",
             "CSV Files (*.csv);;All Files (*)",
         )
 
@@ -375,8 +381,6 @@ class DegasserPresenter:
             self._view.log_message(f"✅ Exported data to {path}")
         except ValueError as e:
             self._view.log_message(f"❌ Export error: {e}")
-        # except Exception as e:
-        #     self._view.log_message(f"❌ Unexpected error during export: {e}")
 
     def _refresh_view(self) -> None:
         """Update all view widgets from current model state."""

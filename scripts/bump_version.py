@@ -18,7 +18,7 @@ from pathlib import Path
 def run_command(cmd: str, check: bool = True) -> str:
     """Run shell command and return output."""
     result = subprocess.run(
-        cmd, check=False, shell=True, capture_output=True, text=True
+        cmd, check=False, shell=False, capture_output=True, text=True
     )
     if check and result.returncode != 0:
         print(f"❌ ERROR: Command failed: {cmd}")
@@ -140,7 +140,7 @@ def main() -> None:
     if dry_run:
         print("🔍 DRY RUN MODE")
         print(f"   Version: {current} -> {new_version}")
-        print(f"   Tag: {tag}")
+        print(f"   Tag: {tag} (will be created on main)")
         print("\nNo changes made.")
         return
 
@@ -163,8 +163,9 @@ def main() -> None:
     # Success
     print(f"✅ Version bumped: {current} -> {new_version}")
     print("   Updated: VERSION")
-    print(f"   Created: commit + tag {tag}")
-    print("\n📋 Next steps:")
+    print("   Created: commit")
+    print(f"   Tag: {tag} (will be created on main)")
+    print("\n Next steps:")
     print("   1. Review: git log -1 --stat")
     print("   2. Push: git push origin <branch>")
     print("\n [CAUTION]  Rollback before push:")
