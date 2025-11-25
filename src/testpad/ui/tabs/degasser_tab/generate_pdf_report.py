@@ -43,11 +43,11 @@ class GenerateReport:
         - _build_report_base(margins: float): Initializes the PDF report with margins.
         - _build_header(): Draws the header for the report.
         - _build_title_block(metadata: dict | None = None):
-        Draws the title block with metadata
+            Draws the title block with metadata
         - _build_test_table(test_data: list[dict[str, Any]]):
-        Draws the test results table.
+            Draws the test results table.
         - _build_time_series_table(data: dict[int, float]):
-        Draws the time series data table
+            Draws the time series data table
 
     """
 
@@ -298,7 +298,8 @@ class GenerateReport:
                     # Odd number of fields, pad the last row
                     row.cell("", border=False)
 
-    def _format_spec_value(self, value: float | None, unit: str) -> str:
+    @staticmethod
+    def format_spec_value(value: float | None, unit: str) -> str:
         """Format a specification value with its unit.
 
         Args:
@@ -315,7 +316,8 @@ class GenerateReport:
             return f"{value:.2f} {unit}"
         return f"{value} {unit}" if unit else str(value)
 
-    def _format_measured_value(self, value: float | str | None, unit: str) -> str:
+    @staticmethod
+    def format_measured_value(value: float | str | None, unit: str) -> str:
         """Format a measured value with its unit.
 
         Args:
@@ -380,16 +382,16 @@ class GenerateReport:
         unit = DS50_SPEC_UNITS.get(spec_key, "") if spec_key else ""
 
         # Column 3: Spec Min
-        spec_min_text = self._format_spec_value(spec[0], unit)
+        spec_min_text = self.format_spec_value(spec[0], unit)
         row.cell(spec_min_text, align="C", style=styles["spec"])
 
         # Column 4: Spec Max
-        spec_max_text = self._format_spec_value(spec[1], unit)
+        spec_max_text = self.format_spec_value(spec[1], unit)
         row.cell(spec_max_text, align="C", style=styles["spec"])
 
         # Column 5: Data Measured
         data_measured: float | int | str | None = row_data.get("measured")
-        data_measured_text = self._format_measured_value(data_measured, unit)
+        data_measured_text = self.format_measured_value(data_measured, unit)
         row.cell(data_measured_text, align="C", style=styles["data"])
 
     def _build_test_table(self, test_data: list[dict[str, Any]]) -> None:

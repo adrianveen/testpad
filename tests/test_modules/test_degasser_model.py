@@ -1,3 +1,4 @@
+# ruff: noqa: PLR2004,S105,S106
 """Tests for degasser_tab model.
 
 This test module covers:

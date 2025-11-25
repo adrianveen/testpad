@@ -8,11 +8,10 @@ This test module covers:
 - HDF5 data loading and error handling
 - Moving average calculation with NaN handling
 """
-
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import h5py
 import numpy as np
@@ -21,8 +20,8 @@ import pytest
 from testpad.config.defaults import DEFAULT_EXPORT_DIR
 from testpad.core.burnin.model import BurninFileInfo, BurninModel
 
-if TYPE_CHECKING:
-    from pathlib import Path
+AXIS_A_TEST_NUMBER = 3
+AXIS_B_TEST_NUMBER = 10
 
 
 def _ref_moving_average(array: np.ndarray, window: int) -> np.ndarray:
@@ -62,7 +61,7 @@ class TestBurninFileInfoParsing:
 
         assert info.file_path == path
         assert info.axis_name == "A"
-        assert info.test_number == 3
+        assert info.test_number == AXIS_A_TEST_NUMBER
 
     def test_axis_b_from_path(self, tmp_path: Path) -> None:
         """Axis B should be parsed from filename."""
@@ -71,7 +70,7 @@ class TestBurninFileInfoParsing:
         info = BurninFileInfo.from_path(path)
 
         assert info.axis_name == "B"
-        assert info.test_number == 10
+        assert info.test_number == AXIS_B_TEST_NUMBER
 
     def test_unknown_axis_and_missing_test_number(self, tmp_path: Path) -> None:
         """Missing axis marker returns None; missing test number returns -1."""
@@ -168,7 +167,7 @@ class TestOutputPathManagement:
         model = BurninModel()
 
         with pytest.raises(ValueError, match="must be absolute"):
-            model.set_output_folder("relative/path")
+            model.set_output_folder(Path("relative/path"))
 
     def test_set_and_clear_output_file(self, tmp_path: Path) -> None:
         """Model should store and clear output file path."""
@@ -254,7 +253,7 @@ class TestLoadBurninData:
         assert np.array_equal(data.time, time)
         assert np.array_equal(data.error, error)
         assert data.axis_name == "A"
-        assert data.test_number == 3
+        assert data.test_number == AXIS_A_TEST_NUMBER
 
         # Positive / negative separation
         assert np.isnan(data.positive_errors[0])
