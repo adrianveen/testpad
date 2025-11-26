@@ -8,6 +8,7 @@ This test module covers:
 - HDF5 data loading and error handling
 - Moving average calculation with NaN handling
 """
+
 from __future__ import annotations
 
 from datetime import date

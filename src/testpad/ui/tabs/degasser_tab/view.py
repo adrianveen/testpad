@@ -5,12 +5,11 @@ This module provides the user interface for the Degasser Tab.
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, cast, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 import PySide6.QtCore
 from PySide6.QtCore import QDate, QSignalBlocker, Qt
 from PySide6.QtWidgets import (
-    QAbstractScrollArea,
     QApplication,
     QCheckBox,
     QComboBox,
@@ -34,9 +33,17 @@ from PySide6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QEvent, QModelIndex, QObject, QPersistentModelIndex
+    from PySide6.QtCore import (
+        QAbstractItemModel,
+        QEvent,
+        QModelIndex,
+        QObject,
+        QPersistentModelIndex,
+    )
     from PySide6.QtGui import QKeyEvent
     from PySide6.QtWidgets import QStyleOptionViewItem
+
+from PySide6.QtGui import QDoubleValidator
 
 from testpad.config.defaults import ISO_8601_DATE_FORMAT
 from testpad.ui.tabs.base_tab import BaseTab
@@ -44,7 +51,9 @@ from testpad.ui.tabs.degasser_tab.chart_widgets import TimeSeriesChartWidget
 from testpad.ui.tabs.degasser_tab.config import (
     DEFAULT_TEST_DESCRIPTIONS,
     DEFAULT_TIME_SERIES_TEMP,
+    DO_PHYSICAL_BOUNDS,
     DS50_DECIMAL_PRECISION,
+    DS50_PHYSICAL_BOUNDS,
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
     HEADER_ROW_COLOR,
@@ -56,6 +65,7 @@ from testpad.ui.tabs.degasser_tab.config import (
     NUM_TEST_ROWS,
     NUM_TIME_SERIES_COLS,
     NUM_TIME_SERIES_ROWS,
+    PASS_FAIL_COL_INDEX,
     ROW_SPEC_MAPPING,
     SPEC_MAX_COL_INDEX,
     SPEC_MIN_COL_INDEX,
@@ -65,6 +75,7 @@ from testpad.ui.tabs.degasser_tab.config import (
 from testpad.ui.tabs.degasser_tab.model import DegasserModel, TestResultRow
 from testpad.ui.tabs.degasser_tab.presenter import DegasserPresenter
 from testpad.ui.tabs.degasser_tab.view_state import DegasserViewState
+from testpad.utils.lineedit_validators import FixupDoubleValidator, ValidatedLineEdit
 
 
 class ColumnMajorTableWidget(QTableWidget):
@@ -77,11 +88,14 @@ class ColumnMajorTableWidget(QTableWidget):
     def _get_next_cell(
         self, row: int, col: int, *, forward: bool = True
     ) -> tuple[int, int]:
-        """Calculate next cell position in column-major order.
+        """Calculate next cell position navigating only through editable columns.
 
-        Column-major order means: fill cells vertically down a column, then move
-        to the next column. For example, in a 3x2 table, the order is:
-        (0,0) → (1,0) → (2,0) → (0,1) → (1,1) → (2,1) → wraps back to (0,0)
+        Navigation pattern:
+        - Forward (Tab): Down Pass/Fail column → wrap to Data Measured top →
+          down Data Measured → wrap to Pass/Fail top
+        - Backward (Shift+Tab): Up Pass/Fail column → wrap to Data Measured bottom →
+          up Data Measured → wrap to Pass/Fail bottom
+        - Header row (HEADER_ROW_INDEX) is always skipped
 
         Args:
             row: Current row index (0-based)
@@ -92,145 +106,13 @@ class ColumnMajorTableWidget(QTableWidget):
             Tuple of (new_row, new_col) representing the next cell position
 
         """
-        rows, cols = self.rowCount(), self.columnCount()
-        new_row, new_col = row, col  # Initialize with current values
+        rows = self.rowCount()
 
-        if forward:
-            # Forward navigation: down column, then right to next column
-            if row == HEADER_ROW_INDEX - 1:  # Moving past the item above the header
-                new_row = row + 2
-            elif row < rows - 1:  # Not at bottom of column
-                new_row = row + 1
-            elif col < cols - 1:  # At bottom of column, move to next
-                new_row = 0
-                new_col = col + 1
-            else:  # At bottom-right, wrap to top-left
-                new_row = 0
-                new_col = 0
-        else:  # Backward navigation: up column, then left to previous column
-            if row == HEADER_ROW_INDEX + 1:  # Moving past the item below the header
-                new_row = row - 2
-            elif row > 0:  # Not at top of column
-                new_row = row - 1
-            elif col > 0:  # At top of column, move to previous
-                new_row = rows - 1
-                new_col = col - 1
-            else:  # At top-left, wrap to bottom-right
-                new_row = rows - 1
-                new_col = cols - 1
-
-        return new_row, new_col
-
-    @override
-    def keyPressEvent(self, event: "QKeyEvent") -> None:
-        """Override Qt's default key handling to implement column-major navigation.
-
-        By default, QTableWidget uses row-major Tab navigation (left→right).
-        This override intercepts Tab/Enter/Backtab keys and implements column-major
-        navigation instead. Other keys are passed to Qt's default handler.
-        """
-        key = event.key()
-
-        if key in (Qt.Key.Key_Tab, Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            # Tab and Enter both move forward in column-major order
-            event.accept()  # Prevent Qt's default row-major navigation
-            new_row, new_col = self._get_next_cell(
-                self.currentRow(),
-                self.currentColumn(),
-                forward=True,
-            )
-            self.setCurrentCell(new_row, new_col)
-        elif key == Qt.Key.Key_Backtab:
-            # Shift+Tab moves backward in column-major order
-            event.accept()  # Prevent Qt's default behavior
-            new_row, new_col = self._get_next_cell(
-                self.currentRow(),
-                self.currentColumn(),
-                forward=False,
-            )
-            self.setCurrentCell(new_row, new_col)
-        else:
-            # For all other keys (arrows, letters, etc.), use Qt's default handling
-            super().keyPressEvent(event)
-
-
-class ColumnMajorNavigationMixin:
-    """Mixin for item delegates to support column-major navigation during cell editing.
-
-    This mixin installs an event filter on editor widgets to intercept Tab/Enter
-    keys and forward them to the table's navigation logic. Any delegate class that
-    inherits from this mixin will automatically support column-major navigation during
-    editing.
-
-    Usage: class MyDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate): ...
-    Note: Mixin must come BEFORE QStyledItemDelegate in the inheritance list
-    for proper MRO.
-
-    """
-
-    def eventFilter(self, watched: "QObject", event: "QEvent") -> bool:
-        """Intercept key events from editor widgets and redirect navigation keys.
-
-        When we detect Tab/Enter, we bypass the editor and send the event directly
-        to the table's keyPressEvent for custom handling.
-
-        Args:
-            watched: The object being watched (the editor widget)
-            event: The QEvent being processed
-
-        Returns:
-            True if event was handled (prevents further processing)
-            False to allow normal event propagation
-
-        """
-        if event.type() == PySide6.QtCore.QEvent.Type.KeyPress:
-            # Cast to QKeyEvent to access key()
-            key_event: QKeyEvent = event  # type: ignore[assignment]
-            if key_event.key() in (
-                Qt.Key.Key_Tab,
-                Qt.Key.Key_Backtab,
-                Qt.Key.Key_Return,
-                Qt.Key.Key_Enter,
-            ):
-                # This is a navigation key - don't let the editor process it
-                table = self.parent()  # type: ignore[attr-defined]  # Delegate's parent is the table widget
-                if isinstance(table, ColumnMajorTableWidget):
-                    # Forward the event to the table's custom navigation handler
-                    table.keyPressEvent(key_event)
-                    return True  # Event handled, stop propagation
-        # Not a navigation key, or not our custom table - use default behavior
-        return super().eventFilter(watched, event)  # type: ignore[misc]
-
-    def createEditor(
-        self,
-        parent: QWidget | None,
-        option: "QStyleOptionViewItem",
-        index: "QModelIndex | QPersistentModelIndex",
-    ) -> QWidget:
-        """Create editor widget and install this delegate as an event filter.
-
-        Qt calls this method when a cell begins editing.
-
-        Args:
-            parent: Parent widget for the editor (the table viewport)
-            option: Style options for the editor
-            index: Model index of the cell being edited
-
-        Returns:
-            The editor widget with event filter installed
-
-        """
-        editor = super().createEditor(parent, option, index)  # type: ignore[misc]
-        if editor:
-            # Install this delegate as an event filter on the editor
-            # Now our eventFilter() method will intercept the editor's key events
-            editor.installEventFilter(self)  # type: ignore[attr-defined]
-        return editor
-
-
-class DegasserTab(BaseTab):
-    """Degasser tab view."""
-
+        # Handle navigation within editable columns (Pass/Fail and Data Measured)
+        if col in (PASS_FAIL_COL_INDEX, MEASURED_COL_INDEX):
+            if forward:
+                # Forward navigation: down the column
+                if row == HEADER_ROW_INDEX - 1:  # Just before header
     def __init__(
         self,
         parent: QWidget | None = None,
@@ -596,28 +478,32 @@ class DegasserTab(BaseTab):
         )  # Disable vertical scrollbar
 
         units_by_row: dict[int, str] = {}
+        specs_by_row: dict[int, tuple[float | None, float | None]] = {}
 
-        self._populate_test_table_rows(units_by_row)
+        self._populate_test_table_rows(units_by_row, specs_by_row)
 
         # Configure table headers
         header = self._test_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._test_table.verticalHeader().setVisible(False)
 
         # Set a fixed height to prevent scrollbars based on table contents
         fixed_height = self._autosize_table(self._test_table)
         self._test_table.setFixedHeight(fixed_height)
-        self._test_table.setSizeAdjustPolicy(
-            QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
-        )
 
         self._test_table.setItemDelegateForColumn(
-            MEASURED_COL_INDEX, _MeasuredValueDelegate(units_by_row, self._test_table)
+            MEASURED_COL_INDEX,
+            _MeasuredValueDelegate(units_by_row, specs_by_row, self._test_table),
         )
 
         layout.addWidget(self._test_table)
         return widget
 
-    def _populate_test_table_rows(self, units_by_row: dict[int, str]) -> None:
+    def _populate_test_table_rows(
+        self,
+        units_by_row: dict[int, str],
+        specs_by_row: dict[int, tuple[float | None, float | None]],
+    ) -> None:
         """Populate the test table with default rows and specs."""
         # Pre-fill descriptions (these are read-only)
         for row, desc in enumerate(DEFAULT_TEST_DESCRIPTIONS):
@@ -645,7 +531,7 @@ class DegasserTab(BaseTab):
 
             # Only add spec cells for non-header rows
             if spec_key is not None:
-                self._populate_spec_cells(row, spec_key, units_by_row)
+                self._populate_spec_cells(row, spec_key, units_by_row, specs_by_row)
 
             if row != HEADER_ROW_INDEX:
                 # Column 1: Pass/Fail dropdown for non header rows
@@ -654,7 +540,11 @@ class DegasserTab(BaseTab):
                 self._test_table.setCellWidget(row, 1, pass_fail_combo)
 
     def _populate_spec_cells(
-        self, row: int, spec_key: str, units_by_row: dict[int, str]
+        self,
+        row: int,
+        spec_key: str,
+        units_by_row: dict[int, str],
+        specs_by_row: dict[int, tuple[float | None, float | None]],
     ) -> None:
         """Populate spec cells for a given row."""
         spec = DS50_SPEC_RANGES.get(spec_key, (None, None))
@@ -662,6 +552,9 @@ class DegasserTab(BaseTab):
 
         if unit:
             units_by_row[row] = unit
+
+        # Store spec range for validator
+        specs_by_row[row] = spec
 
         for col in range(2, NUM_TEST_COLS):
             if col == SPEC_MIN_COL_INDEX:  # Spec_Min
@@ -734,6 +627,11 @@ class DegasserTab(BaseTab):
         # Set fixed height for table
         fixed_height = self._autosize_table(self._time_series_widget)
         self._time_series_widget.setFixedHeight(fixed_height)
+
+        # Set delegate for oxygen measurement row (row 1) to validate input
+        self._time_series_widget.setItemDelegateForRow(
+            1, _TimeSeriesValueDelegate(self._time_series_widget)
+        )
 
         # Add table to layout
         layout.addWidget(self._time_series_widget)
@@ -845,7 +743,7 @@ class DegasserTab(BaseTab):
 
         return self._console_group_box
 
-    def _on_console_toggled(self, checked: bool) -> None:  # noqa: FBT001
+    def _on_console_toggled(self, checked: bool) -> None:
         """Show/hide console output when checkbox is toggled."""
         self._console_output.setVisible(checked)
 
@@ -899,6 +797,8 @@ class DegasserTab(BaseTab):
 
         """
         for col_idx, (_minute, oxygen_level) in enumerate(table_rows):
+            # Throw away minute variable (not used)
+            _ = _minute
             # Row 0 (minute labels) is read-only; set once in __init__
 
             # Row 1: Dissolved O2 measured data (horizontal layout)
@@ -1008,10 +908,12 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
     def __init__(
         self,
         units_by_row: dict[int, str],
+        specs_by_row: dict[int, tuple[float | None, float | None]],
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._units_by_row = units_by_row
+        self._specs_by_row = specs_by_row
 
     def initStyleOption(
         self,
@@ -1027,9 +929,147 @@ class _MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
         if not unit:
             return
 
-        text = option.text
+        # Cast to Any to access text attribute (exists at runtime but not in stubs)
+        opt = cast("Any", option)
+        text = opt.text
         if text and not text.endswith(unit):
-            option.text = f"{text} {unit}"
+            opt.text = f"{text} {unit}"
+
+    def createEditor(
+        self,
+        parent: QWidget | None,
+        option: "QStyleOptionViewItem",
+        index: "QModelIndex | QPersistentModelIndex",
+    ) -> QWidget:
+        """Create editor widget with row-specific validation.
+
+        Qt calls this method when a cell begins editing. Creates a
+        ValidatedLineEdit with FixupDoubleValidator configured for the
+        row's physical bounds (not spec ranges) and decimal precision.
+
+        Physical bounds reject non-physical values (e.g., positive vacuum pressure,
+        negative time). Spec ranges are used by the presenter to determine pass/fail.
+
+        Args:
+            parent: Parent widget for the editor (the table viewport)
+            option: Style options for the editor (unused but required by Qt)
+            index: Model index of the cell being edited
+
+        Returns:
+            ValidatedLineEdit widget with event filter installed for
+            column-major navigation
+
+        """
+        _ = option  # Unused
+        # Get the row from the index
+        row = index.row()
+
+        # Look up the spec key for this row
+        spec_key = ROW_SPEC_MAPPING[row]
+
+        # Get the decimal precision from config
+        precision = DS50_DECIMAL_PRECISION.get(spec_key, 2)
+
+        # Get physical bounds from config (not spec ranges)
+        physical_bounds = DS50_PHYSICAL_BOUNDS.get(spec_key, (0.0, 10000.0))
+        min_bound, max_bound = physical_bounds
+
+        # Create validated line edit with fixup double validator
+        editor = ValidatedLineEdit(parent)
+        validator = FixupDoubleValidator(min_bound, max_bound, precision, editor)
+        editor.setValidator(validator)
+        editor.setPlaceholderText("Enter number")
+
+        # Install event filter for column-major navigation
+        # (This is handled by the mixin, but we do it explicitly here since
+        # we're creating a custom editor rather than calling super().createEditor())
+        editor.installEventFilter(self)
+
+        return editor
+
+    def setModelData(
+        self,
+        editor: QWidget,
+        model: "QAbstractItemModel",
+        index: "QModelIndex | QPersistentModelIndex",
+    ) -> None:
+        """Set model data from editor, rejecting invalid values.
+
+        Args:
+            editor: The editor widget (ValidatedLineEdit)
+            model: The model to update
+            index: Model index of the cell being edited
+
+        """
+        # Only commit if input is acceptable according to validator
+        if isinstance(editor, ValidatedLineEdit) and editor.hasAcceptableInput():
+            # Valid input - commit to model
+            super().setModelData(editor, model, index)
+        else:
+            # Invalid input - clear the cell
+            model.setData(index, "", Qt.ItemDataRole.EditRole)
+
+
+class _TimeSeriesValueDelegate(QStyledItemDelegate):
+    """Delegate for validating dissolved oxygen measurements in time series table.
+
+    Validates oxygen levels to reasonable physical values (0-30 mg/L) with
+    2 decimal places. Applied to row 1 (dissolved oxygen measurements).
+    """
+
+    def createEditor(
+        self,
+        parent: QWidget | None,
+        _option: "QStyleOptionViewItem",
+        _index: "QModelIndex | QPersistentModelIndex",
+    ) -> QWidget:
+        """Create editor widget with dissolved oxygen validation.
+
+        Args:
+            parent: Parent widget for the editor
+            _option: Style options (unused but required by Qt)
+            _index: Model index of the cell being edited (unused)
+
+        Returns:
+            ValidatedLineEdit with validator for dissolved oxygen
+            (physical bounds from config, 2 decimals)
+
+        """
+        _ = _option  # Unused
+        _ = _index  # Unused
+        # Create validated line edit for dissolved oxygen measurements
+        editor = ValidatedLineEdit(parent)
+        # Get physical bounds from config (shared with test table DO measurements)
+        min_bound, max_bound = DO_PHYSICAL_BOUNDS
+        # Use QDoubleValidator (not FixupDoubleValidator) to reject invalid values
+        # instead of clamping them to the maximum
+        validator = QDoubleValidator(min_bound, max_bound, 2, editor)
+        editor.setValidator(validator)
+        editor.setPlaceholderText("0.00")
+
+        return editor
+
+    def setModelData(
+        self,
+        editor: QWidget,
+        model: "QAbstractItemModel",
+        index: "QModelIndex | QPersistentModelIndex",
+    ) -> None:
+        """Set model data from editor, clearing cell if value is invalid.
+
+        Args:
+            editor: The editor widget (ValidatedLineEdit)
+            model: The model to update
+            index: Model index of the cell being edited
+
+        """
+        # Check if editor has acceptable input
+        if isinstance(editor, ValidatedLineEdit) and editor.hasAcceptableInput():
+            # Valid input - commit to model
+            super().setModelData(editor, model, index)
+        else:
+            # Invalid input - clear the cell
+            model.setData(index, "", Qt.ItemDataRole.EditRole)
 
 
 def _main() -> None:

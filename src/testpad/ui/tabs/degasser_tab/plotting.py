@@ -1,7 +1,6 @@
 """Pure plotting functions for degasser time series charts.
 
-This module provides pure functions for creating matplotlib figures without
-any Qt dependencies, following separation of concerns principles.
+This module provides pure functions for creating matplotlib figures
 """
 
 import contextlib
@@ -142,7 +141,7 @@ def plot_time_series_on_axis(
         )
         # Set x-limits to avoid negative ticks while keeping 0 offset
         max_time = max(time_min)
-        ax.set_xlim(left=-0.5, right=max_time + 0.5)
+        ax.set_xlim(left=-0.5, right=max(max_time, 10) + 0.5)
         ax.set_ylim(bottom=0 - 0.5)
     else:
         # Default limits if no data

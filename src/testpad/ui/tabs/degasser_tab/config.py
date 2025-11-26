@@ -51,6 +51,22 @@ DS50_SPEC_RANGES = {
     "recirculation_to_2mg": (None, 10),
 }
 
+# === Physical Bounds for Validation ===
+# These define physically valid ranges for measurements (not spec compliance)
+# Validators use these bounds to reject non-physical values
+# Format: (min, max) - values outside these ranges are rejected during input
+DO_PHYSICAL_BOUNDS = (0.0, 30.0)  # Dissolved oxygen in mg/L (shared with time series)
+TIME_PHYSICAL_BOUNDS = (0.0, 100.0)  # Time in minutes
+
+DS50_PHYSICAL_BOUNDS = {
+    "vacuum_pressure": (-50.0, 0.0),  # inHg - must be negative for vacuum
+    "flow_rate": (0.0, 2000.0),  # mL/min - must be positive
+    "do_level": DO_PHYSICAL_BOUNDS,  # mg/L
+    "recirculation_start": DO_PHYSICAL_BOUNDS,  # mg/L
+    "recirculation_to_4mg": TIME_PHYSICAL_BOUNDS,  # min
+    "recirculation_to_2mg": TIME_PHYSICAL_BOUNDS,  # min
+}
+
 # Units for each specification (displayed in table)
 DS50_SPEC_UNITS = {
     "vacuum_pressure": "inHg",
