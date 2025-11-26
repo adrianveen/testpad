@@ -1,5 +1,7 @@
 """Table widgets for the Degasser Tab."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
 import PySide6.QtCore
@@ -16,7 +18,11 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QKeyEvent
     from PySide6.QtWidgets import QStyleOptionViewItem
 
-from testpad.ui.tabs.degasser_tab.config import HEADER_ROW_INDEX
+from testpad.ui.tabs.degasser_tab.config import (
+    HEADER_ROW_INDEX,
+    MEASURED_COL_INDEX,
+    PASS_FAIL_COL_INDEX,
+)
 
 
 class ColumnMajorTableWidget(QTableWidget):
@@ -31,9 +37,10 @@ class ColumnMajorTableWidget(QTableWidget):
     ) -> tuple[int, int]:
         """Calculate next cell position in column-major order.
 
+        Restricts navigation to PASS_FAIL_COL_INDEX (1) and MEASURED_COL_INDEX (4).
         Column-major order means: fill cells vertically down a column, then move
-        to the next column. For example, in a 3x2 table, the order is:
-        (0,0) → (1,0) → (2,0) → (0,1) → (1,1) → (2,1) → wraps back to (0,0)
+        to the next column.
+        Skips the HEADER_ROW_INDEX.
 
         Args:
             row: Current row index (0-based)
@@ -44,36 +51,82 @@ class ColumnMajorTableWidget(QTableWidget):
             Tuple of (new_row, new_col) representing the next cell position
 
         """
-        rows, cols = self.rowCount(), self.columnCount()
-        new_row, new_col = row, col  # Initialize with current values
-
         if forward:
-            # Forward navigation: down column, then right to next column
-            if row == HEADER_ROW_INDEX - 1:  # Moving past the item above the header
-                new_row = row + 2
-            elif row < rows - 1:  # Not at bottom of column
-                new_row = row + 1
-            elif col < cols - 1:  # At bottom of column, move to next
-                new_row = 0
-                new_col = col + 1
-            else:  # At bottom-right, wrap to top-left
-                new_row = 0
-                new_col = 0
-        elif row == HEADER_ROW_INDEX + 1:  # Moving past the item below the header
-            new_row = row - 2
-        elif row > 0:  # Not at top of column
-            new_row = row - 1
-        elif col > 0:  # At top of column, move to previous
+            return self._get_next_cell_forward(row, col)
+        return self._get_next_cell_backward(row, col)
+
+    def _get_next_cell_forward(self, row: int, col: int) -> tuple[int, int]:
+        """Calculate next cell position moving forward."""
+        rows = self.rowCount()
+        new_row, new_col = row, col
+
+        # If not in target column, jump to first target column (Pass/Fail)
+        if col not in (PASS_FAIL_COL_INDEX, MEASURED_COL_INDEX):
+            new_row = 0
+            new_col = PASS_FAIL_COL_INDEX
+            if new_row == HEADER_ROW_INDEX:
+                new_row += 1
+            return new_row, new_col
+
+        # Move down
+        new_row += 1
+
+        # Skip header
+        if new_row == HEADER_ROW_INDEX:
+            new_row += 1
+
+        # If at bottom, switch column or wrap
+        if new_row >= rows:
+            new_row = 0
+            new_col = (
+                MEASURED_COL_INDEX
+                if col == PASS_FAIL_COL_INDEX
+                else PASS_FAIL_COL_INDEX
+            )
+
+            # Handle header at row 0 case
+            if new_row == HEADER_ROW_INDEX:
+                new_row += 1
+
+        return new_row, new_col
+
+    def _get_next_cell_backward(self, row: int, col: int) -> tuple[int, int]:
+        """Calculate next cell position moving backward."""
+        rows = self.rowCount()
+        new_row, new_col = row, col
+
+        # If not in target column, jump to last target column (Measured)
+        if col not in (PASS_FAIL_COL_INDEX, MEASURED_COL_INDEX):
             new_row = rows - 1
-            new_col = col - 1
-        else:  # At top-left, wrap to bottom-right
+            new_col = MEASURED_COL_INDEX
+            if new_row == HEADER_ROW_INDEX:
+                new_row -= 1
+            return new_row, new_col
+
+        # Move up
+        new_row -= 1
+
+        # Skip header
+        if new_row == HEADER_ROW_INDEX:
+            new_row -= 1
+
+        # If at top (passed 0), switch column or wrap
+        if new_row < 0:
             new_row = rows - 1
-            new_col = cols - 1
+            new_col = (
+                PASS_FAIL_COL_INDEX
+                if col == MEASURED_COL_INDEX
+                else MEASURED_COL_INDEX
+            )
+
+            # Handle header at last row case
+            if new_row == HEADER_ROW_INDEX:
+                new_row -= 1
 
         return new_row, new_col
 
     @override
-    def keyPressEvent(self, event: "QKeyEvent") -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         """Override Qt's default key handling to implement column-major navigation.
 
         By default, QTableWidget uses row-major Tab navigation (left→right).
@@ -119,7 +172,7 @@ class ColumnMajorNavigationMixin:
 
     """
 
-    def eventFilter(self, watched: "QObject", event: "QEvent") -> bool:
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         """Intercept key events from editor widgets and redirect navigation keys.
 
         When we detect Tab/Enter, we bypass the editor and send the event directly
@@ -136,7 +189,7 @@ class ColumnMajorNavigationMixin:
         """
         if event.type() == PySide6.QtCore.QEvent.Type.KeyPress:
             # Cast to QKeyEvent to access key()
-            key_event: "QKeyEvent" = event  # type: ignore[assignment]
+            key_event: QKeyEvent = event  # type: ignore[assignment]
             if key_event.key() in (
                 Qt.Key.Key_Tab,
                 Qt.Key.Key_Backtab,
@@ -155,8 +208,8 @@ class ColumnMajorNavigationMixin:
     def createEditor(
         self,
         parent: QWidget | None,
-        option: "QStyleOptionViewItem",
-        index: "QModelIndex | QPersistentModelIndex",
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
     ) -> QWidget:
         """Create editor widget and install this delegate as an event filter.
 

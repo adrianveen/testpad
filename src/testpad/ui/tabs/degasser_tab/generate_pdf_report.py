@@ -289,7 +289,7 @@ class GenerateReport:
                     if label == "Date":
                         value = value.strftime("%Y-%m-%d")
                     row.cell(
-                        text=f"{label}: --{value}--",
+                        text=f"{label}: --{value if value else '      '}--",
                         border=False,
                         align=Align.C,
                         style=value_font_style,
@@ -609,7 +609,10 @@ if __name__ == "__main__":
             "measured": 2.15,
         },
         {
-            "description": f"{DISSOLVED_OXYGEN_STRING} {RE_CIRCULATION_STRING} - {DISTILLED_WATER_STRING}",
+            "description": (
+                f"{DISSOLVED_OXYGEN_STRING} {RE_CIRCULATION_STRING} - "
+                f"{DISTILLED_WATER_STRING}"
+            ),
             "pass_fail": "",
             "measured": None,
         },

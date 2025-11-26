@@ -14,6 +14,7 @@ from .config import (
     DEFAULT_TEST_DESCRIPTIONS,
     DS50_SPEC_RANGES,
     HEADER_ROW_INDEX,
+    MAXIMUM_END_MINUTE,
     MINIMUM_END_MINUTE,
     ROW_SPEC_MAPPING,
     START_MINUTE,
@@ -139,8 +140,8 @@ class DegasserModel:
         if not isinstance(minute, int):
             msg = "Minute must be an integer."
             raise TypeError(msg)
-        if minute < START_MINUTE or minute > MINIMUM_END_MINUTE:
-            msg = f"Minute must be in range {START_MINUTE}..{MINIMUM_END_MINUTE}."
+        if minute < START_MINUTE or minute > MAXIMUM_END_MINUTE:
+            msg = f"Minute must be in range {START_MINUTE}..{MAXIMUM_END_MINUTE}."
             raise ValueError(msg)
 
     @staticmethod
@@ -196,11 +197,11 @@ class DegasserModel:
         """Return the stored readings sorted by minute for stable UI rendering."""
         return sorted(self._oxygen_data.items())
 
-    def build_time_series_rows(self) -> list[tuple[int, float | None]]:
+    def build_time_series_cells(self) -> list[tuple[int, float | None]]:
         """Return the time series data as a list of rows for the UI table."""
         return [
             (m, self._oxygen_data.get(m))
-            for m in range(START_MINUTE, MINIMUM_END_MINUTE + 1)
+            for m in range(START_MINUTE, MAXIMUM_END_MINUTE + 1)
         ]
 
     # -------- Temperature --------
@@ -487,7 +488,7 @@ class DegasserModel:
                 warnings.append(f"'{desc}' pass/fail")
 
         # Time Series validation
-        if not self._oxygen_data:
+        if len(self._oxygen_data.values()) < (MINIMUM_END_MINUTE + 1):
             warnings.append("Dissolved Oxygen measurements")
 
         return warnings

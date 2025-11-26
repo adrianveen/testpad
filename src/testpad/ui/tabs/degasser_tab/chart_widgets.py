@@ -23,8 +23,6 @@ class TimeSeriesChartWidget(QWidget):
         self._figure = Figure(figsize=(5, 3), layout="constrained")
         self._ax = self._figure.add_subplot(111)
         self._canvas = FigureCanvas(self._figure)
-        # Set default x axis limit to 0-10 minutes
-        self._ax.set_xlim(left=0, right=10)
 
         # Timer for debouncing resize events
         self._resize_timer = QTimer()

@@ -200,7 +200,7 @@ class TestTimeSeriesRows:
     def test_empty_time_series_all_none(self) -> None:
         """With no data, all minutes should have None values."""
         model = DegasserModel()
-        rows = model.build_time_series_rows()
+        rows = model.build_time_series_cells()
 
         # Should have 21 rows (minutes 0-20 inclusive)
         assert len(rows) == NUM_TIME_SERIES_COLS
@@ -214,7 +214,7 @@ class TestTimeSeriesRows:
         model.set_measurement(0, 8.5)
         model.set_measurement(10, 3.5)
 
-        rows = model.build_time_series_rows()
+        rows = model.build_time_series_cells()
         assert rows[0] == (0, 8.5)
         assert rows[5] == (5, None)  # not filled
         assert rows[10] == (10, 3.5)

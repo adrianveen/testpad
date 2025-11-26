@@ -4,7 +4,7 @@ This module handles the logic for the degasser tab such as
 updating the view and handling user input.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -61,13 +61,15 @@ class DegasserPresenter:
 
     def on_date_changed(
         self,
-        date: "QDate",
+        date_val: "QDate",
     ) -> None:
         """Handle date edit changes."""
         if self._updating:
             return
-        if not isinstance(date, datetime):
-            self._model.set_metadata_field("test_date", date.toPython())
+        if not isinstance(date_val, datetime):
+            # Cast to date to satisfy type checker
+            py_date = cast("date", date_val.toPython())
+            self._model.set_metadata_field("test_date", py_date)
 
     def on_serial_changed(self, text: str) -> None:
         """Handle serial edit changes."""
@@ -409,7 +411,7 @@ class DegasserPresenter:
         measurements = self._model.list_measurements()
         temperature_c = self._model.get_temperature_c()
         test_rows = self._model.get_test_rows()
-        time_series_rows = self._model.build_time_series_rows()
+        time_series_cells = self._model.build_time_series_cells()
         output_dir = self._model.get_output_directory()
 
         # Package into ViewState
@@ -421,7 +423,7 @@ class DegasserPresenter:
             time_series_measurements=measurements,
             temperature_c=temperature_c,
             test_rows=test_rows,
-            time_series_table_rows=time_series_rows,
+            time_series_table_rows=time_series_cells,
             output_directory=str(output_dir),
         )
 
