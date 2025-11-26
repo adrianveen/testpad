@@ -260,7 +260,7 @@ class BurninModel:
 
     def clear_output_folder(self) -> None:
         """Clear the output folder."""
-        self._output_folder = None
+        self._output_folder = Path()
 
     def set_output_file(self, output_file: Path) -> None:
         """Set the output file."""

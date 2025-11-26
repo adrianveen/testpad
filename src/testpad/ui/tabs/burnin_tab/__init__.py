@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from testpad.config.defaults import DEFAULT_FUS_LOGO_PATH
 from testpad.core.burnin.burnin_presenter import BurninPresenter
 from testpad.core.burnin.model import BurninModel
-from testpad.ui.tabs.burnin_tab import BurninTab
+from testpad.ui.tabs.burnin_tab.burnin_tab import BurninTab
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
