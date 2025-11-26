@@ -513,7 +513,6 @@ class DegasserTab(BaseTab):
             # Bold and gray background for re-circulation header rows
             if row == HEADER_ROW_INDEX:
                 font = item.font()
-                # font.setBold(True)
                 font.setPointSize(font.pointSize() + 1)
                 item.setFlags(PySide6.QtCore.Qt.ItemFlag.ItemIsEnabled)
                 item.setFont(font)

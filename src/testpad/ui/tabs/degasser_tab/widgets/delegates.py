@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator
@@ -63,11 +63,11 @@ class MeasuredValueDelegate(ColumnMajorNavigationMixin, QStyledItemDelegate):
         if not unit:
             return
 
-        # Cast to Any to access text attribute (exists at runtime but not in stubs)
-        opt = cast("Any", option)
-        text = opt.text
-        if text and not text.endswith(unit):
-            opt.text = f"{text} {unit}"
+        # Access text attribute if it exists (not in type stubs but exists at runtime)
+        if hasattr(option, "text"):
+            text: str = option.text  # type: ignore[attr-defined]
+            if text and not text.endswith(unit):
+                option.text = f"{text} {unit}"  # type: ignore[attr-defined]
 
     def createEditor(
         self,

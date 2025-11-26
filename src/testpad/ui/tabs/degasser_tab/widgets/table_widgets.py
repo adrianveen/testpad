@@ -114,9 +114,7 @@ class ColumnMajorTableWidget(QTableWidget):
         if new_row < 0:
             new_row = rows - 1
             new_col = (
-                PASS_FAIL_COL_INDEX
-                if col == MEASURED_COL_INDEX
-                else MEASURED_COL_INDEX
+                PASS_FAIL_COL_INDEX if col == MEASURED_COL_INDEX else MEASURED_COL_INDEX
             )
 
             # Handle header at last row case

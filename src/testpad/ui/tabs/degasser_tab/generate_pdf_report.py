@@ -487,7 +487,7 @@ class GenerateReport:
         row_names = TIME_SERIES_HEADERS
         times = sorted(data.keys())
         with self.pdf.table(
-            col_widths=(23, *([7] * len(times))),
+            col_widths=(22, *([7] * len(times))),
             align=Align.C,
             line_height=5,
         ) as table:

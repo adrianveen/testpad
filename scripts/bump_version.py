@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Version bumping script for semantic versioning.
 
 Updates VERSION file, creates git commit and tag.
@@ -10,15 +9,17 @@ Usage:
     python scripts/bump_version.py patch --dry-run
 """
 
+import shlex
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 
 def run_command(cmd: str, check: bool = True) -> str:
     """Run shell command and return output."""
     result = subprocess.run(
-        cmd, check=False, shell=False, capture_output=True, text=True
+        shlex.split(cmd), check=False, shell=False, capture_output=True, text=True
     )
     if check and result.returncode != 0:
         print(f"❌ ERROR: Command failed: {cmd}")
@@ -52,7 +53,11 @@ def check_branch() -> None:
 def check_tag_exists(tag: str) -> bool:
     """Check if tag already exists."""
     result = subprocess.run(
-        f"git tag -l {tag}", check=False, shell=True, capture_output=True, text=True
+        shlex.split(f"git tag -l {tag}"),
+        check=False,
+        shell=False,
+        capture_output=True,
+        text=True,
     )
     return bool(result.stdout.strip())
 
@@ -131,6 +136,9 @@ def main() -> None:
         print(f"❌ ERROR: Invalid bump type '{bump_type}'")
         print("   Valid options: major, minor, patch")
         sys.exit(1)
+
+    # Type narrowing: validation above guarantees bump_type is str
+    bump_type = cast(str, bump_type)
 
     # Calculate new version
     new_version = bump_version(current, bump_type)

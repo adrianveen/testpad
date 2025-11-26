@@ -452,7 +452,7 @@ class DegasserModel:
     def validate_for_report(self) -> list[str]:
         """Check for missing or empty values before report generation.
 
-        This is a soft validation - reporst can be generated with missing data,
+        This is a soft validation - reports can be generated with missing data,
         but users should be warned about what is missing.
 
         Returns:

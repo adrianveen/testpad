@@ -169,7 +169,7 @@ class BurninModel:
         self._separate_errors_option: bool = False
         self._moving_average_option: bool = False
         self._burnin_file_infos: list[BurninFileInfo] = []
-        self._output_folder: Path = DEFAULT_EXPORT_DIR
+        self._output_folder: Path | None = DEFAULT_EXPORT_DIR
         self._output_file: Path | None = None
 
     """
@@ -260,7 +260,7 @@ class BurninModel:
 
     def clear_output_folder(self) -> None:
         """Clear the output folder."""
-        self._output_folder = Path()
+        self._output_folder = None
 
     def set_output_file(self, output_file: Path) -> None:
         """Set the output file."""

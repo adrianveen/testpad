@@ -154,7 +154,7 @@ class BurninTab(QWidget):
         self.text_display.append(text)
 
     def show_info(self, message: str) -> None:
-        """Show an info message in the text display.
+        """Show an info message in a modal dialog.
 
         Args:
             message: The message to display.
