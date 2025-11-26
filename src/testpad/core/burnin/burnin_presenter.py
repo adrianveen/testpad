@@ -22,7 +22,7 @@ from testpad.ui.tabs.burnin_tab.metadata_dialog import MetadataDialog
 from testpad.ui.tabs.burnin_tab.plotting import save_figure_to_temp_file
 
 if TYPE_CHECKING:
-    from testpad.ui.tabs.burnin_widget import BurninTab as BurninView
+    from testpad.ui.tabs.burnin_tab import BurninTab as BurninView
 
 
 class BurninPresenter:
@@ -98,7 +98,8 @@ class BurninPresenter:
             return
 
         # Get the current output folder path
-        current_path = str(self._model.get_output_folder())
+        output_folder = self._model.get_output_folder()
+        current_path = str(output_folder) if output_folder else str(DEFAULT_EXPORT_DIR)
 
         # Ask view to show dialog
         selected_path = self._view.show_folder_dialog(current_path)
@@ -308,17 +309,19 @@ class BurninPresenter:
         list_of_pngs = [save_figure_to_temp_file(fig) for fig in list_of_figs]
 
         output_path = self._model.get_output_folder()
+        actual_output_path = output_path or DEFAULT_EXPORT_DIR
         report_generator = GenerateReport(
             meta_data=report_meta,
             burnin_stats=self._stats_classes,
             list_of_temp_pngs=list_of_pngs,
-            output_dir=output_path or DEFAULT_EXPORT_DIR,
+            output_dir=actual_output_path,
         )
 
         try:
             report_generator.generate_report()
             self._view.add_text_to_text_display(
-                f"Report generated successfully. Report was saved to:\n{output_path}"
+                f"Report generated successfully. Report was saved to:\n"
+                f"{actual_output_path}"
             )
         except (ValueError, OSError, PermissionError) as e:
             self._view.show_critical(

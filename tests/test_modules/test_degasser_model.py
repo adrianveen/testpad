@@ -1,3 +1,4 @@
+# ruff: noqa: PLR2004,S105,S106
 """Tests for degasser_tab model.
 
 This test module covers:
@@ -15,6 +16,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from testpad.ui.tabs.degasser_tab.config import (
+    DS50_SPEC_RANGES,
+    MINIMUM_END_MINUTE,
+    NUM_TEST_ROWS,
+    NUM_TIME_SERIES_COLS,
+    START_MINUTE,
+)
 from testpad.ui.tabs.degasser_tab.model import DegasserModel
 
 if TYPE_CHECKING:
@@ -28,9 +36,9 @@ class TestMinuteValidation:
     """Test the validation rules for minutes."""
 
     def test_valid_minutes(self) -> None:
-        """Valid minutes (0-10) should be accepted without error."""
+        """Valid minutes (0-20) should be accepted without error."""
         model = DegasserModel()
-        for minute in range(11):  # 0, 1 , 2, ..., 10
+        for minute in range(NUM_TIME_SERIES_COLS):  # 0, 1 , 2, ..., 20
             model.set_measurement(minute, 5.0)  # Should not raise an error
 
     def test_negative_minutes_rejected(self) -> None:
@@ -40,10 +48,10 @@ class TestMinuteValidation:
             model.set_measurement(-1, 5.0)
 
     def test_minute_too_large_rejected(self) -> None:
-        """Minutes greater than 10 should raise an error."""
+        """Minutes greater than 20 should raise an error."""
         model = DegasserModel()
         with pytest.raises(ValueError, match="must be in range"):
-            model.set_measurement(11, 5.0)
+            model.set_measurement(NUM_TIME_SERIES_COLS, 5.0)
 
     def test_set_measurement_stores_data(self) -> None:
         """Setting a measurement should store the data in the model."""
@@ -192,13 +200,13 @@ class TestTimeSeriesRows:
     def test_empty_time_series_all_none(self) -> None:
         """With no data, all minutes should have None values."""
         model = DegasserModel()
-        rows = model.build_time_series_rows()
+        rows = model.build_time_series_cells()
 
-        # Should have 11 rows (minutes 0-10 inclusive)
-        assert len(rows) == 11
-        assert rows[0] == (0, None)
-        assert rows[5] == (5, None)
+        # Should have 21 rows (minutes 0-20 inclusive)
+        assert len(rows) == NUM_TIME_SERIES_COLS
+        assert rows[START_MINUTE] == (START_MINUTE, None)
         assert rows[10] == (10, None)
+        assert rows[MINIMUM_END_MINUTE] == (MINIMUM_END_MINUTE, None)
 
     def test_partial_time_series(self) -> None:
         """Some minutes filled, others None."""
@@ -206,7 +214,7 @@ class TestTimeSeriesRows:
         model.set_measurement(0, 8.5)
         model.set_measurement(10, 3.5)
 
-        rows = model.build_time_series_rows()
+        rows = model.build_time_series_cells()
         assert rows[0] == (0, 8.5)
         assert rows[5] == (5, None)  # not filled
         assert rows[10] == (10, 3.5)
@@ -311,7 +319,7 @@ class TestCSVImport:
     def test_load_csv_invalid_minute(self, tmp_path: Path) -> None:
         """CSV with invalid minute should raise ValueError."""
         csv_file = tmp_path / "test_data.csv"
-        csv_file.write_text("time,oxygen_mg_per_L\n0,5.0\n15,7.5\n")
+        csv_file.write_text("time,oxygen_mg_per_L\n0,5.0\n25,7.5\n")
 
         model = DegasserModel()
         with pytest.raises(ValueError, match="must be in range"):
@@ -376,7 +384,7 @@ class TestTableTests:
         rows = model.get_test_rows()
 
         # Should have 7 rows
-        assert len(rows) == 7
+        assert len(rows) == NUM_TEST_ROWS
         # All should have descriptions but empty other fields
         assert all(r.description for r in rows)
         assert all(r.pass_fail == "" for r in rows)
@@ -395,6 +403,86 @@ class TestTableTests:
         model = DegasserModel()
         with pytest.raises(ValueError, match="out of range"):
             model.update_test_row(99, pass_fail="Fail")
+
+    def test_auto_pass_fail_validation_within_spec(self) -> None:
+        """Measured value within spec range should auto-set Pass/Fail to 'Pass'."""
+        model = DegasserModel()
+
+        # Row 0 is vacuum_pressure with spec (None, -22)
+        # Any value <= -22 should pass
+        model.update_test_row(0, measured=-25.0)
+        rows = model.get_test_rows()
+        assert rows[0].pass_fail == "Pass"
+
+        # Row 1 is flow_rate with spec (300, 700)
+        # Value of 500 should pass
+        model.update_test_row(1, measured=500.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+        # Test boundary values
+        model.update_test_row(1, measured=300.0)  # Min boundary
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+        model.update_test_row(1, measured=700.0)  # Max boundary
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+    def test_auto_pass_fail_validation_outside_spec(self) -> None:
+        """Measured value outside spec range should auto-set Pass/Fail to 'Fail'."""
+        model = DegasserModel()
+
+        # Row 1 is flow_rate with spec (300, 700)
+        # Value of 800 should fail (above max)
+        model.update_test_row(1, measured=800.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Fail"
+
+        # Value of 200 should fail (below min)
+        model.update_test_row(1, measured=200.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Fail"
+
+    def test_auto_pass_fail_validation_clears_on_empty(self) -> None:
+        """Clearing measured value should clear Pass/Fail."""
+        model = DegasserModel()
+
+        # Set a passing value first
+        model.update_test_row(1, measured=500.0)
+        rows = model.get_test_rows()
+        assert rows[1].pass_fail == "Pass"
+
+        # Clear the measured value
+        model.update_test_row(1, measured="")
+        rows = model.get_test_rows()
+        assert rows[1].measured is None
+        assert rows[1].pass_fail == ""
+
+    def test_specs_initialized_from_config(self) -> None:
+        """Test rows should be initialized with spec ranges from config."""
+        model = DegasserModel()
+        rows = model.get_test_rows()
+
+        # Row 0: vacuum_pressure (None, -22)
+        assert rows[0].spec_min is None
+        assert rows[0].spec_max == DS50_SPEC_RANGES["vacuum_pressure"][1]
+
+        # Row 1: flow_rate (300, 700)
+        assert rows[1].spec_min == DS50_SPEC_RANGES["flow_rate"][0]
+        assert rows[1].spec_max == DS50_SPEC_RANGES["flow_rate"][1]
+
+        # Row 2: do_level (None, 3.0)
+        assert rows[2].spec_min is None
+        assert rows[2].spec_max == DS50_SPEC_RANGES["do_level"][1]
+
+        # Row 3: Header row - no specs
+        assert rows[3].spec_min is None
+        assert rows[3].spec_max is None
+
+        # Row 4: recirculation_start (7.0, None)
+        assert rows[4].spec_min == DS50_SPEC_RANGES["recirculation_start"][0]
+        assert rows[4].spec_max is None
 
 
 # ====================================================================================

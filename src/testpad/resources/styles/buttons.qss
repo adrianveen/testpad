@@ -38,4 +38,4 @@ QPushButton#generateReportBtn {
 /* === Generic disabled state for all buttons === */
 QPushButton:disabled {
     color: gray;
-
+}

@@ -55,7 +55,7 @@ And then produce a formatted, 1 page report with the data plotted as well. The r
 | --- | --- | --- | --- |
 | **Model → State serialization** | `model.to_dict()` | JSON-serializable dict | Captures test rows, time-series, temperature, metadata, and last source path. |
 | **Disk → State restoration** | `presenter.restore_state(state_dict)` | Calls `model.reset()` then rehydrates via setters | Presenter handles version upgrade/downgrade logic. |
-| **Model → State change events (time-series/test rows/temp)** | `presenter.refresh_view()` | Pulls `model.get_state()` & `model.build_time_series_rows()` | Presenter updates tables, plot, and summary labels after any mutation (manual edit, CSV load, reset). |
+| **Model → State change events (time-series/test rows/temp)** | `presenter.refresh_view()` | Pulls `model.get_state()` & `model.build_time_series_cells()` | Presenter updates tables, plot, and summary labels after any mutation (manual edit, CSV load, reset). |
 | **Model → Plot data** | `presenter.update_plot()` | `model.list_measurements()` / `do2_plot.build_do2_time_series()` | Triggered after state changes; keeps matplotlib figure in sync. |
 | **Model → Spec override validation** | `presenter.handle_spec_override_error(mismatch)` | N/A | Presenter compares user-entered spec min/max against DS-50 defaults and raises user-visible error dialogs while logging details (planned). |
 

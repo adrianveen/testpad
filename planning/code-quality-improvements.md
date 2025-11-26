@@ -692,7 +692,7 @@ class DissolvedO2Tab(BaseTab):
     # Table dimensions
     TEST_TABLE_ROWS = 7
     TEST_TABLE_COLS = 5
-    TIME_SERIES_ROWS = 11  # 0-10 minutes inclusive
+    TIME_SERIES_CELLS = 11  # 0-10 minutes inclusive
     TIME_SERIES_COLS = 2   # Time and Dissolved O2
 
     def _build_test_table(self):
@@ -995,7 +995,7 @@ class DissolvedO2Presenter:
         self._block_signals(True)
         try:
             # Update all widgets from model
-            for row, (minute, oxygen) in enumerate(self._model.build_time_series_rows()):
+            for row, (minute, oxygen) in enumerate(self._model.build_time_series_cells()):
                 item = self._view._time_series_widget.item(row, 1)
                 item.setText(f"{oxygen:.2f}" if oxygen else "")
 

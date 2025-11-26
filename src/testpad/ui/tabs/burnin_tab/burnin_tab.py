@@ -145,14 +145,24 @@ class BurninTab(QWidget):
         return folder if folder else None
 
     def add_text_to_text_display(self, text: str) -> None:
-        """Add text to the text display."""
+        """Add text to the left panel text console.
+
+        Args:
+            text: The text to add to the text display.
+
+        """
         self.text_display.append(text)
 
     def show_info(self, message: str) -> None:
-        """Show a warning message in the text disqplay."""
+        """Show an info message in a modal dialog.
+
+        Args:
+            message: The message to display.
+
+        """
         message_box = QMessageBox()
         message_box.setIcon(QMessageBox.Icon.Information)
-        message_box.setWindowTitle("Warning")
+        message_box.setWindowTitle("Info")
         message_box.setText(message)
         message_box.setStandardButtons(
             QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
@@ -161,7 +171,12 @@ class BurninTab(QWidget):
         message_box.exec()
 
     def show_warning(self, message: str) -> None:
-        """Show a warning message in the text disqplay."""
+        """Show a warning message in the text display.
+
+        Args:
+            message: The message to display.
+
+        """
         message_box = QMessageBox()
         message_box.setIcon(QMessageBox.Icon.Warning)
         message_box.setWindowTitle("Warning")
@@ -173,7 +188,12 @@ class BurninTab(QWidget):
         message_box.exec()
 
     def show_critical(self, message: str) -> None:
-        """Show a critical message in the text disqplay."""
+        """Show a critical message in the text display.
+
+        Args:
+            message: The message to display.
+
+        """
         message_box = QMessageBox()
         message_box.setIcon(QMessageBox.Icon.Critical)
         message_box.setWindowTitle("Critical Error")
@@ -182,7 +202,12 @@ class BurninTab(QWidget):
         message_box.exec()
 
     def display_selected_files(self, filepaths: list[str]) -> None:
-        """Display the selected burn-in files in the text display."""
+        """Display the selected burn-in files in the text display.
+
+        Args:
+            filepaths: List of file paths to display.
+
+        """
         self.text_display.append("Burn-in File(s): ")
         for filepath in filepaths:
             self.text_display.append(f"  {filepath}\n")
@@ -333,6 +358,12 @@ class BurninTab(QWidget):
         for name in self.__dict__:
             attr = getattr(self, name)
             attr.blockSignals(block)
+
+    def _unblock_signals(self) -> None:
+        """Unblock signals from all input widgets."""
+        for name in self.__dict__:
+            attr = getattr(self, name)
+            attr.blockSignals(block=False)
 
 
 def _main() -> None:
