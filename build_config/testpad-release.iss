@@ -8,7 +8,7 @@
 
 #ifndef MyAppVersion
   ; Fallback version for manual builds (overridden in CI/CD from VERSION file)
-  #define MyAppVersion "1.12.1"
+  #define MyAppVersion "1.12.2"
 #endif
 
 #define MyCompany       "FUS Instruments"
