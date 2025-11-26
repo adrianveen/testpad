@@ -253,9 +253,7 @@ def main() -> None:
 
     # Load and combine stylesheets
     button_styles = load_stylesheet("buttons.qss")
-    # increase font size slightly of QLabels in main window (not splash screen)
-    label_styles = "QMainWindow QLabel{font-size: 11pt;}"
-    combined_styles = f"{label_styles}\n{palette_tooltip}\n{button_styles}"
+    combined_styles = f"{palette_tooltip}\n{button_styles}"
     app.setStyleSheet(combined_styles)
 
     # Splash screen setup
@@ -309,7 +307,7 @@ def main() -> None:
         on_first_show=finalize_ready,
         per_file_cb=per_file_cb,
     )
-    tab_dialog.resize(1200, 800)
+    # tab_dialog.resize(800, 800)
 
     # Show the window, then mark 100% when it is actually exposed (interactable)
     setp(95, "Finalizing UI…")

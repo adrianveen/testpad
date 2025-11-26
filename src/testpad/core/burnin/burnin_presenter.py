@@ -22,7 +22,7 @@ from testpad.ui.tabs.burnin_tab.metadata_dialog import MetadataDialog
 from testpad.ui.tabs.burnin_tab.plotting import save_figure_to_temp_file
 
 if TYPE_CHECKING:
-    from testpad.ui.tabs.burnin_widget import BurninTab as BurninView
+    from testpad.ui.tabs.burnin_tab import BurninTab as BurninView
 
 
 class BurninPresenter:

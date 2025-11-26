@@ -36,6 +36,7 @@ class ReportLayout:
     large_spacing_mm: float = 10
     section_spacing_mm: float = 5
     title_spacing_mm: float = 5
+    small_section_spacing_mm: float = 2
 
     def calculate_figure_width(self, page_width_mm: float) -> float:
         """Calculate optimal figure width based on available space.

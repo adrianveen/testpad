@@ -3,7 +3,7 @@ name = "testpad"
 version = "0.1.0"
 description = "Multi-tool for QA and R&D at FUS Instruments"
 readme = "README.md"
-requires-python = ">=3.12.1"
+requires-python = ">=3.12.1, <3.14"
 authors = [{ name = "Adrian", email = "adrian.veen@gmail.com" }]
 dependencies = [
   "fpdf2",
@@ -16,6 +16,9 @@ dependencies = [
   "scipy>=1.11",
   "shiboken6==6.9.3",
 ]
+
+[project.scripts]
+testpad = "testpad.testpad_main:main"
 
 [project.optional-dependencies]
 dev = [
@@ -69,6 +72,8 @@ ignore = [
   "ERA001",  # Checks for commented-out Python code.
   "TD002",  # Checks that a TODO comment includes an author.
   "TD003",  # Checks that a TODO comment is associated with a link to a relevant issue or ticket.
+  "FBT001",  # Checks for boolean arguments in function definitions.
+  "FBT002",  # Checks for boolean default positional arguments in function definitions.
 ]
 
 [tool.ruff.lint.per-file-ignores]

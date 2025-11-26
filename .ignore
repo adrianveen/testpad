@@ -1,2 +1,30 @@
-# File types for claude to ignore
+# File types for claude code to ignore
 .venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.exe
+*.dll
+*.so
+*.dylib
+*.la
+*.a
+*.lib
+*.exe
+*.out
+*.app
+
+# UV files
+*.uvprojx
+.uv*
+
+# Build files
+build
+dist
+
+# IDE files
+.vscode
+.idea
+.spyproject

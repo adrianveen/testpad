@@ -28,10 +28,13 @@ class DegasserViewState:
     time_series_measurements: list[tuple[int, float]] = field(default_factory=list)
     temperature_c: float | None = None
 
-    # Test Table Data (we'll expand this in Phase 3)
+    # Test Table Data
     test_rows: list[TestResultRow] = field(default_factory=list)
 
-    # Time Series Table Data (we'll expand this in Phase 3)
+    # Time Series Table Data
     time_series_table_rows: list[tuple[int, float | None]] = field(
         default_factory=list,
     )
+
+    # Output Directory
+    output_directory: str = ""

@@ -6,12 +6,19 @@ from pathlib import Path
 from typing import Any
 
 from fpdf import FPDF, Align, FontFace
+from fpdf.table import Table
 
 from testpad.config.defaults import DEFAULT_EXPORT_DIR, DEFAULT_FUS_LOGO_PATH
 from testpad.ui.tabs.degasser_tab.config import (
+    DEFAULT_TEST_DESCRIPTIONS,
+    DISSOLVED_OXYGEN_STRING,
+    DISTILLED_WATER_STRING,
     DS50_SPEC_RANGES,
     DS50_SPEC_UNITS,
+    HEADER_ROW_INDEX,
     NO_LIMIT_SYMBOL,
+    PDF_REPORT_NAME_PREFIX,
+    RE_CIRCULATION_STRING,
     REPORT_VERSION,
     ROW_SPEC_MAPPING,
     TEST_TABLE_HEADERS,
@@ -36,11 +43,11 @@ class GenerateReport:
         - _build_report_base(margins: float): Initializes the PDF report with margins.
         - _build_header(): Draws the header for the report.
         - _build_title_block(metadata: dict | None = None):
-        Draws the title block with metadata
+            Draws the title block with metadata
         - _build_test_table(test_data: list[dict[str, Any]]):
-        Draws the test results table.
+            Draws the test results table.
         - _build_time_series_table(data: dict[int, float]):
-        Draws the time series data table
+            Draws the time series data table
 
     """
 
@@ -76,26 +83,39 @@ class GenerateReport:
         self.figure_config = DEFAULT_FIGURE_CONFIG
         self.styling_config = DEFAULT_STYLE_CONFIG
 
-        # Y location trackers
-        self.time_series_y = 0
+    def generate_report(
+        self,
+        filename: str | Path | None = None,
+        overwrite: bool = False,
+        auto_increment: bool = False,
+    ) -> Path:
+        """Call the draw functions and exports the report.
 
-    def generate_report(self) -> None:
-        """Call the draw functions and exports the report."""
+        Args:
+            filename: The filename to save the report to. If None, a filename
+            overwrite: Overwrite the existing file if it exists
+            auto_increment: Increment the filename if it already exists
+
+        """
         serial_num = self.metadata.get("ds50_serial", "").replace("#", "")
-        filename = Path(self.output_dir) / f"FUS DS-50 Test Report-{serial_num}.pdf"
-        filename = str(filename)
+        if filename is None:
+            filename = (
+                Path(self.output_dir) / f"{PDF_REPORT_NAME_PREFIX}{serial_num}.pdf"
+            )
+        else:
+            filename = Path(filename)
 
-        # Call remaining draw methods
-        self._build_report_base(self.layout.left_margin_mm)
-        self._build_header(logo_path=self.logo_path)
-        self._build_title_block(self.metadata)
-        self._build_test_table(self.test_data)
-        self._build_time_series_table(self.time_series)
+        # Check if file exists before building pdf
+        if filename.exists() and not overwrite:
+            if auto_increment:
+                filename = self._get_next_available_filename(filename)
+            else:
+                msg = (
+                    f"Report already exists: {filename}\n"
+                    f"Use overwrite=True or auto_increment=True to handle this."
+                )
+                raise FileExistsError(msg)
 
-        # Create and add figure
-        self._add_time_series_figure()
-
-        # Save PDF to the output path
         # Make the directory if it doesn't exist
         output_path = Path(self.output_dir)
         try:
@@ -112,7 +132,53 @@ class GenerateReport:
             )
             raise OSError(msg)
 
-        self.pdf.output(filename)
+        # Call remaining draw methods
+        self._build_report_base(self.layout.left_margin_mm)
+        self._build_header(logo_path=self.logo_path)
+        self._build_title_block(self.metadata)
+        self._build_test_table(self.test_data)
+        self._build_time_series_table(self.time_series)
+
+        # Create and add figure
+        self._add_time_series_figure()
+
+        # Save PDF to the output path
+        self.pdf.output(str(filename))
+
+        return filename
+
+    def _get_next_available_filename(
+        self, base_filename: Path, max_attempts: int = 100
+    ) -> Path:
+        """Find next available filename with increment suffix.
+
+        Args:
+          base_filename: Original filename (e.g., "DS50_Test_Report_#9999.pdf")
+          max_attempts: Maximum number of suffixes to try
+
+        Returns:
+          Next available path (e.g., "DS50_Test_Report_#9999_1.pdf")
+
+        Raises:
+          OSError: If max_attempts reached without finding available filename
+
+        """
+        if not base_filename.exists():
+            return base_filename
+
+        # Extract stem and suffix
+        # "DS50_Test_Report_#9999.pdf" -> stem="DS50_Test_Report_#9999", suffix=".pdf"
+        stem = base_filename.stem
+        suffix = base_filename.suffix
+        parent = base_filename.parent
+
+        for i in range(1, max_attempts + 1):
+            new_filename = parent / f"{stem}_{i}{suffix}"
+            if not new_filename.exists():
+                return new_filename
+
+        msg = f"Could not find available filename after {max_attempts} attempts"
+        raise OSError(msg)
 
     def _build_report_base(self, margins: float) -> None:
         """Initialize the report object and draws the report skeleton such as margins.
@@ -124,6 +190,7 @@ class GenerateReport:
         self.pdf = FPDF(orientation="P", unit="mm", format="letter")
         self.pdf.add_page()
         self.pdf.set_margins(left=margins, top=margins * 0.75, right=margins)
+        self.pdf.set_auto_page_break(auto=True, margin=self.layout.bottom_margin_mm)
         self.pdf.set_font("helvetica", size=self.styling_config.header_text_size)
 
     def _build_header(self, logo_path: Path) -> None:
@@ -222,7 +289,7 @@ class GenerateReport:
                     if label == "Date":
                         value = value.strftime("%Y-%m-%d")
                     row.cell(
-                        text=f"{label}: --{value}--",
+                        text=f"{label}: --{value if value else '      '}--",
                         border=False,
                         align=Align.C,
                         style=value_font_style,
@@ -230,6 +297,102 @@ class GenerateReport:
                 else:
                     # Odd number of fields, pad the last row
                     row.cell("", border=False)
+
+    @staticmethod
+    def format_spec_value(value: float | None, unit: str) -> str:
+        """Format a specification value with its unit.
+
+        Args:
+            value: The specification value (float, int, or None).
+            unit: The unit string to append.
+
+        Returns:
+            Formatted string (e.g., "5.00 mg/L", "--").
+
+        """
+        if value is None:
+            return NO_LIMIT_SYMBOL
+        if isinstance(value, float):
+            return f"{value:.2f} {unit}"
+        return f"{value} {unit}" if unit else str(value)
+
+    @staticmethod
+    def format_measured_value(value: float | str | None, unit: str) -> str:
+        """Format a measured value with its unit.
+
+        Args:
+            value: The measured value.
+            unit: The unit string to append (only used if value is float).
+
+        Returns:
+            Formatted string.
+
+        """
+        if value is None:
+            return NO_LIMIT_SYMBOL
+        if isinstance(value, float):
+            return f"{value:.2f} {unit}"
+        if isinstance(value, int):
+            return f"{value} {unit}" if unit else str(value)
+        return f"{value}"
+
+    def _add_test_row(
+        self,
+        table: Table,
+        idx: int,
+        row_data: dict[str, Any],
+        styles: dict[str, FontFace],
+    ) -> None:
+        """Add a single row to the test table.
+
+        Args:
+            table: The fpdf table object.
+            idx: The row index.
+            row_data: The dictionary containing row data.
+            styles: Dictionary of FontFace styles.
+
+        """
+        row = table.row()
+
+        # Handle Header Row (Merged Cell)
+        if idx == HEADER_ROW_INDEX:
+            row.cell(
+                text=f"\n{row_data['description']}",  # newline to space out table
+                align=Align.C,
+                style=styles["header"],
+                colspan=5,
+                border=0,
+            )
+            return
+
+        # Normal Data Row
+        # Column 1: Description
+        row.cell(row_data["description"], align="L", style=styles["description"])
+
+        # Column 2: Pass/Fail
+        pass_fail_text = row_data.get("pass_fail", "") or ""
+        row.cell(pass_fail_text, align="C", style=styles["data"])
+
+        # Get specs and units
+        spec_key = ROW_SPEC_MAPPING[idx]
+        spec: tuple[float | int | None, float | int | None]
+        spec = (
+            DS50_SPEC_RANGES.get(spec_key, (None, None)) if spec_key else (None, None)
+        )
+        unit = DS50_SPEC_UNITS.get(spec_key, "") if spec_key else ""
+
+        # Column 3: Spec Min
+        spec_min_text = self.format_spec_value(spec[0], unit)
+        row.cell(spec_min_text, align="C", style=styles["spec"])
+
+        # Column 4: Spec Max
+        spec_max_text = self.format_spec_value(spec[1], unit)
+        row.cell(spec_max_text, align="C", style=styles["spec"])
+
+        # Column 5: Data Measured
+        data_measured: float | int | str | None = row_data.get("measured")
+        data_measured_text = self.format_measured_value(data_measured, unit)
+        row.cell(data_measured_text, align="C", style=styles["data"])
 
     def _build_test_table(self, test_data: list[dict[str, Any]]) -> None:
         """Draws the 8 row x 5 col table for the test results and default values.
@@ -240,149 +403,103 @@ class GenerateReport:
 
         """
         headers = TEST_TABLE_HEADERS
-        # Set font styles for each section of the table
-        header_style = FontFace(
-            emphasis=self.styling_config.header_text_style,
-            size_pt=self.styling_config.header_text_size,
-            color=self.styling_config.header_text_color,
-        )
-        spec_style = FontFace(
-            emphasis=self.styling_config.values_text_style,
-            size_pt=self.styling_config.spec_text_size,
-            color=self.styling_config.spec_text_color,
-        )
-        data_style = FontFace(
-            emphasis=self.styling_config.values_text_style,
-            size_pt=self.styling_config.data_text_size,
-            color=self.styling_config.data_text_color,
-        )
+
+        # Define styles
+        styles = {
+            "header": FontFace(
+                emphasis=self.styling_config.header_text_style,
+                size_pt=self.styling_config.header_text_size,
+                color=self.styling_config.header_text_color,
+            ),
+            "description": FontFace(
+                emphasis=self.styling_config.header_text_style,
+                size_pt=self.styling_config.description_text_size,
+                color=self.styling_config.header_text_color,
+            ),
+            "spec": FontFace(
+                emphasis=self.styling_config.values_text_style,
+                size_pt=self.styling_config.spec_text_size,
+                color=self.styling_config.spec_text_color,
+            ),
+            "data": FontFace(
+                emphasis=self.styling_config.values_text_style,
+                size_pt=self.styling_config.data_text_size,
+                color=self.styling_config.data_text_color,
+            ),
+        }
 
         self.pdf.ln(
             self.layout.section_spacing_mm,
         )  # Add a spacer before the data table
 
         with self.pdf.table(col_widths=(40, 25, 25, 25, 25)) as table:
+            # Create Header Row
             header_row = table.row()
             for header in headers:
-                header_row.cell(header, Align.C, style=header_style)
-            # Test Results and Headers
+                header_row.cell(header, Align.C, style=styles["header"])
+
+            # Create Data Rows
             for idx, test_row_dict in enumerate(test_data):
-                row = table.row()
-
-                # Column 1: Description
-                row.cell(test_row_dict["description"], align="L", style=header_style)
-
-                # Column 2: Pass/Fail
-                pas_fail_text = test_row_dict.get("pass_fail", "") or ""
-                row.cell(pas_fail_text, align="C", style=data_style)
-
-                # Get specs from config
-                spec_key = ROW_SPEC_MAPPING[idx]
-                spec = (
-                    DS50_SPEC_RANGES.get(spec_key, (None, None))
-                    if spec_key
-                    else (None, None)
-                )
-                units = DS50_SPEC_UNITS.get(spec_key, (None, None)) if spec_key else ""
-
-                # Column 3: Spec_Min
-                if spec[0] is not None:
-                    if isinstance(spec[0], float):
-                        spec_min_text = f"{spec[0]:.2f} {units}"
-                    else:
-                        spec_min_text = f"{spec[0]} {units}"
-                else:
-                    spec_min_text = NO_LIMIT_SYMBOL
-                row.cell(spec_min_text, align="C", style=spec_style)
-
-                # Column 4: Spec_Max
-                if spec[1] is not None:
-                    if isinstance(spec[1], float):
-                        spec_max_text = f"{spec[1]:.2f} {units}"
-                    else:
-                        spec_max_text = f"{spec[1]} {units}"
-                else:
-                    spec_max_text = NO_LIMIT_SYMBOL
-                row.cell(spec_max_text, align="C", style=spec_style)
-
-                # Column 5: Data Measured - set to gray
-                data_measured = test_row_dict.get("measured")
-                if isinstance(data_measured, float):
-                    data_measured_text = (
-                        f"{data_measured:.2f} {units}"
-                        if data_measured is not None
-                        else NO_LIMIT_SYMBOL
-                    )
-                else:
-                    data_measured_text = (
-                        f"{data_measured}"
-                        if data_measured is not None
-                        else NO_LIMIT_SYMBOL
-                    )
-                row.cell(data_measured_text, align="C", style=data_style)
+                self._add_test_row(table, idx, test_row_dict, styles)
 
     def _build_time_series_table(self, data: dict[int, float]) -> None:
-        """Draws the 2 x 11 time series table with a title above it.
+        """Draws a two-row horizontal table for time series data.
+
+        The first row contains time points (minutes) and the second row contains
+        the corresponding dissolved oxygen values (mg/L).
 
         Args:
-            data: 2D array of time series data
+            data (dict[int, float]): Dictionary where keys are time points (int)
+                and values are dissolved oxygen levels (float).
 
         """
         # Add spacer
         self.pdf.ln(self.layout.section_spacing_mm)
 
-        # Main title - bold, font 12
+        # Subtitle - non-bold
         self.pdf.set_font(
-            style=self.styling_config.subtitle_text_style,
-            size=self.styling_config.subtitle_text_size,
+            style=self.styling_config.values_text_style,
+            size=self.styling_config.header_text_size,
         )
-        title = "Dissolved Oxygen Re-circulation Test"
         self.pdf.cell(
-            text=title,
+            text=f"{DISSOLVED_OXYGEN_STRING} Measurements",
             align=Align.C,
             center=True,
             new_x="RIGHT",
             new_y="NEXT",
         )
 
-        # Subtitle - non-bold, font 12
-        self.pdf.set_font(
-            style=self.styling_config.values_text_style,
-            size=self.styling_config.subtitle_text_size,
-        )
-        self.pdf.cell(
-            text="1000 mL Distilled Water",
-            align=Align.L,
-            center=True,
-            new_x="RIGHT",
-            new_y="NEXT",
-        )
-
         # Add spacer and get current y position of table
-        self.pdf.ln(self.layout.section_spacing_mm)
-        self.time_series_y = self.pdf.get_y()
+        self.pdf.ln(self.layout.small_section_spacing_mm)
 
         # Define styles for table cells (FontFace only works in table context)
         header_style = FontFace(
             emphasis=self.styling_config.header_text_style,
-            size_pt=self.styling_config.header_text_size,
+            size_pt=self.styling_config.time_header_text_size,
         )
         data_style = FontFace(
             emphasis=self.styling_config.values_text_style,
-            size_pt=self.styling_config.data_text_size,
+            size_pt=self.styling_config.time_data_text_size,
             color=self.styling_config.data_text_color,
         )
 
         # Table with header row - bold, font 10
-        col_names = TIME_SERIES_HEADERS
-        with self.pdf.table(col_widths=(30), align="L") as table:
-            header_row = table.row()
-            for col_name in col_names:
-                header_row.cell(col_name, align=Align.C, style=header_style)
-            for time, do_value in data.items():
-                row = table.row()
-                row.cell(str(time), align="C")
-                row.cell(f"{do_value:.2f}", align="C", style=data_style)
+        row_names = TIME_SERIES_HEADERS
+        times = sorted(data.keys())
+        with self.pdf.table(
+            col_widths=(23, *([7] * len(times))),
+            align=Align.C,
+            line_height=5,
+        ) as table:
+            row_keys = table.row()
+            row_keys.cell(text=row_names[0], align=Align.L, style=header_style)
+            for time in times:
+                row_keys.cell(str(time), align=Align.C, style=data_style)
+            row_values = table.row()
+            row_values.cell(text=row_names[1], align=Align.L, style=header_style)
+            for time in times:
+                do_value = data[time]
+                row_values.cell(f"{do_value:.2f}", align=Align.C, style=data_style)
 
         # Add spacer and add temperature
         self.pdf.ln(self.layout.section_spacing_mm / 2)
@@ -400,14 +517,24 @@ class GenerateReport:
         to create a properly sized figure for the PDF.
         """
         # Calculate optimal figure dimensions
-        page_width_mm = self.pdf.w
-        figure_width_mm = self.layout.calculate_figure_width(page_width_mm)
-        figure_x, _ = self.layout.get_figure_position(page_width_mm)
+        # Width: Full page width minus margins
+        figure_width_mm = (
+            self.pdf.w - self.layout.left_margin_mm - self.layout.right_margin_mm
+        )
+
+        # Height: Remaining vertical space minus bottom margin
+        # Available height = Page Height - Current Y - Bottom Margin
+        bottom_margin_mm = self.layout.bottom_margin_mm
+        figure_height_mm = self.pdf.h - self.pdf.get_y() - bottom_margin_mm
+
+        # Safety check to prevent negative or tiny height
+        if figure_height_mm < self.layout.figure_min_height_mm:
+            figure_height_mm = 50  # Fallback height
 
         # Calculate figure size in inches for matplotlib
-        figure_width_inches, figure_height_inches = (
-            self.figure_config.calculate_size_for_width(figure_width_mm)
-        )
+        # We use the exact dimensions calculated above
+        figure_width_inches = figure_width_mm / 25.4
+        figure_height_inches = figure_height_mm / 25.4
 
         # Create the figure using pure plotting function
         figure = make_time_series_figure(
@@ -418,19 +545,14 @@ class GenerateReport:
         )
 
         # Save to temporary file
+        # bbox_inches=None ensures the saved image matches size_inches exactly
         temp_path = save_figure_to_temp_file(figure, str(Path.cwd()))
 
         try:
-            # Calculate figure height in mm for PDF
-            figure_height_mm = figure_width_mm * (
-                figure_height_inches / figure_width_inches
-            )
-
             # Add to PDF
             self.pdf.image(
                 temp_path,
-                x=figure_x,
-                y=self.time_series_y,
+                x=self.layout.left_margin_mm,
                 w=figure_width_mm,
                 h=figure_height_mm,
             )
@@ -454,6 +576,7 @@ if __name__ == "__main__":
 
     # Dummy time series data
     example_time_series = {
+        0: 9.85,
         1: 8.65,
         2: 7.64,
         3: 5.60,
@@ -464,7 +587,16 @@ if __name__ == "__main__":
         8: 2.33,
         9: 2.16,
         10: 2.05,
-        11: 1.00,
+        11: 1.99,
+        12: 1.98,
+        13: 1.97,
+        14: 1.96,
+        15: 1.95,
+        16: 1.94,
+        17: 1.93,
+        18: 1.92,
+        19: 1.91,
+        20: 1.90,
     }
 
     # Dummy test table data matching the expected format
@@ -477,22 +609,25 @@ if __name__ == "__main__":
             "measured": 2.15,
         },
         {
-            "description": "Dissolved Oxygen Re-circulation Test (1000 mL):",
+            "description": (
+                f"{DISSOLVED_OXYGEN_STRING} {RE_CIRCULATION_STRING} - "
+                f"{DISTILLED_WATER_STRING}"
+            ),
             "pass_fail": "",
             "measured": None,
         },
         {
-            "description": "   Starting DO Level:",
+            "description": f"{DEFAULT_TEST_DESCRIPTIONS[4]}",
             "pass_fail": "Pass",
             "measured": 8.65,
         },
         {
-            "description": "   Time to Reach 4 mg/L (min):",
+            "description": f"{DEFAULT_TEST_DESCRIPTIONS[5]}",
             "pass_fail": "Pass",
             "measured": 4.0,
         },
         {
-            "description": "   Time to Reach 2 mg/L (min):",
+            "description": f"{DEFAULT_TEST_DESCRIPTIONS[6]}",
             "pass_fail": "Pass",
             "measured": 8.0,
         },
@@ -513,4 +648,5 @@ if __name__ == "__main__":
         temperature=temp,
         output_dir=output_dir,
     )
-    report.generate_report()
+    report.generate_report(auto_increment=True)
+    print(f"Test report generated in: {output_dir}")

@@ -1,4 +1,4 @@
-"""Configuration specific to the Degasser (Dissolved O2) tab.
+"""Configuration specific to the Degasser tab.
 
 Contains DS-50 specifications, test descriptions, and validation rules.
 """
@@ -11,10 +11,13 @@ from testpad.config.defaults import (
     default_date,
 )
 
-MIN_MINUTE = 0
-MAX_MINUTE = 10
-TIME_SERIES_RESOLUTION_MINUTES = 1  # Measurement interval
-DEFAULT_TIME_SERIES_TEMP = DEFAULT_TEMPERATURE_C
+# === String Constants ===
+# Common strings used in the application
+DISSOLVED_OXYGEN_STRING = "Dissolved Oxygen"
+RE_CIRCULATION_STRING = "Re-circulation Test"
+DISTILLED_WATER_STRING = "1000 mL Distilled Water"
+MG_PER_LITER_STRING = "mg/L"
+
 # === Metadata Fields ===
 METADATA_FIELDS = {
     "tester_name": "Tester Name",
@@ -22,17 +25,18 @@ METADATA_FIELDS = {
     "ds50_serial_number": "DS-50 Serial Number",
     "location": "Location",
 }
+DEFAULT_TEST_DATE = default_date
 
 # === DS-50 Test Specifications ===
 # These are the standard test descriptions for DS-50 degasser testing
 DEFAULT_TEST_DESCRIPTIONS = [
     "Vacuum Pressure:",
     "Flow Rate:",
-    "Dissolved Oxygen Level Test:",
-    "Dissolved Oxygen Re-circulation Test (1000 mL):",
-    "   Starting DO Level:",
-    "   Time to Reach 4 mg/L (min):",
-    "   Time to Reach 2 mg/L (min):",
+    f"{DISSOLVED_OXYGEN_STRING} Level Test:",
+    f"{DISSOLVED_OXYGEN_STRING} {RE_CIRCULATION_STRING} - {DISTILLED_WATER_STRING}",
+    "Starting Dissolved Oxygen Level:",
+    f"Time to Reach 4 {MG_PER_LITER_STRING} (min):",
+    f"Time to Reach 2 {MG_PER_LITER_STRING} (min):",
 ]
 
 # === DS-50 Specification Ranges ===
@@ -47,14 +51,40 @@ DS50_SPEC_RANGES = {
     "recirculation_to_2mg": (None, 10),
 }
 
+# === Physical Bounds for Validation ===
+# These define physically valid ranges for measurements (not spec compliance)
+# Validators use these bounds to reject non-physical values
+# Format: (min, max) - values outside these ranges are rejected during input
+DO_PHYSICAL_BOUNDS = (0.0, 30.0)  # Dissolved oxygen in mg/L (shared with time series)
+TIME_PHYSICAL_BOUNDS = (0.0, 100.0)  # Time in minutes
+
+DS50_PHYSICAL_BOUNDS = {
+    "vacuum_pressure": (-50.0, 0.0),  # inHg - must be negative for vacuum
+    "flow_rate": (0.0, 2000.0),  # mL/min - must be positive
+    "do_level": DO_PHYSICAL_BOUNDS,  # mg/L
+    "recirculation_start": DO_PHYSICAL_BOUNDS,  # mg/L
+    "recirculation_to_4mg": TIME_PHYSICAL_BOUNDS,  # min
+    "recirculation_to_2mg": TIME_PHYSICAL_BOUNDS,  # min
+}
+
 # Units for each specification (displayed in table)
 DS50_SPEC_UNITS = {
     "vacuum_pressure": "inHg",
     "flow_rate": "mL/min",
-    "do_level": "mg/L",
-    "recirculation_start": "mg/L",
+    "do_level": f"{MG_PER_LITER_STRING}",
+    "recirculation_start": f"{MG_PER_LITER_STRING}",
     "recirculation_to_4mg": "min",
     "recirculation_to_2mg": "min",
+}
+
+# Decimal precision for displaying measured values
+DS50_DECIMAL_PRECISION = {
+    "vacuum_pressure": 0,  # No decimal places for vacuum pressure
+    "flow_rate": 0,  # No decimal places for flow rate
+    "do_level": 2,  # 2 decimal places for dissolved oxygen
+    "recirculation_start": 2,  # 2 decimal places for dissolved oxygen
+    "recirculation_to_4mg": 0,  # 0 decimal place for time measurements
+    "recirculation_to_2mg": 0,  # 0 decimal place for time measurements
 }
 
 # Symbol to display when no limit exists
@@ -84,13 +114,14 @@ MIN_OXYGEN_VALUE = 0.0  # mg/L, must be positive
 REQUIRE_TEMPERATURE_FOR_REPORT = False  # Temperature is optional
 
 # === Tables and Report Configuration ===
+# Test Table
 NUM_TEST_ROWS = 7
 NUM_TEST_COLS = 5
-NUM_TIME_SERIES_ROWS = 11
-NUM_TIME_SERIES_COLS = 2
+NUM_TIME_SERIES_ROWS = 2
+NUM_TIME_SERIES_COLS = 21
 HEADER_ROW_INDEX = 3
 HEADER_ROW_COLOR = QColor(60, 60, 60)
-REPORT_VERSION = "2025.0.4"
+REPORT_VERSION = "2025.0.5"
 TEST_TABLE_HEADERS = [
     "Test Procedure/Description",
     "Pass/Fail",
@@ -102,5 +133,19 @@ PASS_FAIL_COL_INDEX = 1
 SPEC_MIN_COL_INDEX = 2
 SPEC_MAX_COL_INDEX = 3
 MEASURED_COL_INDEX = 4
-TIME_SERIES_HEADERS = ["Time (minutes)", "Dissolved Oxygen (mg/L)"]
-DEFAULT_TEST_DATE = default_date
+# Time Series Table
+TIME_MINUTES_ROW_INDEX = 0
+MEASURED_OXYGEN_ROW_INDEX = 1
+TIME_SERIES_HEADERS = [
+    "Time (minutes)",
+    f"{DISSOLVED_OXYGEN_STRING} ({MG_PER_LITER_STRING})",
+]
+START_MINUTE = 0
+MAXIMUM_END_MINUTE = 20
+MINIMUM_END_MINUTE = 10
+TIME_SERIES_RESOLUTION_MINUTES = 1  # Measurement interval
+DEFAULT_TIME_SERIES_TEMP = DEFAULT_TEMPERATURE_C
+
+
+# === Output File Configuration ===
+PDF_REPORT_NAME_PREFIX = "FUS DS-50 Test Report-"
