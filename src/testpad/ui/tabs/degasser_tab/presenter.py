@@ -4,7 +4,7 @@ This module handles the logic for the degasser tab such as
 updating the view and handling user input.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
